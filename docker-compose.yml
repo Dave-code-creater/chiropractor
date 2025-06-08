@@ -1,0 +1,93 @@
+version: '3.9'
+services:
+  gateway:
+    build: ./gateway
+    ports:
+      - '3000:3000'
+    depends_on:
+      - auth-service
+      - user-service
+      - report-service
+      - appointment-service
+      - chat-service
+      - blog-service
+
+  auth-service:
+    build: ./auth-service
+    ports:
+      - '3001:3001'
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/auth
+    depends_on:
+      - postgres
+
+  user-service:
+    build: ./user-service
+    ports:
+      - '3002:3002'
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/users
+    depends_on:
+      - postgres
+
+  report-service:
+    build: ./report-service
+    ports:
+      - '3003:3003'
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/reports
+    depends_on:
+      - postgres
+
+  appointment-service:
+    build: ./appointment-service
+    ports:
+      - '3004:3004'
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/appointments
+    depends_on:
+      - postgres
+      - rabbitmq
+      - redis
+
+  chat-service:
+    build: ./chat-service
+    ports:
+      - '3005:3005'
+    environment:
+      - MONGO_URL=mongodb://mongo:27017/chat
+    depends_on:
+      - mongo
+      - redis
+
+  blog-service:
+    build: ./blog-service
+    ports:
+      - '3006:3006'
+    environment:
+      - MONGO_URL=mongodb://mongo:27017/blog
+    depends_on:
+      - mongo
+
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - '5432:5432'
+
+  mongo:
+    image: mongo:7
+    ports:
+      - '27017:27017'
+
+  redis:
+    image: redis:7
+    ports:
+      - '6379:6379'
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - '5672:5672'
+      - '15672:15672'
