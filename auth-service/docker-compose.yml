@@ -1,0 +1,51 @@
+version: '3.9'
+
+services:
+  auth-db:
+    image: postgres:16-alpine
+    container_name: auth_db
+    restart: always
+    environment:
+      POSTGRES_DB: auth_db
+      POSTGRES_USER: auth_user
+      POSTGRES_PASSWORD: auth_pass
+    ports:
+      - "5433:5432"
+    volumes:
+      - auth_pgdata:/var/lib/postgresql/data
+
+  migrate-auth:
+    image: postgres:16-alpine
+    depends_on:
+      - auth-db
+    volumes:
+      - ./migrations:/migrations
+    entrypoint: >
+      sh -c "
+        echo '⏳ Waiting for auth-db...' &&
+        sleep 3 &&
+        psql postgresql://auth_user:auth_pass@auth-db:5432/auth_db -f /migrations/001_init.sql
+      "
+
+  auth-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      - auth-db
+      - migrate-auth
+    ports:
+      - "3001:3001"
+    environment:
+      NODE_ENV: development
+      PORT: 3001
+      JWT_SECRET: supersecretkey
+      JWT_EXPIRES_IN: 1h
+      PRO_POSTGRESQL_USER: auth_user
+      PRO_POSTGRESQL_PASS: auth_pass
+      PRO_POSTGRESQL_HOST: auth-db
+      PRO_POSTGRESQL_PORT: 5432
+      PRO_POSTGRESQL_NAME: auth_db
+
+volumes:
+  auth_pgdata:

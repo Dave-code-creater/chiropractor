@@ -6,7 +6,10 @@
   "scripts": {
     "start": "node src/index.js",
     "test": "NODE_ENV=test mocha",
-    "migrate": "node scripts/migrate.js"
+    "migrate": "node scripts/migrate.js",
+    "docker:up": "docker build -t auth-service .",
+    "docker:build": "docker-compose up -d --build",
+    "docker:down": "docker-compose down"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
