@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: report-service
+spec:
+  selector:
+    matchLabels:
+      app: report-service
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: report-service
+    spec:
+      containers:
+        - name: report-service
+          image: report-service:latest
+          ports:
+            - containerPort: 3003
+          env:
+            - name: DATABASE_URL
+              value: postgres://postgres:postgres@postgres:5432/reports
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: report-service
+spec:
+  selector:
+    app: report-service
+  ports:
+    - port: 3003
+      targetPort: 3003

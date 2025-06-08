@@ -21,7 +21,16 @@ Docker Compose sets up:
 - RabbitMQ
 
 ## Running
+Run the helper script to build and start all services:
+
 ```bash
-docker-compose up --build
+./deploy.sh
 ```
-This starts all services on ports 3000–3006.
+This invokes `docker-compose up --build` and starts all services on ports 3000–3006.
+
+### Kubernetes
+To deploy the services to a local Kubernetes cluster that can access your local Docker images (for example **minikube** or **kind**), run:
+```bash
+./deploy-k8s.sh
+```
+The script builds the Docker images for all services and applies the manifests in the `k8s/` directory.
