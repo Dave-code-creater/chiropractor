@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { healthCheck } from '../controllers/health.controller.js';
-import { register, login } from '../controllers/auth.controller.js';
+import HealthController from '../controllers/health.controller.js';
+import AuthController from '../controllers/auth.controller.js';
 
 const router = Router();
 
@@ -13,7 +13,7 @@ const router = Router();
  *       200:
  *         description: OK
  */
-router.get('/', healthCheck);
+router.get('/', HealthController.healthCheck);
 
 /**
  * @swagger
@@ -35,7 +35,7 @@ router.get('/', healthCheck);
  *       201:
  *         description: Created
  */
-router.post('/register', register);
+router.post('/register', AuthController.register);
 
 /**
  * @swagger
@@ -57,6 +57,6 @@ router.post('/register', register);
  *       200:
  *         description: OK
  */
-router.post('/login', login);
+router.post('/login', AuthController.login);
 
 export default router;

@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { healthCheck } from '../controllers/health.controller.js';
-import { create, getById, update, list } from '../controllers/report.controller.js';
+import HealthController from '../controllers/health.controller.js';
+import ReportController from '../controllers/report.controller.js';
 
 const router = Router();
 
@@ -13,7 +13,7 @@ const router = Router();
  *       200:
  *         description: OK
  */
-router.get('/', healthCheck);
+router.get('/', HealthController.healthCheck);
 
 /**
  * @swagger
@@ -24,18 +24,7 @@ router.get('/', healthCheck);
  *       201:
  *         description: Created
  */
-router.post('/reports', create);
-
-/**
- * @swagger
- * /reports:
- *   get:
- *     summary: List reports
- *     responses:
- *       200:
- *         description: OK
- */
-router.get('/reports', list);
+router.post('/reports', ReportController.create);
 
 /**
  * @swagger
@@ -52,7 +41,7 @@ router.get('/reports', list);
  *       200:
  *         description: OK
  */
-router.get('/reports/:id', getById);
+router.get('/reports/:id', ReportController.getById);
 
 /**
  * @swagger
@@ -69,6 +58,17 @@ router.get('/reports/:id', getById);
  *       200:
  *         description: OK
  */
-router.put('/reports/:id', update);
+router.put('/reports/:id', ReportController.update);
+
+/**
+ * @swagger
+ * /reports:
+ *   get:
+ *     summary: List reports
+ *     responses:
+ *       200:
+ *         description: OK
+ */
+router.get('/reports', ReportController.list);
 
 export default router;

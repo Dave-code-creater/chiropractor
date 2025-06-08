@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { healthCheck } from '../controllers/health.controller.js';
-import { create, getById, update } from '../controllers/profile.controller.js';
+import HealthController from '../controllers/health.controller.js';
+import ProfileController from '../controllers/profile.controller.js';
 
 const router = Router();
 
@@ -13,7 +13,7 @@ const router = Router();
  *       200:
  *         description: OK
  */
-router.get('/', healthCheck);
+router.get('/', HealthController.healthCheck);
 
 /**
  * @swagger
@@ -24,7 +24,7 @@ router.get('/', healthCheck);
  *       201:
  *         description: Created
  */
-router.post('/profiles', create);
+router.post('/profiles', ProfileController.create);
 
 /**
  * @swagger
@@ -41,7 +41,7 @@ router.post('/profiles', create);
  *       200:
  *         description: OK
  */
-router.get('/profiles/:id', getById);
+router.get('/profiles/:id', ProfileController.getById);
 
 /**
  * @swagger
@@ -58,6 +58,6 @@ router.get('/profiles/:id', getById);
  *       200:
  *         description: OK
  */
-router.put('/profiles/:id', update);
+router.put('/profiles/:id', ProfileController.update);
 
 export default router;

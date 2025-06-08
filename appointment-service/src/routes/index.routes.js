@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { healthCheck } from '../controllers/health.controller.js';
-import { create, getById, update, list } from '../controllers/appointment.controller.js';
+import HealthController from '../controllers/health.controller.js';
+import AppointmentController from '../controllers/appointment.controller.js';
 
 const router = Router();
 
@@ -13,7 +13,7 @@ const router = Router();
  *       200:
  *         description: OK
  */
-router.get('/', healthCheck);
+router.get('/', HealthController.healthCheck);
 
 /**
  * @swagger
@@ -24,24 +24,13 @@ router.get('/', healthCheck);
  *       201:
  *         description: Created
  */
-router.post('/appointments', create);
-
-/**
- * @swagger
- * /appointments:
- *   get:
- *     summary: List appointments
- *     responses:
- *       200:
- *         description: OK
- */
-router.get('/appointments', list);
+router.post('/appointments', AppointmentController.create);
 
 /**
  * @swagger
  * /appointments/{id}:
  *   get:
- *     summary: Get appointment by id
+ *     summary: Get appointment
  *     parameters:
  *       - in: path
  *         name: id
@@ -52,7 +41,7 @@ router.get('/appointments', list);
  *       200:
  *         description: OK
  */
-router.get('/appointments/:id', getById);
+router.get('/appointments/:id', AppointmentController.getById);
 
 /**
  * @swagger
@@ -69,6 +58,17 @@ router.get('/appointments/:id', getById);
  *       200:
  *         description: OK
  */
-router.put('/appointments/:id', update);
+router.put('/appointments/:id', AppointmentController.update);
+
+/**
+ * @swagger
+ * /appointments:
+ *   get:
+ *     summary: List appointments
+ *     responses:
+ *       200:
+ *         description: OK
+ */
+router.get('/appointments', AppointmentController.list);
 
 export default router;

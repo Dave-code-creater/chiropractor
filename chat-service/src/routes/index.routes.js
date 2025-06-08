@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { healthCheck } from '../controllers/health.controller.js';
-import { send, history } from '../controllers/message.controller.js';
+import HealthController from '../controllers/health.controller.js';
+import MessageController from '../controllers/message.controller.js';
 
 const router = Router();
 
@@ -13,7 +13,7 @@ const router = Router();
  *       200:
  *         description: OK
  */
-router.get('/', healthCheck);
+router.get('/', HealthController.healthCheck);
 
 /**
  * @swagger
@@ -24,13 +24,13 @@ router.get('/', healthCheck);
  *       201:
  *         description: Created
  */
-router.post('/messages', send);
+router.post('/messages', MessageController.send);
 
 /**
  * @swagger
- * /history/{room}:
+ * /chat/history/{room}:
  *   get:
- *     summary: Get chat history for room
+ *     summary: Chat history
  *     parameters:
  *       - in: path
  *         name: room
@@ -41,6 +41,6 @@ router.post('/messages', send);
  *       200:
  *         description: OK
  */
-router.get('/history/:room', history);
+router.get('/chat/history/:room', MessageController.history);
 
 export default router;

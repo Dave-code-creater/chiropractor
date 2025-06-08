@@ -1,2 +1,3 @@
-// Business logic placeholder
-export default {};
+export default class ChatService {
+  // business logic placeholder
+}

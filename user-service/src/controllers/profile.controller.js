@@ -1,33 +1,36 @@
 import { createProfile, getProfileById, updateProfile } from '../repositories/index.repo.js';
+import { CREATED, OK, NotFoundError, InternalServerError } from '../utils/httpResponses.js';
 
-export const create = async (req, res) => {
-  try {
-    const profile = await createProfile(req.body);
-    res.status(201).json(profile);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'error creating profile' });
+export default class ProfileController {
+  static async create(req, res) {
+    try {
+      const profile = await createProfile(req.body);
+      return new CREATED({ metadata: profile }).send(res);
+    } catch (err) {
+      console.error(err);
+      return new InternalServerError('error creating profile').send(res);
+    }
   }
-};
 
-export const getById = async (req, res) => {
-  try {
-    const profile = await getProfileById(Number(req.params.id));
-    if (!profile) return res.status(404).json({ message: 'not found' });
-    res.json(profile);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'error fetching profile' });
+  static async getById(req, res) {
+    try {
+      const profile = await getProfileById(Number(req.params.id));
+      if (!profile) return new NotFoundError('not found').send(res);
+      return new OK({ metadata: profile }).send(res);
+    } catch (err) {
+      console.error(err);
+      return new InternalServerError('error fetching profile').send(res);
+    }
   }
-};
 
-export const update = async (req, res) => {
-  try {
-    const profile = await updateProfile(Number(req.params.id), req.body);
-    if (!profile) return res.status(404).json({ message: 'not found' });
-    res.json(profile);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'error updating profile' });
+  static async update(req, res) {
+    try {
+      const profile = await updateProfile(Number(req.params.id), req.body);
+      if (!profile) return new NotFoundError('not found').send(res);
+      return new OK({ metadata: profile }).send(res);
+    } catch (err) {
+      console.error(err);
+      return new InternalServerError('error updating profile').send(res);
+    }
   }
-};
+}

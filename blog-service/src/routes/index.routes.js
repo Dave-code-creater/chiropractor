@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { healthCheck } from '../controllers/health.controller.js';
-import { create, getById, list } from '../controllers/post.controller.js';
+import HealthController from '../controllers/health.controller.js';
+import PostController from '../controllers/post.controller.js';
 
 const router = Router();
 
@@ -13,29 +13,18 @@ const router = Router();
  *       200:
  *         description: OK
  */
-router.get('/', healthCheck);
+router.get('/', HealthController.healthCheck);
 
 /**
  * @swagger
  * /posts:
  *   post:
- *     summary: Create blog post
+ *     summary: Create post
  *     responses:
  *       201:
  *         description: Created
  */
-router.post('/posts', create);
-
-/**
- * @swagger
- * /posts:
- *   get:
- *     summary: List posts
- *     responses:
- *       200:
- *         description: OK
- */
-router.get('/posts', list);
+router.post('/posts', PostController.create);
 
 /**
  * @swagger
@@ -52,6 +41,17 @@ router.get('/posts', list);
  *       200:
  *         description: OK
  */
-router.get('/posts/:id', getById);
+router.get('/posts/:id', PostController.getById);
+
+/**
+ * @swagger
+ * /posts:
+ *   get:
+ *     summary: List posts
+ *     responses:
+ *       200:
+ *         description: OK
+ */
+router.get('/posts', PostController.list);
 
 export default router;

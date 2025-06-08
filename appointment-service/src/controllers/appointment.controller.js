@@ -1,43 +1,46 @@
 import { createAppointment, getAppointmentById, updateAppointment, listAppointments } from '../repositories/index.repo.js';
+import { CREATED, OK, NotFoundError, InternalServerError } from '../utils/httpResponses.js';
 
-export const create = async (req, res) => {
-  try {
-    const appt = await createAppointment(req.body);
-    res.status(201).json(appt);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'error creating appointment' });
+export default class AppointmentController {
+  static async create(req, res) {
+    try {
+      const appt = await createAppointment(req.body);
+      return new CREATED({ metadata: appt }).send(res);
+    } catch (err) {
+      console.error(err);
+      return new InternalServerError('error creating appointment').send(res);
+    }
   }
-};
 
-export const getById = async (req, res) => {
-  try {
-    const appt = await getAppointmentById(Number(req.params.id));
-    if (!appt) return res.status(404).json({ message: 'not found' });
-    res.json(appt);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'error fetching appointment' });
+  static async getById(req, res) {
+    try {
+      const appt = await getAppointmentById(Number(req.params.id));
+      if (!appt) return new NotFoundError('not found').send(res);
+      return new OK({ metadata: appt }).send(res);
+    } catch (err) {
+      console.error(err);
+      return new InternalServerError('error fetching appointment').send(res);
+    }
   }
-};
 
-export const update = async (req, res) => {
-  try {
-    const appt = await updateAppointment(Number(req.params.id), req.body);
-    if (!appt) return res.status(404).json({ message: 'not found' });
-    res.json(appt);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'error updating appointment' });
+  static async update(req, res) {
+    try {
+      const appt = await updateAppointment(Number(req.params.id), req.body);
+      if (!appt) return new NotFoundError('not found').send(res);
+      return new OK({ metadata: appt }).send(res);
+    } catch (err) {
+      console.error(err);
+      return new InternalServerError('error updating appointment').send(res);
+    }
   }
-};
 
-export const list = async (req, res) => {
-  try {
-    const appts = await listAppointments();
-    res.json(appts);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'error listing appointments' });
+  static async list(_req, res) {
+    try {
+      const appts = await listAppointments();
+      return new OK({ metadata: appts }).send(res);
+    } catch (err) {
+      console.error(err);
+      return new InternalServerError('error listing appointments').send(res);
+    }
   }
-};
+}

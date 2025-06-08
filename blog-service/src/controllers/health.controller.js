@@ -1,3 +1,5 @@
-export const healthCheck = (req, res) => {
-  res.json({ status: 'ok' });
-};
+export default class HealthController {
+  static healthCheck(_req, res) {
+    res.json({ status: 'ok' });
+  }
+}
