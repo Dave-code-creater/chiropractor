@@ -1,13 +1,14 @@
 import express from 'express';
 import cors from 'cors';
+import routes from './routes/index.routes.js';
+import { loadEnv } from './config/index.js';
 
 const app = express();
+loadEnv();
 app.use(cors());
 app.use(express.json());
 
-app.get('/', (_req, res) => {
-  res.json({ service: 'auth-service', status: 'ok' });
-});
+app.use('/', routes);
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log('auth-service listening on ' + PORT));
