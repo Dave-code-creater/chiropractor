@@ -1,47 +1,17 @@
-// controllers/auth.controller.js
-import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
-import {
-  createUser,
-  findUserByEmail,
-  findUserByUsername
-} from '../repositories/index.repo.js';
-import {
-  insertApiKey,
-  findApiKeyByUser
-} from '../repositories/apiKey.repo.js';
 import {
   SignupSuccess,
   LoginSuccess,
-  ConflictRequestError,
-  BadRequestError,
-  UnauthorizedError,
-  InternalServerError
+  InternalServerError,
+  ErrorResponse
 } from '../utils/httpResponses.js';
-import authValidator from '../../validators/auth.validators.js';
-import { generateApiKey, hashApiKey } from '../utils/api_key.js';
+import AuthService from '../services/index.service.js';
+      const result = await AuthService.register(req.body);
+      return new SignupSuccess({ metadata: result }).send(res);
+      if (err instanceof ErrorResponse) return err.send(res);
 
-export default class AuthController {
-  static async register(req, res) {
-    const {
-      email,
-      password,
-      confirm_password,
-      role = 'patient',
-      first_name,
-      last_name,
-      phone_number
-    } = req.body;
-
-    const { error } = authValidator.register.validate(req.body);
-    if (error) {
-      return new BadRequestError(error.details[0].message).send(res);
-    }
-
-    try {
-      // check email
-      if (await findUserByEmail(email)) {
-        return new ConflictRequestError('email or email already taken').send(res);
+      const result = await AuthService.login(req.body);
+      return new LoginSuccess({ metadata: result }).send(res);
+      if (err instanceof ErrorResponse) return err.send(res);
       }
 
       // create user
