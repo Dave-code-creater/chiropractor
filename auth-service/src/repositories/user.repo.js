@@ -5,9 +5,27 @@ export const createUser = async (user) => {
   const [row] = await db
     .insertInto('users')
     .values(user)
-    .returning(['id', 'username'])
+
+export const findUserByEmail = async (email) => {
+  const db = getDb();
+  return db
+    .selectFrom('users')
+    .selectAll()
+    .where('email', '=', email)
+    .executeTakeFirst();
+};
+    .returning(['id'])
     .execute();
   return row;
+};
+
+export const findUserByEmail = async (email) => {
+  const db = getDb();
+  return db
+    .selectFrom('users')
+    .selectAll()
+    .where('email', '=', email)
+    .executeTakeFirst();
 };
 
 export const findUserByUsername = async (username) => {
@@ -17,4 +35,4 @@ export const findUserByUsername = async (username) => {
     .selectAll()
     .where('username', '=', username)
     .executeTakeFirst();
-};
+}

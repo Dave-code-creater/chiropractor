@@ -3,7 +3,7 @@ CREATE TYPE role_enum AS ENUM ('patient','doctor','staff');
 
 CREATE TABLE IF NOT EXISTS users (
   id SERIAL PRIMARY KEY,
-  username TEXT UNIQUE NOT NULL,
+  username TEXT UNIQUE,
   email TEXT UNIQUE NOT NULL,
   password_hash TEXT NOT NULL,
   role role_enum NOT NULL,
@@ -15,7 +15,8 @@ CREATE TABLE IF NOT EXISTS users (
   nationality TEXT,
   marital_status TEXT,
   created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  phone_number TEXT
 );
 
 CREATE TABLE IF NOT EXISTS api_keys (
@@ -24,6 +25,9 @@ CREATE TABLE IF NOT EXISTS api_keys (
   key TEXT UNIQUE NOT NULL,
   permission_code VARCHAR(10) DEFAULT '0000',
   status BOOLEAN DEFAULT TRUE,
+  last_used TIMESTAMPTZ,
+  last_used_ip TEXT,
+  last_used_user_agent TEXT,
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
