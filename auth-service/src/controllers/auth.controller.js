@@ -2,28 +2,26 @@ import AuthService from '../services/index.service.js';
 import {
   SignupSuccess,
   LoginSuccess,
-  InternalServerError,
-  ErrorResponse
 } from '../utils/httpResponses.js';
 export default class AuthController {
   static async register(req, res) {
-      const user = await AuthService.register(req.body);
-      return new SignupSuccess({ metadata: user }).send(res);
-      return new InternalServerError('error creating user').send(res);
+    const user = await AuthService.register(req.body);
+    return new SignupSuccess({ metadata: user }).send(res);
   }
-  static async login(req, res) {
-      const result = await AuthService.login(req.body);
-      return new LoginSuccess({ metadata: result }).send(res);
-      return new InternalServerError('login error').send(res);
+    const result = await AuthService.login(req.body);
+    return new LoginSuccess({ metadata: result }).send(res);
   }
-      const user = await createUser({
-        email,
-        password_hash: hash,
-        role,
-        first_name,
-        last_name,
-        phone_number
-      });
+
+  static async logout(req, res) {
+    // Placeholder for logout logic
+    // Typically, this would involve invalidating the JWT or session
+    return res.status(200).json({ message: 'Logged out successfully' });
+  }
+
+  static async refreshToken(req, res) {
+    // Placeholder for token refresh logic
+    // This would typically involve issuing a new JWT based on the old one
+    return res.status(200).json({ message: 'Token refreshed successfully' });
 
       // generate & store API key
       const rawApiKey = generateApiKey();

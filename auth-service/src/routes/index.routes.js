@@ -27,9 +27,13 @@ router.get('/', HealthController.healthCheck);
  *           schema:
  *             type: object
  *             properties:
- *               username:
+ *               email:
  *                 type: string
  *               password:
+ *                 type: string
+ *               first_name:
+ *                 type: string
+ *               last_name:
  *                 type: string
  *     responses:
  *       201:
@@ -58,5 +62,27 @@ router.post('/register', AuthController.register);
  *         description: OK
  */
 router.post('/login', AuthController.login);
+
+/**
+ * @swagger
+ * /refresh:
+ *   post:
+ *     summary: Refresh JWT token
+ *     responses:
+ *       200:
+ *         description: OK
+ */
+router.post('/refresh', AuthController.refreshToken);
+
+/**
+ * @swagger
+ * /logout:
+ *   post:
+ *     summary: Logout user
+ *     responses:
+ *       200:
+ *         description: OK
+ */
+router.post('/logout', AuthController.logout);
 
 export default router;
