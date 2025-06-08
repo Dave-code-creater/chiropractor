@@ -2,12 +2,14 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { createUser, findUserByUsername } from '../repositories/index.repo.js';
 import { SignupSuccess, LoginSuccess, ConflictRequestError, BadRequestError, UnauthorizedError, InternalServerError } from '../utils/httpResponses.js';
+import authValidator from '../../validators/auth.validators.js';
 
 export default class AuthController {
   static async register(req, res) {
     const { username, email, password, role = 'patient', first_name, last_name } = req.body;
-    if (!username || !email || !password || !first_name || !last_name) {
-      return new BadRequestError('missing required fields').send(res);
+    const { error } = authValidator.register.validate(req.body);
+    if (error) {
+      return new BadRequestError(error.details[0].message).send(res);
     }
     try {
       const existing = await findUserByUsername(username);
