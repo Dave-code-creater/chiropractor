@@ -8,9 +8,9 @@ import {
   InternalServerError
 } from '../utils/httpResponses.js';
 
-export default class AccessService {
-  static async signUp(req) {
-    const { username, email, password, role = 'patient', first_name, last_name } = req.body;
+export default class AuthService {
+  static async register(data) {
+    const { username, email, password, role = 'patient', first_name, last_name } = data;
     if (!username || !email || !password || !first_name || !last_name) {
       throw new BadRequestError('missing required fields');
     }
@@ -29,21 +29,11 @@ export default class AccessService {
       first_name,
       last_name
     });
-
-    const secret = process.env.JWT_SECRET;
-    if (!secret) {
-      throw new InternalServerError('JWT secret not configured');
-    }
-
-    const token = jwt.sign({ sub: user.id, username: user.username }, secret, {
-      expiresIn: process.env.JWT_EXPIRES_IN || '1h'
-    });
-
-    return { user: { id: user.id, username: user.username }, token };
+    return { id: user.id, username: user.username };
   }
 
-  static async signIn(req) {
-    const { username, password } = req.body;
+  static async login(data) {
+    const { username, password } = data;
     if (!username || !password) {
       throw new BadRequestError('username and password required');
     }
@@ -67,32 +57,5 @@ export default class AccessService {
       expiresIn: process.env.JWT_EXPIRES_IN || '1h'
     });
     return { token };
-  }
-
-  static async signOut(_req) {
-    return {};
-  }
-
-  static async refresh(req) {
-    const { token } = req.body;
-    if (!token) {
-      throw new BadRequestError('token required');
-    }
-    const secret = process.env.JWT_SECRET;
-    if (!secret) {
-      throw new InternalServerError('JWT secret not configured');
-    }
-
-    try {
-      const payload = jwt.verify(token, secret);
-      const newToken = jwt.sign(
-        { sub: payload.sub, username: payload.username },
-        secret,
-        { expiresIn: process.env.JWT_EXPIRES_IN || '1h' }
-      );
-      return { token: newToken };
-    } catch (err) {
-      throw new UnauthorizedError('invalid token');
-    }
   }
 }

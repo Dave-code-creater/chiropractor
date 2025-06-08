@@ -1,48 +1,21 @@
-'use strict';
+import AuthService from '../services/index.service.js';
 import {
   SignupSuccess,
   LoginSuccess,
-  TokenRefreshed,
-  LogoutSuccess,
   InternalServerError,
   ErrorResponse
 } from '../utils/httpResponses.js';
-import AccessService from '../services/access.service.js';
-class AccessController {
-  signUp = async (req, res) => {
-      const result = await AccessService.signUp(req);
-      new SignupSuccess({ metadata: result }).send(res);
-      new InternalServerError('error creating user').send(res);
-  };
-  signIn = async (req, res) => {
-      const result = await AccessService.signIn(req);
-      new LoginSuccess({ metadata: result }).send(res);
-      new InternalServerError('login error').send(res);
-  };
-
-  signOut = async (req, res) => {
-    try {
-      await AccessService.signOut(req);
-      new LogoutSuccess().send(res);
-    } catch (err) {
-      console.error(err);
-      if (err instanceof ErrorResponse) return err.send(res);
-      new InternalServerError('logout error').send(res);
-    }
-  };
-
-  refresh = async (req, res) => {
-    try {
-      const result = await AccessService.refresh(req);
-      new TokenRefreshed({ metadata: result }).send(res);
-    } catch (err) {
-      console.error(err);
-      if (err instanceof ErrorResponse) return err.send(res);
-      new InternalServerError('refresh error').send(res);
-    }
-  };
-
-export default new AccessController();
+export default class AuthController {
+  static async register(req, res) {
+      const user = await AuthService.register(req.body);
+      return new SignupSuccess({ metadata: user }).send(res);
+      return new InternalServerError('error creating user').send(res);
+  }
+  static async login(req, res) {
+      const result = await AuthService.login(req.body);
+      return new LoginSuccess({ metadata: result }).send(res);
+      return new InternalServerError('login error').send(res);
+  }
       const user = await createUser({
         email,
         password_hash: hash,
