@@ -1,0 +1,28 @@
+openapi: 3.0.0
+info:
+  title: API
+  version: 1.0.0
+paths:
+  /:
+    get:
+      summary: Health check
+      responses:
+        '200':
+          description: OK
+  /profiles:
+    post:
+      summary: Create profile
+      responses:
+        '201':
+          description: Created
+  /profiles/{id}:
+    get:
+      summary: Get profile
+      responses:
+        '200':
+          description: OK
+    put:
+      summary: Update profile
+      responses:
+        '200':
+          description: OK

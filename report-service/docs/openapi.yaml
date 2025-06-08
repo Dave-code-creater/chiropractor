@@ -1,0 +1,33 @@
+openapi: 3.0.0
+info:
+  title: API
+  version: 1.0.0
+paths:
+  /:
+    get:
+      summary: Health check
+      responses:
+        '200':
+          description: OK
+  /reports:
+    post:
+      summary: Create report
+      responses:
+        '201':
+          description: Created
+    get:
+      summary: List reports
+      responses:
+        '200':
+          description: OK
+  /reports/{id}:
+    get:
+      summary: Get report
+      responses:
+        '200':
+          description: OK
+    put:
+      summary: Update report
+      responses:
+        '200':
+          description: OK

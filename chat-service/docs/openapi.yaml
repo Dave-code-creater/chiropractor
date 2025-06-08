@@ -1,0 +1,23 @@
+openapi: 3.0.0
+info:
+  title: API
+  version: 1.0.0
+paths:
+  /:
+    get:
+      summary: Health check
+      responses:
+        '200':
+          description: OK
+  /messages:
+    post:
+      summary: Send message
+      responses:
+        '201':
+          description: Created
+  /history/{room}:
+    get:
+      summary: Get history
+      responses:
+        '200':
+          description: OK

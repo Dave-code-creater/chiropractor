@@ -1,0 +1,27 @@
+{
+  "info": {"name": "Appointment Service", "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"},
+  "variable": [{"key": "baseUrl", "value": "http://localhost:3004"}],
+  "item": [
+    {"name": "Health", "request": {"method": "GET", "url": "{{baseUrl}}/"}},
+    {
+      "name": "Create Appointment",
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}],
+        "url": "{{baseUrl}}/appointments",
+        "body": {"mode": "raw", "raw": "{\n  \"patient_id\": 1,\n  \"doctor_id\": 1,\n  \"appointment_time\": \"2025-01-01T10:00:00Z\"\n}"}
+      }
+    },
+    {"name": "List Appointments", "request": {"method": "GET", "url": "{{baseUrl}}/appointments"}},
+    {"name": "Get Appointment", "request": {"method": "GET", "url": "{{baseUrl}}/appointments/1"}},
+    {
+      "name": "Update Appointment",
+      "request": {
+        "method": "PUT",
+        "header": [{"key": "Content-Type", "value": "application/json"}],
+        "url": "{{baseUrl}}/appointments/1",
+        "body": {"mode": "raw", "raw": "{\n  \"status\": \"confirmed\"\n}"}
+      }
+    }
+  ]
+}

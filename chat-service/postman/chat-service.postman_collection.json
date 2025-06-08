@@ -1,0 +1,17 @@
+{
+  "info": {"name": "Chat Service", "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"},
+  "variable": [{"key": "baseUrl", "value": "http://localhost:3005"}],
+  "item": [
+    {"name": "Health", "request": {"method": "GET", "url": "{{baseUrl}}/"}},
+    {
+      "name": "Send Message",
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}],
+        "url": "{{baseUrl}}/messages",
+        "body": {"mode": "raw", "raw": "{\n  \"room\": \"general\",\n  \"sender\": \"user1\",\n  \"text\": \"hi\"\n}"}
+      }
+    },
+    {"name": "Chat History", "request": {"method": "GET", "url": "{{baseUrl}}/history/general"}}
+  ]
+}

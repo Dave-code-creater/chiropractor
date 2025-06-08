@@ -1,0 +1,28 @@
+openapi: 3.0.0
+info:
+  title: API
+  version: 1.0.0
+paths:
+  /:
+    get:
+      summary: Health check
+      responses:
+        '200':
+          description: OK
+  /posts:
+    post:
+      summary: Create post
+      responses:
+        '201':
+          description: Created
+    get:
+      summary: List posts
+      responses:
+        '200':
+          description: OK
+  /posts/{id}:
+    get:
+      summary: Get post
+      responses:
+        '200':
+          description: OK
