@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import HealthController from '../controllers/health.controller.js';
 import ProfileController from '../controllers/profile.controller.js';
+import EmergencyContactController from '../controllers/emergency.controller.js';
+import InsuranceDetailController from '../controllers/insurance.controller.js';
 
 const router = Router();
 
@@ -59,5 +61,13 @@ router.get('/profiles/:id', ProfileController.getById);
  *         description: OK
  */
 router.put('/profiles/:id', ProfileController.update);
+
+router.post('/emergency-contacts', EmergencyContactController.create);
+router.get('/emergency-contacts/:id', EmergencyContactController.getById);
+router.put('/emergency-contacts/:id', EmergencyContactController.update);
+
+router.post('/insurance-details', InsuranceDetailController.create);
+router.get('/insurance-details/:id', InsuranceDetailController.getById);
+router.put('/insurance-details/:id', InsuranceDetailController.update);
 
 export default router;

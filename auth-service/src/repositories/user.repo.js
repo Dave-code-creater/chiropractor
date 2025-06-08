@@ -1,19 +1,19 @@
 import { getDb } from '../config/index.js';
 
-export const createUser = async (username, passwordHash) => {
+export const createUser = async (user) => {
   const db = getDb();
-  const [user] = await db
-    .insertInto('user_identity')
-    .values({ username, password_hash: passwordHash })
+  const [row] = await db
+    .insertInto('users')
+    .values(user)
     .returning(['id', 'username'])
     .execute();
-  return user;
+  return row;
 };
 
 export const findUserByUsername = async (username) => {
   const db = getDb();
   return db
-    .selectFrom('user_identity')
+    .selectFrom('users')
     .selectAll()
     .where('username', '=', username)
     .executeTakeFirst();

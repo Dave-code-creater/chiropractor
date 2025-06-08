@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import HealthController from '../controllers/health.controller.js';
 import AppointmentController from '../controllers/appointment.controller.js';
+import TreatmentNoteController from '../controllers/note.controller.js';
 
 const router = Router();
 
@@ -70,5 +71,9 @@ router.put('/appointments/:id', AppointmentController.update);
  *         description: OK
  */
 router.get('/appointments', AppointmentController.list);
+
+router.post('/treatment-notes', TreatmentNoteController.create);
+router.get('/treatment-notes/:id', TreatmentNoteController.getById);
+router.put('/treatment-notes/:id', TreatmentNoteController.update);
 
 export default router;

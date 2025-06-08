@@ -5,9 +5,9 @@ import { SignupSuccess, LoginSuccess, ConflictRequestError, BadRequestError, Una
 
 export default class AuthController {
   static async register(req, res) {
-    const { username, password } = req.body;
-    if (!username || !password) {
-      return new BadRequestError('username and password required').send(res);
+    const { username, email, password, role = 'patient', first_name, last_name } = req.body;
+    if (!username || !email || !password || !first_name || !last_name) {
+      return new BadRequestError('missing required fields').send(res);
     }
     try {
       const existing = await findUserByUsername(username);
@@ -15,7 +15,14 @@ export default class AuthController {
         return new ConflictRequestError('username taken').send(res);
       }
       const hash = await bcrypt.hash(password, 10);
-      const user = await createUser(username, hash);
+      const user = await createUser({
+        username,
+        email,
+        password_hash: hash,
+        role,
+        first_name,
+        last_name
+      });
       return new SignupSuccess({ metadata: { id: user.id, username: user.username } }).send(res);
     } catch (err) {
       console.error(err);
