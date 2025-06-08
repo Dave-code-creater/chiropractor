@@ -9,3 +9,15 @@ paths:
       responses:
         '200':
           description: OK
+  /messages:
+    post:
+      summary: Send message
+      responses:
+        '201':
+          description: Created
+  /history/{room}:
+    get:
+      summary: Get history
+      responses:
+        '200':
+          description: OK

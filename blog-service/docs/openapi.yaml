@@ -9,3 +9,20 @@ paths:
       responses:
         '200':
           description: OK
+  /posts:
+    post:
+      summary: Create post
+      responses:
+        '201':
+          description: Created
+    get:
+      summary: List posts
+      responses:
+        '200':
+          description: OK
+  /posts/{id}:
+    get:
+      summary: Get post
+      responses:
+        '200':
+          description: OK

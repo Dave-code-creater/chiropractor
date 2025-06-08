@@ -9,3 +9,15 @@ paths:
       responses:
         '200':
           description: OK
+  /register:
+    post:
+      summary: Register a user
+      responses:
+        '201':
+          description: Created
+  /login:
+    post:
+      summary: Login
+      responses:
+        '200':
+          description: OK

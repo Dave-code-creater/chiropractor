@@ -9,3 +9,25 @@ paths:
       responses:
         '200':
           description: OK
+  /appointments:
+    post:
+      summary: Create appointment
+      responses:
+        '201':
+          description: Created
+    get:
+      summary: List appointments
+      responses:
+        '200':
+          description: OK
+  /appointments/{id}:
+    get:
+      summary: Get appointment
+      responses:
+        '200':
+          description: OK
+    put:
+      summary: Update appointment
+      responses:
+        '200':
+          description: OK
