@@ -17,7 +17,23 @@ paths:
           description: Created
   /login:
     post:
-      summary: Login
+      summary: Login and receive JWT
       responses:
         '200':
           description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  statusCode:
+                    type: integer
+                  message:
+                    type: string
+                  metadata:
+                    type: object
+                    properties:
+                      token:
+                        type: string

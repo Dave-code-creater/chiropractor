@@ -6,7 +6,7 @@ for experimentation and further development.
 
 ## Services
 - **gateway** (port 3000) – API Gateway that proxies requests to other services.
-- **auth-service** (port 3001) – handles authentication.
+- **auth-service** (port 3001) – handles authentication and returns a JWT token on login.
 - **user-service** (port 3002) – manages user profiles.
 - **report-service** (port 3003) – stores patient reports.
 - **appointment-service** (port 3004) – handles appointments.

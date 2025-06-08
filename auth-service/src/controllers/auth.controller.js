@@ -37,7 +37,14 @@ export default class AuthController {
       if (!match) {
         return new UnauthorizedError('invalid credentials').send(res);
       }
-      const token = jwt.sign({ sub: user.id }, process.env.JWT_SECRET || 'secret');
+      const secret = process.env.JWT_SECRET;
+      if (!secret) {
+        return new InternalServerError('JWT secret not configured').send(res);
+      }
+      const payload = { sub: user.id, username: user.username };
+      const token = jwt.sign(payload, secret, {
+        expiresIn: process.env.JWT_EXPIRES_IN || '1h'
+      });
       return new LoginSuccess({ metadata: { token } }).send(res);
     } catch (err) {
       console.error(err);
