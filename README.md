@@ -1,7 +1,7 @@
 # Chiropractor Platform
 
 This repository contains a basic microservice skeleton for a chiropractor platform.
-Each service is a minimal Express app written in TypeScript. The services are intended
+Each service is a minimal Express app written in Node.js. The services are intended
 for experimentation and further development.
 
 ## Services
