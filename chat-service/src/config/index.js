@@ -5,7 +5,10 @@ let db;
 
 export const loadEnv = async () => {
   dotenv.config();
-  const client = new MongoClient(process.env.MONGO_URL);
+  const url =
+    process.env.MONGO_URL ||
+    `mongodb://${process.env.PRO_MONGODB_HOST}:${process.env.PRO_MONGODB_PORT}/${process.env.PRO_MONGODB_NAME}`;
+  const client = new MongoClient(url);
   await client.connect();
   db = client.db();
 };

@@ -6,7 +6,10 @@ let db;
 
 export const loadEnv = () => {
   dotenv.config();
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  const url =
+    process.env.DATABASE_URL ||
+    `postgres://${process.env.PRO_POSTGRESQL_USER}:${process.env.PRO_POSTGRESQL_PASS}@${process.env.PRO_POSTGRESQL_HOST}:${process.env.PRO_POSTGRESQL_PORT}/${process.env.PRO_POSTGRESQL_NAME}`;
+  const pool = new Pool({ connectionString: url });
   db = new Kysely({ dialect: new PostgresDialect({ pool }) });
 };
 
