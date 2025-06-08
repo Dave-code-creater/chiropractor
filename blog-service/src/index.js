@@ -4,11 +4,14 @@ import routes from './routes/index.routes.js';
 import { loadEnv } from './config/index.js';
 
 const app = express();
-loadEnv();
-app.use(cors());
-app.use(express.json());
 
-app.use('/', routes);
+const start = async () => {
+  await loadEnv();
+  app.use(cors());
+  app.use(express.json());
+  app.use('/', routes);
+  const PORT = process.env.PORT || 3006;
+  app.listen(PORT, () => console.log('blog-service listening on ' + PORT));
+};
 
-const PORT = process.env.PORT || 3006;
-app.listen(PORT, () => console.log('blog-service listening on ' + PORT));
+start();

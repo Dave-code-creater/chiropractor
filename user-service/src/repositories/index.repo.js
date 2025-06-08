@@ -1,2 +1,1 @@
-// DB query helpers placeholder
-export default {};
+export * from './profile.repo.js';
