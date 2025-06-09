@@ -1,5 +1,6 @@
 const request = require('supertest');
 const sinon = require('sinon');
+const service = require('../src/services/index.service.js');
 const repo = require('../src/repositories/profile.repo.js');
 const app = require('../src/index.js');
 const { strict: assert } = require('assert');
@@ -8,9 +9,10 @@ describe('user-service profile endpoints', () => {
   afterEach(() => sinon.restore());
 
   it('creates profile', async () => {
-    sinon.stub(repo, 'createProfile').resolves({ id: 1 });
+    sinon.stub(service, 'createProfile').resolves({ profile: { id: 1 } });
     const res = await request(app)
       .post('/profiles')
+      .set('user-id', '1')
       .send({ name: 'john' });
     assert.equal(res.status, 201);
   });
@@ -22,9 +24,10 @@ describe('user-service profile endpoints', () => {
   });
 
   it('updates profile', async () => {
-    sinon.stub(repo, 'updateProfile').resolves({ id: 1 });
+    sinon.stub(service, 'updateProfile').resolves({ id: 1 });
     const res = await request(app)
       .put('/profiles/1')
+      .set('user-id', '1')
       .send({ name: 'john' });
     assert.equal(res.status, 200);
   });

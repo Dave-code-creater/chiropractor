@@ -1,8 +1,5 @@
-const {
-  createProfile,
-  getProfileById,
-  updateProfile,
-} = require('../repositories/profile.repo.js');
+const UserService = require('../services/index.service.js');
+const { getProfileById } = require('../repositories/profile.repo.js');
 const {
   CREATED,
   OK,
@@ -13,10 +10,11 @@ const {
 class ProfileController {
   static async create(req, res) {
     try {
-      const profile = await createProfile(req.body);
-      return new CREATED({ metadata: profile }).send(res);
+      const data = await UserService.createProfile(req);
+      return new CREATED({ metadata: data }).send(res);
     } catch (err) {
       console.error(err);
+      if (err.send) return err.send(res);
       return new InternalServerError('error creating profile').send(res);
     }
   }
@@ -34,11 +32,16 @@ class ProfileController {
 
   static async update(req, res) {
     try {
-      const profile = await updateProfile(Number(req.params.id), req.body);
+      const profile = await UserService.updateProfile(
+        Number(req.params.id),
+        req.body,
+        req.user
+      );
       if (!profile) return new NotFoundError('not found').send(res);
       return new OK({ metadata: profile }).send(res);
     } catch (err) {
       console.error(err);
+      if (err.send) return err.send(res);
       return new InternalServerError('error updating profile').send(res);
     }
   }
