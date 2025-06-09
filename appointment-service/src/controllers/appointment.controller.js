@@ -1,7 +1,17 @@
-import { createAppointment, getAppointmentById, updateAppointment, listAppointments } from '../repositories/index.repo.js';
-import { CREATED, OK, NotFoundError, InternalServerError } from '../utils/httpResponses.js';
+const {
+  createAppointment,
+  getAppointmentById,
+  updateAppointment,
+  listAppointments,
+} = require('../repositories/appointment.repo.js');
+const {
+  CREATED,
+  OK,
+  NotFoundError,
+  InternalServerError,
+} = require('../utils/httpResponses.js');
 
-export default class AppointmentController {
+class AppointmentController {
   static async create(req, res) {
     try {
       const appt = await createAppointment(req.body);
@@ -44,3 +54,5 @@ export default class AppointmentController {
     }
   }
 }
+
+module.exports = AppointmentController;

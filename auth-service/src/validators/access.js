@@ -1,4 +1,4 @@
-export const signUpValidator = {
+const signUpValidator = {
   validate(data) {
     const required = ['email', 'password', 'first_name', 'last_name'];
     for (const field of required) {
@@ -10,7 +10,7 @@ export const signUpValidator = {
   }
 };
 
-export const signInValidator = {
+const signInValidator = {
   validate(data) {
     const required = ['username', 'password'];
     for (const field of required) {
@@ -21,3 +21,5 @@ export const signInValidator = {
     return { value: data };
   }
 };
+
+module.exports = { signUpValidator, signInValidator };

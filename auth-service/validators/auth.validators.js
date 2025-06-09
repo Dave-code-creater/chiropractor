@@ -1,4 +1,4 @@
-import joi from 'joi';
+const joi = require('joi');
 
 const authValidator = {
     register: joi.object({
@@ -16,5 +16,5 @@ const authValidator = {
         username: joi.string().min(3).max(30).required(),
         password: joi.string().min(6).max(128).required()
     }),
-}
-export default authValidator;
+};
+module.exports = authValidator;

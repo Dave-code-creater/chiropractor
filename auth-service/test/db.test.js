@@ -1,8 +1,8 @@
-import * as repo from '../src/repositories/index.repo.js';
-import request from 'supertest';
-import sinon from 'sinon';
-import app from '../src/index.js';
-import { strict as assert } from 'assert';
+const repo = require('../src/repositories/user.repo.js');
+const request = require('supertest');
+const sinon = require('sinon');
+const app = require('../src/index.js');
+const { strict: assert } = require('assert');
 
 it('registers user', async () => {
     sinon.stub(repo, 'findUserByEmail').resolves(null);

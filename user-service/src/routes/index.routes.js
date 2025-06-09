@@ -1,8 +1,8 @@
-import { Router } from 'express';
-import HealthController from '../controllers/health.controller.js';
-import ProfileController from '../controllers/profile.controller.js';
-import EmergencyContactController from '../controllers/emergency.controller.js';
-import InsuranceDetailController from '../controllers/insurance.controller.js';
+const { Router } = require('express');
+const HealthController = require('../controllers/health.controller.js');
+const ProfileController = require('../controllers/profile.controller.js');
+const EmergencyContactController = require('../controllers/emergency.controller.js');
+const InsuranceDetailController = require('../controllers/insurance.controller.js');
 
 const router = Router();
 
@@ -70,4 +70,4 @@ router.post('/insurance-details', InsuranceDetailController.create);
 router.get('/insurance-details/:id', InsuranceDetailController.getById);
 router.put('/insurance-details/:id', InsuranceDetailController.update);
 
-export default router;
+module.exports = router;

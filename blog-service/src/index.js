@@ -1,7 +1,7 @@
-import express from 'express';
-import cors from 'cors';
-import routes from './routes/index.routes.js';
-import { loadEnv } from './config/index.js';
+const express = require('express');
+const cors = require('cors');
+const routes = require('./routes/index.routes.js');
+const { loadEnv } = require('./config/index.js');
 
 const app = express();
 
@@ -20,4 +20,4 @@ const start = async () => {
 
 start();
 
-export default app;
+module.exports = app;

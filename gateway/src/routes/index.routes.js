@@ -1,5 +1,5 @@
-import { Router } from 'express';
-import HealthController from '../controllers/health.controller.js';
+const { Router } = require('express');
+const HealthController = require('../controllers/health.controller.js');
 
 const router = Router();
 
@@ -14,4 +14,4 @@ const router = Router();
  */
 router.get('/', HealthController.healthCheck);
 
-export default router;
+module.exports = router;

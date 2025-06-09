@@ -1,7 +1,7 @@
-import { saveMessage, getMessagesByRoom } from '../repositories/index.repo.js';
-import { CREATED, OK, InternalServerError } from '../utils/httpResponses.js';
+const { saveMessage, getMessagesByRoom } = require('../repositories/message.repo.js');
+const { CREATED, OK, InternalServerError } = require('../utils/httpResponses.js');
 
-export default class MessageController {
+class MessageController {
   static async send(req, res) {
     try {
       const msg = await saveMessage({ room: req.body.room, sender: req.body.sender, text: req.body.text, ts: new Date() });
@@ -22,3 +22,5 @@ export default class MessageController {
     }
   }
 }
+
+module.exports = MessageController;

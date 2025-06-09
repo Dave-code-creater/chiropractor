@@ -1,6 +1,6 @@
-import { getDb } from '../config/index.js';
+const { getDb } = require('../config/index.js');
 
-export const createProfile = async (profile) => {
+const createProfile = async (profile) => {
   const db = getDb();
   const [row] = await db
     .insertInto('user_profile')
@@ -10,7 +10,7 @@ export const createProfile = async (profile) => {
   return row;
 };
 
-export const getProfileById = async (id) => {
+const getProfileById = async (id) => {
   const db = getDb();
   return db
     .selectFrom('user_profile')
@@ -19,7 +19,7 @@ export const getProfileById = async (id) => {
     .executeTakeFirst();
 };
 
-export const updateProfile = async (id, profile) => {
+const updateProfile = async (id, profile) => {
   const db = getDb();
   const { updated_at, ...rest } = profile;
   const [row] = await db
@@ -29,4 +29,10 @@ export const updateProfile = async (id, profile) => {
     .returningAll()
     .execute();
   return row;
+};
+
+module.exports = {
+  createProfile,
+  getProfileById,
+  updateProfile,
 };

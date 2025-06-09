@@ -7,5 +7,5 @@ RUN npm install
 
 # ✅ Copy EVERYTHING (src, validators, migrations, etc.)
 COPY . .
-]
+
 CMD ["node", "src/index.js"]

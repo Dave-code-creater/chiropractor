@@ -1,7 +1,7 @@
-import { Router } from 'express';
-import HealthController from '../controllers/health.controller.js';
-import AuthController from '../controllers/auth.controller.js';
-
+const { Router } = require('express');
+const HealthController = require('../controllers/health.controller.js');
+const AuthController = require('../controllers/auth.controller.js');
+const { asyncHandler } = require('../helper/asyncHandler.js');
 const router = Router();
 
 /**
@@ -13,7 +13,7 @@ const router = Router();
  *       200:
  *         description: OK
  */
-router.get('/', HealthController.healthCheck);
+router.get('/', asyncHandler(HealthController.healthCheck));
 
 /**
  * @swagger
@@ -39,7 +39,7 @@ router.get('/', HealthController.healthCheck);
  *       201:
  *         description: Created
  */
-router.post('/register', AuthController.register);
+router.post('/register', asyncHandler(AuthController.register));
 
 /**
  * @swagger
@@ -72,7 +72,7 @@ router.post('/login', AuthController.login);
  *       200:
  *         description: OK
  */
-router.post('/refresh', AuthController.refresh);
+router.post('/refresh', asyncHandler(AuthController.refresh));
 
 /**
  * @swagger
@@ -83,6 +83,6 @@ router.post('/refresh', AuthController.refresh);
  *       200:
  *         description: OK
  */
-router.post('/logout', AuthController.logout);
+router.post('/logout', asyncHandler(AuthController.logout));
 
-export default router;
+module.exports = router;

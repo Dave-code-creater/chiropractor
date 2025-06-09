@@ -1,10 +1,10 @@
-import AuthService from '../services/index.service.js';
-import {
+const AuthService = require('../services/index.service.js');
+const {
   SignupSuccess,
   LoginSuccess,
   InternalServerError,
   ErrorResponse
-} from '../utils/httpResponses.js';
+} = require('../utils/httpResponses.js');
 
 class AuthController {
   static async register(req, res) {
@@ -31,4 +31,4 @@ class AuthController {
   }
 }
 
-export default AuthController;
+module.exports = AuthController;

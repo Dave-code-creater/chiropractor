@@ -1,6 +1,6 @@
-import { getDb } from '../config/index.js';
+const { getDb } = require('../config/index.js');
 
-export const createEmergencyContact = async (contact) => {
+const createEmergencyContact = async (contact) => {
   const db = getDb();
   const [row] = await db
     .insertInto('emergency_contacts')
@@ -10,7 +10,7 @@ export const createEmergencyContact = async (contact) => {
   return row;
 };
 
-export const getEmergencyContactById = async (id) => {
+const getEmergencyContactById = async (id) => {
   const db = getDb();
   return db
     .selectFrom('emergency_contacts')
@@ -19,7 +19,7 @@ export const getEmergencyContactById = async (id) => {
     .executeTakeFirst();
 };
 
-export const updateEmergencyContact = async (id, contact) => {
+const updateEmergencyContact = async (id, contact) => {
   const db = getDb();
   const [row] = await db
     .updateTable('emergency_contacts')
@@ -28,4 +28,10 @@ export const updateEmergencyContact = async (id, contact) => {
     .returningAll()
     .execute();
   return row;
+};
+
+module.exports = {
+  createEmergencyContact,
+  getEmergencyContactById,
+  updateEmergencyContact,
 };

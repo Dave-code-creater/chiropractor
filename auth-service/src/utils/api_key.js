@@ -1,11 +1,13 @@
 // utils/crypto.js
-import crypto from 'crypto';
+const crypto = require('crypto');
 
-export function generateApiKey() {
+function generateApiKey() {
     // 32 bytes → 64 hex chars
     return crypto.randomBytes(32).toString('hex');
 }
 
-export function hashApiKey(keyPlaintext) {
+function hashApiKey(keyPlaintext) {
     return crypto.createHash('sha256').update(keyPlaintext).digest('hex');
 }
+
+module.exports = { generateApiKey, hashApiKey };

@@ -1,9 +1,9 @@
-import dotenv from 'dotenv';
-import { MongoClient } from 'mongodb';
+const dotenv = require('dotenv');
+const { MongoClient } = require('mongodb');
 
 let db;
 
-export const loadEnv = async () => {
+const loadEnv = async () => {
   dotenv.config();
   const url =
     process.env.MONGO_URL ||
@@ -13,4 +13,6 @@ export const loadEnv = async () => {
   db = client.db();
 };
 
-export const getDb = () => db;
+const getDb = () => db;
+
+module.exports = { loadEnv, getDb };

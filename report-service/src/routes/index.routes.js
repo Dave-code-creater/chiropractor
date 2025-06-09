@@ -1,6 +1,6 @@
-import { Router } from 'express';
-import HealthController from '../controllers/health.controller.js';
-import ReportController from '../controllers/report.controller.js';
+const { Router } = require('express');
+const HealthController = require('../controllers/health.controller.js');
+const ReportController = require('../controllers/report.controller.js');
 
 const router = Router();
 
@@ -71,4 +71,4 @@ router.put('/reports/:id', ReportController.update);
  */
 router.get('/reports', ReportController.list);
 
-export default router;
+module.exports = router;

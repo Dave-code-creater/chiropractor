@@ -1,3 +1,5 @@
-export default class BlogService {
+class BlogService {
   // business logic placeholder
 }
+
+module.exports = BlogService;

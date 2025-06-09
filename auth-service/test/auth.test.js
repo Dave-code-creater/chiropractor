@@ -1,10 +1,10 @@
-import request from 'supertest';
-import sinon from 'sinon';
-import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
-import * as repo from '../src/repositories/index.repo.js';
-import app from '../src/index.js';
-import { strict as assert } from 'assert';
+const request = require('supertest');
+const sinon = require('sinon');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const repo = require('../src/repositories/user.repo.js');
+const app = require('../src/index.js');
+const { strict: assert } = require('assert');
 
 describe('auth-service endpoints', () => {
   afterEach(() => sinon.restore());

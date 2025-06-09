@@ -1,8 +1,8 @@
-import request from 'supertest';
-import sinon from 'sinon';
-import * as repo from '../src/repositories/index.repo.js';
-import app from '../src/index.js';
-import { strict as assert } from 'assert';
+const request = require('supertest');
+const sinon = require('sinon');
+const repo = require('../src/repositories/profile.repo.js');
+const app = require('../src/index.js');
+const { strict: assert } = require('assert');
 
 describe('user-service profile endpoints', () => {
   afterEach(() => sinon.restore());

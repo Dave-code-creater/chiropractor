@@ -1,7 +1,16 @@
-import { createTreatmentNote, getTreatmentNoteById, updateTreatmentNote } from '../repositories/index.repo.js';
-import { CREATED, OK, NotFoundError, InternalServerError } from '../utils/httpResponses.js';
+const {
+  createTreatmentNote,
+  getTreatmentNoteById,
+  updateTreatmentNote,
+} = require('../repositories/note.repo.js');
+const {
+  CREATED,
+  OK,
+  NotFoundError,
+  InternalServerError,
+} = require('../utils/httpResponses.js');
 
-export default class TreatmentNoteController {
+class TreatmentNoteController {
   static async create(req, res) {
     try {
       const note = await createTreatmentNote(req.body);
@@ -34,3 +43,5 @@ export default class TreatmentNoteController {
     }
   }
 }
+
+module.exports = TreatmentNoteController;

@@ -1,6 +1,6 @@
-import { Router } from 'express';
-import HealthController from '../controllers/health.controller.js';
-import MessageController from '../controllers/message.controller.js';
+const { Router } = require('express');
+const HealthController = require('../controllers/health.controller.js');
+const MessageController = require('../controllers/message.controller.js');
 
 const router = Router();
 
@@ -43,4 +43,4 @@ router.post('/messages', MessageController.send);
  */
 router.get('/chat/history/:room', MessageController.history);
 
-export default router;
+module.exports = router;

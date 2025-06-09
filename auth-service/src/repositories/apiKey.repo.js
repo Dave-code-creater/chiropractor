@@ -1,15 +1,15 @@
-import { getDb } from '../config/index.js';
+const { getDb } = require('../config/index.js');
 
-export const getApi = async (apiId) => {
+const getApi = async (apiId) => {
     const db = getDb();
     return db
         .selectFrom('apis')
         .selectAll()
         .where('id', '=', apiId)
         .executeTakeFirst();
-}
+};
 
-export async function insertApiKey({ userId, keyHash }) {
+async function insertApiKey({ userId, keyHash }) {
     const db = getDb();
     const [row] = await db
         .insertInto('api_keys')
@@ -24,7 +24,7 @@ export async function insertApiKey({ userId, keyHash }) {
 }
 
 /** fetch the latest key for a user (if any) */
-export async function findApiKeyByUser(userId) {
+async function findApiKeyByUser(userId) {
     const db = getDb();
     return db
         .selectFrom('api_keys')
@@ -34,3 +34,5 @@ export async function findApiKeyByUser(userId) {
         .limit(1)
         .executeTakeFirst();
 }
+
+module.exports = { getApi, insertApiKey, findApiKeyByUser };

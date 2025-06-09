@@ -1,7 +1,16 @@
-import { createEmergencyContact, getEmergencyContactById, updateEmergencyContact } from '../repositories/index.repo.js';
-import { CREATED, OK, NotFoundError, InternalServerError } from '../utils/httpResponses.js';
+const {
+  createEmergencyContact,
+  getEmergencyContactById,
+  updateEmergencyContact,
+} = require('../repositories/emergency.repo.js');
+const {
+  CREATED,
+  OK,
+  NotFoundError,
+  InternalServerError,
+} = require('../utils/httpResponses.js');
 
-export default class EmergencyContactController {
+class EmergencyContactController {
   static async create(req, res) {
     try {
       const contact = await createEmergencyContact(req.body);
@@ -34,3 +43,5 @@ export default class EmergencyContactController {
     }
   }
 }
+
+module.exports = EmergencyContactController;

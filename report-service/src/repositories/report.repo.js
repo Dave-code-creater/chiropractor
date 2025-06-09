@@ -1,6 +1,6 @@
-import { getDb } from '../config/index.js';
+const { getDb } = require('../config/index.js');
 
-export const createReport = async (ownerId, data) => {
+const createReport = async (ownerId, data) => {
   const db = getDb();
   const [row] = await db
     .insertInto('reports')
@@ -10,7 +10,7 @@ export const createReport = async (ownerId, data) => {
   return row;
 };
 
-export const getReportById = async (id) => {
+const getReportById = async (id) => {
   const db = getDb();
   return db
     .selectFrom('reports')
@@ -19,7 +19,7 @@ export const getReportById = async (id) => {
     .executeTakeFirst();
 };
 
-export const updateReport = async (id, data) => {
+const updateReport = async (id, data) => {
   const db = getDb();
   const [row] = await db
     .updateTable('reports')
@@ -30,7 +30,14 @@ export const updateReport = async (id, data) => {
   return row;
 };
 
-export const listReports = async () => {
+const listReports = async () => {
   const db = getDb();
   return db.selectFrom('reports').selectAll().execute();
+};
+
+module.exports = {
+  createReport,
+  getReportById,
+  updateReport,
+  listReports,
 };

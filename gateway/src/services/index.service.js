@@ -1,3 +1,5 @@
-export default class GatewayService {
+class GatewayService {
   // business logic placeholder
 }
+
+module.exports = GatewayService;

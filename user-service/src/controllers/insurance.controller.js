@@ -1,7 +1,16 @@
-import { createInsuranceDetail, getInsuranceDetailById, updateInsuranceDetail } from '../repositories/index.repo.js';
-import { CREATED, OK, NotFoundError, InternalServerError } from '../utils/httpResponses.js';
+const {
+  createInsuranceDetail,
+  getInsuranceDetailById,
+  updateInsuranceDetail,
+} = require('../repositories/insurance.repo.js');
+const {
+  CREATED,
+  OK,
+  NotFoundError,
+  InternalServerError,
+} = require('../utils/httpResponses.js');
 
-export default class InsuranceDetailController {
+class InsuranceDetailController {
   static async create(req, res) {
     try {
       const detail = await createInsuranceDetail(req.body);
@@ -34,3 +43,5 @@ export default class InsuranceDetailController {
     }
   }
 }
+
+module.exports = InsuranceDetailController;
