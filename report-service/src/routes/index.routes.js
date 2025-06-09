@@ -1,7 +1,6 @@
 const { Router } = require('express');
 const HealthController = require('../controllers/health.controller.js');
 const ReportController = require('../controllers/report.controller.js');
-const SectionController = require('../controllers/section.controller.js');
 
 const router = Router();
 
@@ -71,16 +70,5 @@ router.put('/reports/:id', ReportController.update);
  *         description: OK
  */
 router.get('/reports', ReportController.list);
-
-/**
- * @swagger
- * /report-sections:
- *   get:
- *     summary: List initial report sections
- *     responses:
- *       200:
- *         description: OK
- */
-router.get('/report-sections', SectionController.list);
 
 module.exports = router;
