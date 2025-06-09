@@ -1,7 +1,7 @@
 const { Router } = require('express');
 const HealthController = require('../controllers/health.controller.js');
 const AuthController = require('../controllers/auth.controller.js');
-const { asyncHandler } = require('../helper/asyncHandler.js');
+const asyncHandler = require('../helper/asyncHandler.js');
 const router = Router();
 
 /**
@@ -61,7 +61,7 @@ router.post('/register', asyncHandler(AuthController.register));
  *       200:
  *         description: OK
  */
-router.post('/login', AuthController.login);
+router.post('/login', asyncHandler(AuthController.login));
 
 /**
  * @swagger

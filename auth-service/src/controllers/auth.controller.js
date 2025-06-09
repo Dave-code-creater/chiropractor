@@ -8,26 +8,25 @@ const {
 
 class AuthController {
   static async register(req, res) {
-    const user = await AuthService.register(req.body);
+    const user = await AuthService.register(req.body, req);
     return new SignupSuccess({ metadata: user }).send(res);
   }
   static async login(req, res) {
-    const result = await AuthService.login(req.body);
+    const result = await AuthService.login(req.body, req);
     return new LoginSuccess({ metadata: result }).send(res);
   }
 
   static async refresh(req, res) {
-    const result = await AuthService.refresh(req.body);
+    const result = await AuthService.refreshToken(req);
     return new LoginSuccess({ metadata: result }).send(res);
   }
 
   static async logout(req, res) {
-    try {
-      await AuthService.logout(req.user.id);
+    const result = await AuthService.logout(req);
+    if (result) {
       return res.status(204).send();
-    } catch (error) {
-      return new InternalServerError(error.message).send(res);
     }
+    return new InternalServerError('Logout failed').send(res);
   }
 }
 

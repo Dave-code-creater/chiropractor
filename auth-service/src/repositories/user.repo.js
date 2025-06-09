@@ -28,4 +28,14 @@ const findUserByUsername = async (username) => {
     .executeTakeFirst();
 };
 
-module.exports = { createUser, findUserByEmail, findUserByUsername };
+const findUserById = async (id) => {
+  const db = getDb();
+  return db
+    .selectFrom('users')
+    .selectAll()
+    .where('id', '=', id)
+    .executeTakeFirst();
+};
+
+
+module.exports = { createUser, findUserByEmail, findUserByUsername, findUserById };

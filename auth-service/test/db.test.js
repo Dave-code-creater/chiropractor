@@ -1,13 +1,17 @@
-const repo = require('../src/repositories/user.repo.js');
+const { loadEnv, getDb } = require('../src/config/index');
 const request = require('supertest');
-const sinon = require('sinon');
 const app = require('../src/index.js');
 const { strict: assert } = require('assert');
 
-it('registers user', async () => {
-    sinon.stub(repo, 'findUserByEmail').resolves(null);
-    sinon.stub(repo, 'createUser').resolves({ id: 1, username: 'alicesmith' });
+before(() => {
+    loadEnv(); 
+});
 
+beforeEach(async () => {
+    await getDb().deleteFrom('users').execute(); 
+});
+
+it('registers user', async () => {
     const res = await request(app)
         .post('/register')
         .send({

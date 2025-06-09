@@ -6,13 +6,19 @@ let db;
 
 const loadEnv = () => {
   dotenv.config();
+
   const url =
     process.env.DATABASE_URL ||
-    `postgres://${process.env.PRO_POSTGRESQL_USER}:${process.env.PRO_POSTGRESQL_PASS}@${process.env.PRO_POSTGRESQL_HOST}:${process.env.PRO_POSTGRESQL_PORT}/${process.env.PRO_POSTGRESQL_NAME}`;
+    `postgres://${process.env.PRO_POSTGRESQL_USER}:${process.env.PRO_POSTGRESQL_PASS}@${process.env.PRO_POSTGRESQL_HOST}:${process.env.PRO_POSTGRESQL_PORT}/${process.env.PRO_POSTGRESQL_DB}`;
+
   const pool = new Pool({ connectionString: url });
+
   db = new Kysely({ dialect: new PostgresDialect({ pool }) });
 };
 
-const getDb = () => db;
+const getDb = () => {
+  if (!db) throw new Error('Database has not been initialized. Call loadEnv() first.');
+  return db;
+};
 
 module.exports = { loadEnv, getDb };

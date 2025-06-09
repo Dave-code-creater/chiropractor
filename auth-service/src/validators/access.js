@@ -12,7 +12,7 @@ const signUpValidator = {
 
 const signInValidator = {
   validate(data) {
-    const required = ['username', 'password'];
+    const required = ['email', 'password'];
     for (const field of required) {
       if (!data[field]) {
         return { error: { details: [{ message: `${field} is required` }] } };

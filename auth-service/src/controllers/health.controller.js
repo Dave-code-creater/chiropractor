@@ -1,6 +1,6 @@
 class HealthController {
-  static healthCheck(_req, res) {
-    res.json({ status: 'ok' });
+  static async healthCheck(req, res) {
+    res.status(200).json({ status: 'ok' });
   }
 }
 
