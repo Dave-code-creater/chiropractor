@@ -126,6 +126,26 @@ class AuthService {
     return { token: newAccessToken };
   }
 
+  static async verifyToken(req) {
+    const authHeader = req.headers.authorization;
+    const token = authHeader?.split(' ')[1];
+    if (!token) {
+      throw new BadRequestError('No token provided');
+    }
+
+    const secret = process.env.JWT_SECRET;
+    if (!secret) {
+      throw new InternalServerError('JWT secret not configured');
+    }
+
+    try {
+      const payload = jwt.verify(token, secret);
+      return payload;
+    } catch (_err) {
+      throw new UnauthorizedError('Invalid token');
+    }
+  }
+
   static async logout(req) {
     const authHeader = req.headers.authorization;
     const token = authHeader?.split(' ')[1];

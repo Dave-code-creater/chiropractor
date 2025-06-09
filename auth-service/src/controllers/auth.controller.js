@@ -2,6 +2,7 @@ const AuthService = require('../services/index.service.js');
 const {
   SignupSuccess,
   LoginSuccess,
+  OK,
   InternalServerError,
   ErrorResponse
 } = require('../utils/httpResponses.js');
@@ -27,6 +28,11 @@ class AuthController {
       return res.status(204).send();
     }
     return new InternalServerError('Logout failed').send(res);
+  }
+
+  static async verify(req, res) {
+    const payload = await AuthService.verifyToken(req);
+    return new OK({ metadata: payload }).send(res);
   }
 }
 
