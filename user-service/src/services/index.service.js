@@ -9,8 +9,9 @@ const {
   updateInsuranceDetail,
   getInsuranceDetailById,
 } = require('../repositories/insurance.repo.js');
+const { createPainDescription } = require('../repositories/pain.repo.js');
 const { BadRequestError, ForbiddenError } = require('../utils/httpResponses.js');
-const { createProfileValidator } = require('../validators/profile.validator.js');
+const { createProfileValidator } = require('../validate/profile.validator.js');
 
 class UserService {
   static async createProfile(req) {
@@ -31,7 +32,13 @@ class UserService {
       user_id: userId,
       ...value.insurance_detail,
     });
-    return { profile, emergency, insurance };
+    const pains = [];
+    for (const desc of value.pain_descriptions) {
+      pains.push(
+        await createPainDescription({ user_id: userId, ...desc })
+      );
+    }
+    return { profile, emergency, insurance, pain_descriptions: pains };
   }
 
   static async updateProfile(id, data, requester) {

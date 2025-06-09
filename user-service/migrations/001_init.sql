@@ -4,11 +4,11 @@ CREATE TYPE insurance_type AS ENUM (
 
 CREATE TABLE IF NOT EXISTS profiles (
   user_id INT PRIMARY KEY REFERENCES users(id),
-  home_addr TEXT,
-  city TEXT,
+  home_addr TEXT NOT NULL,
+  city TEXT NOT NULL,
   state CHAR(2),
-  zip TEXT,
-  home_phone TEXT,
+  zip TEXT NOT NULL,
+  home_phone TEXT NOT NULL,
   work_addr TEXT,
   work_phone TEXT,
   occupation TEXT,
@@ -19,9 +19,9 @@ CREATE TABLE IF NOT EXISTS profiles (
 CREATE TABLE IF NOT EXISTS emergency_contacts (
   id SERIAL PRIMARY KEY,
   user_id INT REFERENCES profiles(user_id),
-  name TEXT,
+  name TEXT NOT NULL,
   relation TEXT,
-  phone TEXT
+  phone TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS preliminary_info (
@@ -46,7 +46,7 @@ CREATE TABLE IF NOT EXISTS preliminary_info (
 CREATE TABLE IF NOT EXISTS insurance_details (
   id SERIAL PRIMARY KEY,
   user_id INT REFERENCES profiles(user_id),
-  insurance_type insurance_type,
+  insurance_type TEXT NOT NULL,
   details TEXT,
   created_at TIMESTAMPTZ DEFAULT now()
 );

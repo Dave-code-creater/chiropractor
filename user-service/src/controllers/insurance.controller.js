@@ -5,7 +5,7 @@ const {
 const UserService = require('../services/index.service.js');
 const {
   createInsuranceDetailValidator,
-} = require('../validators/profile.validator.js');
+} = require('../validate/profile.validator.js');
 const {
   CREATED,
   OK,
