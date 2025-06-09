@@ -3,7 +3,7 @@ const {
   getAppointmentById,
   updateAppointment,
   listAppointments,
-} = require('../repositories/index.repo.js');
+} = require('../repositories/appointment.repo.js');
 const {
   CREATED,
   OK,

@@ -1,4 +1,4 @@
-const { createPost, getPostById, listPosts } = require('../repositories/index.repo.js');
+const { createPost, getPostById, listPosts } = require('../repositories/post.repo.js');
 const { CREATED, OK, NotFoundError, InternalServerError } = require('../utils/httpResponses.js');
 
 class PostController {

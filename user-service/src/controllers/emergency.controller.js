@@ -2,7 +2,7 @@ const {
   createEmergencyContact,
   getEmergencyContactById,
   updateEmergencyContact,
-} = require('../repositories/index.repo.js');
+} = require('../repositories/emergency.repo.js');
 const {
   CREATED,
   OK,

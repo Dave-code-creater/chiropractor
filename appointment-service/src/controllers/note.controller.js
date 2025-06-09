@@ -2,7 +2,7 @@ const {
   createTreatmentNote,
   getTreatmentNoteById,
   updateTreatmentNote,
-} = require('../repositories/index.repo.js');
+} = require('../repositories/note.repo.js');
 const {
   CREATED,
   OK,

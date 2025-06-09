@@ -3,7 +3,7 @@ const {
   getReportById,
   updateReport,
   listReports,
-} = require('../repositories/index.repo.js');
+} = require('../repositories/report.repo.js');
 const {
   CREATED,
   OK,

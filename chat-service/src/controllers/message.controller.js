@@ -1,4 +1,4 @@
-const { saveMessage, getMessagesByRoom } = require('../repositories/index.repo.js');
+const { saveMessage, getMessagesByRoom } = require('../repositories/message.repo.js');
 const { CREATED, OK, InternalServerError } = require('../utils/httpResponses.js');
 
 class MessageController {

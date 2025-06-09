@@ -4,7 +4,7 @@ const {
   createUser,
   findUserByUsername,
   findUserByEmail
-} = require('../repositories/index.repo.js');
+} = require('../repositories/user.repo.js');
 const {
   BadRequestError,
   ConflictRequestError,

@@ -2,7 +2,7 @@ const {
   createProfile,
   getProfileById,
   updateProfile,
-} = require('../repositories/index.repo.js');
+} = require('../repositories/profile.repo.js');
 const {
   CREATED,
   OK,

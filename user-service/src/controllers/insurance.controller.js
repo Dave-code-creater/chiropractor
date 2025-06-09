@@ -2,7 +2,7 @@ const {
   createInsuranceDetail,
   getInsuranceDetailById,
   updateInsuranceDetail,
-} = require('../repositories/index.repo.js');
+} = require('../repositories/insurance.repo.js');
 const {
   CREATED,
   OK,

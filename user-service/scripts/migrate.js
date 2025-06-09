@@ -1,9 +1,7 @@
-import fs from 'fs/promises';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { Pool } from 'pg';
+const fs = require('fs/promises');
+const path = require('path');
+const { Pool } = require('pg');
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const migrationsDir = path.join(__dirname, '..', 'migrations');
 
 async function run() {

@@ -1,6 +1,6 @@
-import request from 'supertest';
-import app from '../src/index.js';
-import { strict as assert } from 'assert';
+const request = require('supertest');
+const app = require('../src/index.js');
+const { strict: assert } = require('assert');
 
 describe('auth-service health', () => {
   it('returns ok', async () => {
