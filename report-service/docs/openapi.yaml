@@ -31,3 +31,9 @@ paths:
       responses:
         '200':
           description: OK
+  /report-sections:
+    get:
+      summary: List initial report sections
+      responses:
+        '200':
+          description: OK
