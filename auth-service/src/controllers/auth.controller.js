@@ -5,7 +5,8 @@ import {
   InternalServerError,
   ErrorResponse
 } from '../utils/httpResponses.js';
-export default class AuthController {
+
+class AuthController {
   static async register(req, res) {
     const user = await AuthService.register(req.body);
     return new SignupSuccess({ metadata: user }).send(res);
@@ -17,9 +18,9 @@ export default class AuthController {
 
   static async refresh(req, res) {
     const result = await AuthService.refresh(req.body);
-    return new LoginSuccess({ metadata: result }).send(res
-    );
+    return new LoginSuccess({ metadata: result }).send(res);
   }
+
   static async logout(req, res) {
     try {
       await AuthService.logout(req.user.id);
@@ -28,5 +29,6 @@ export default class AuthController {
       return new InternalServerError(error.message).send(res);
     }
   }
-
 }
+
+export default AuthController;

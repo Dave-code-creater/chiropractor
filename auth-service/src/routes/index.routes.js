@@ -72,7 +72,7 @@ router.post('/login', AuthController.login);
  *       200:
  *         description: OK
  */
-router.post('/refresh', AuthController.refreshToken);
+router.post('/refresh', AuthController.refresh);
 
 /**
  * @swagger
