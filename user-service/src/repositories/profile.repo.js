@@ -3,29 +3,29 @@ const { getDb } = require('../config/index.js');
 const createProfile = async (profile) => {
   const db = getDb();
   const [row] = await db
-    .insertInto('user_profile')
+    .insertInto('profiles')
     .values(profile)
     .returningAll()
     .execute();
   return row;
 };
 
-const getProfileById = async (id) => {
+const getProfileById = async (userId) => {
   const db = getDb();
   return db
-    .selectFrom('user_profile')
+    .selectFrom('profiles')
     .selectAll()
-    .where('id', '=', id)
+    .where('user_id', '=', userId)
     .executeTakeFirst();
 };
 
-const updateProfile = async (id, profile) => {
+const updateProfile = async (userId, profile) => {
   const db = getDb();
   const { updated_at, ...rest } = profile;
   const [row] = await db
-    .updateTable('user_profile')
+    .updateTable('profiles')
     .set(profile)
-    .where('id', '=', id)
+    .where('user_id', '=', userId)
     .returningAll()
     .execute();
   return row;

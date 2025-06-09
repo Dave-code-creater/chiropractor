@@ -1,6 +1,14 @@
 const { createProfile } = require('../repositories/profile.repo.js');
-const { createEmergencyContact } = require('../repositories/emergency.repo.js');
-const { createInsuranceDetail } = require('../repositories/insurance.repo.js');
+const {
+  createEmergencyContact,
+  updateEmergencyContact,
+  getEmergencyContactById,
+} = require('../repositories/emergency.repo.js');
+const {
+  createInsuranceDetail,
+  updateInsuranceDetail,
+  getInsuranceDetailById,
+} = require('../repositories/insurance.repo.js');
 const { BadRequestError, ForbiddenError } = require('../utils/httpResponses.js');
 const { createProfileValidator } = require('../validators/profile.validator.js');
 
@@ -32,6 +40,24 @@ class UserService {
     }
     const { updateProfile } = require('../repositories/profile.repo.js');
     return updateProfile(id, data);
+  }
+
+  static async updateEmergencyContact(id, data, requester) {
+    const existing = await getEmergencyContactById(id);
+    if (!existing) return null;
+    if (!requester || !(requester.role === 'doctor' || requester.role === 'staff' || requester.sub === existing.user_id)) {
+      throw new ForbiddenError('not allowed');
+    }
+    return updateEmergencyContact(id, data);
+  }
+
+  static async updateInsuranceDetail(id, data, requester) {
+    const existing = await getInsuranceDetailById(id);
+    if (!existing) return null;
+    if (!requester || !(requester.role === 'doctor' || requester.role === 'staff' || requester.sub === existing.user_id)) {
+      throw new ForbiddenError('not allowed');
+    }
+    return updateInsuranceDetail(id, data);
   }
 }
 
