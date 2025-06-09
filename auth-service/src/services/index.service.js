@@ -17,8 +17,9 @@ const { signUpValidator, signInValidator } = require('../validators/access.js');
 class AuthService {
   static async register(data) {
     const { error } = signUpValidator.validate(data);
-    if (error) throw new BadRequestError(error.details[0].message);
-
+    if (error) {
+      throw new BadRequestError(error.details[0].message, '4001');
+    }
     const { email, password, role = 'patient', first_name, last_name } = data;
 
     const existing = await findUserByEmail(email);
@@ -42,28 +43,35 @@ class AuthService {
 
   static async login(data) {
     const { error } = signInValidator.validate(data);
-    if (error) throw new BadRequestError(error.details[0].message);
+    if (error) {
+      throw new BadRequestError(error.details[0].message, '4002');
+    }
 
     const { username, password } = data;
 
     const user = await findUserByUsername(username);
     if (!user) {
-      throw new UnauthorizedError('invalid credentials');
+      throw new UnauthorizedError('invalid credentials', '4011');
     }
 
     const match = await bcrypt.compare(password, user.password_hash);
     if (!match) {
-      throw new UnauthorizedError('invalid credentials');
+      throw new UnauthorizedError('invalid credentials', '4012');
     }
 
     const secret = process.env.JWT_SECRET;
     if (!secret) {
-      throw new InternalServerError('JWT secret not configured');
+      throw new InternalServerError('JWT secret not configured', '5001');
     }
 
-    const token = jwt.sign({ sub: user.id, username: user.username }, secret, {
-      expiresIn: process.env.JWT_EXPIRES_IN || '1h'
-    });
+    const token = jwt.sign(
+      { sub: user.id, username: user.username },
+      secret,
+      {
+        expiresIn: process.env.JWT_EXPIRES_IN || '1h'
+      }
+    );
+
     return { token };
   }
 

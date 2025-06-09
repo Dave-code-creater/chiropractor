@@ -17,4 +17,18 @@ if (process.env.NODE_ENV !== 'test') {
   app.listen(PORT, () => console.log('auth-service listening on ' + PORT));
 }
 
+app.use((error, req, res, next) => {
+  const statusCode = error.status || 500;
+
+  if (process.env.NODE_ENV !== 'production') {
+    console.error(error); // only log full stack in dev
+  }
+
+  return res.status(statusCode).json({
+    status: 'error',
+    code: statusCode,
+    message: error.message || 'Internal Server Error',
+  });
+});
+
 module.exports = app;
