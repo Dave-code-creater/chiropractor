@@ -85,4 +85,15 @@ router.post('/refresh', asyncHandler(AuthController.refresh));
  */
 router.post('/logout', asyncHandler(AuthController.logout));
 
+/**
+ * @swagger
+ * /verify:
+ *   post:
+ *     summary: Verify JWT token
+ *     responses:
+ *       200:
+ *         description: OK
+ */
+router.post('/verify', asyncHandler(AuthController.verify));
+
 module.exports = router;

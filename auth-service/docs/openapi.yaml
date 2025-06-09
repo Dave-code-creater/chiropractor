@@ -37,3 +37,9 @@ paths:
                     properties:
                       token:
                         type: string
+  /verify:
+    post:
+      summary: Verify JWT token
+      responses:
+        '200':
+          description: OK
