@@ -1,10 +1,10 @@
-import dotenv from 'dotenv';
-import { Pool } from 'pg';
-import { Kysely, PostgresDialect } from 'kysely';
+const dotenv = require('dotenv');
+const { Pool } = require('pg');
+const { Kysely, PostgresDialect } = require('kysely');
 
 let db;
 
-export const loadEnv = () => {
+const loadEnv = () => {
   dotenv.config();
   const url =
     process.env.DATABASE_URL ||
@@ -13,4 +13,6 @@ export const loadEnv = () => {
   db = new Kysely({ dialect: new PostgresDialect({ pool }) });
 };
 
-export const getDb = () => db;
+const getDb = () => db;
+
+module.exports = { loadEnv, getDb };

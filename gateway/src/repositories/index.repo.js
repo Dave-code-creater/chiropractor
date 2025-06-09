@@ -1,2 +1,2 @@
 // DB query helpers placeholder
-export default {};
+module.exports = {};

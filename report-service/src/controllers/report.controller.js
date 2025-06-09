@@ -1,7 +1,17 @@
-import { createReport, getReportById, updateReport, listReports } from '../repositories/index.repo.js';
-import { CREATED, OK, NotFoundError, InternalServerError } from '../utils/httpResponses.js';
+const {
+  createReport,
+  getReportById,
+  updateReport,
+  listReports,
+} = require('../repositories/index.repo.js');
+const {
+  CREATED,
+  OK,
+  NotFoundError,
+  InternalServerError,
+} = require('../utils/httpResponses.js');
 
-export default class ReportController {
+class ReportController {
   static async create(req, res) {
     try {
       const report = await createReport(req.body.owner_id, req.body.data);
@@ -44,3 +54,5 @@ export default class ReportController {
     }
   }
 }
+
+module.exports = ReportController;

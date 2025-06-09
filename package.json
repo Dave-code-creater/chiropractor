@@ -1,7 +1,6 @@
 {
   "name": "chiropractor-root",
   "private": true,
-  "type": "module",
   "scripts": {
     "migrate": "npm --prefix auth-service run migrate && npm --prefix user-service run migrate && npm --prefix report-service run migrate && npm --prefix appointment-service run migrate"
   }

@@ -1,2 +1,4 @@
-export * from './user.repo.js';
-export * from './apiKey.repo.js';
+module.exports = {
+  ...require('./user.repo.js'),
+  ...require('./apiKey.repo.js'),
+};

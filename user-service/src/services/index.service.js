@@ -1,3 +1,5 @@
-export default class UserService {
+class UserService {
   // business logic placeholder
 }
+
+module.exports = UserService;

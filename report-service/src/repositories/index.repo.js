@@ -1,1 +1,3 @@
-export * from './report.repo.js';
+module.exports = {
+  ...require('./report.repo.js'),
+};

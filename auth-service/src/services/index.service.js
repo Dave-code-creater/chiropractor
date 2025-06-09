@@ -1,20 +1,20 @@
-import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
-import {
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const {
   createUser,
   findUserByUsername,
   findUserByEmail
-} from '../repositories/index.repo.js';
-import {
+} = require('../repositories/index.repo.js');
+const {
   BadRequestError,
   ConflictRequestError,
   UnauthorizedError,
   InvalidRefreshTokenError,
   InternalServerError
-} from '../utils/httpResponses.js';
-import { signUpValidator, signInValidator } from '../validators/access.js';
+} = require('../utils/httpResponses.js');
+const { signUpValidator, signInValidator } = require('../validators/access.js');
 
-export default class AuthService {
+class AuthService {
   static async register(data) {
     const { error } = signUpValidator.validate(data);
     if (error) throw new BadRequestError(error.details[0].message);
@@ -94,3 +94,5 @@ export default class AuthService {
     return true;
   }
 }
+
+module.exports = AuthService;

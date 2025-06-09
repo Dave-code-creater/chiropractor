@@ -1,7 +1,16 @@
-import { createProfile, getProfileById, updateProfile } from '../repositories/index.repo.js';
-import { CREATED, OK, NotFoundError, InternalServerError } from '../utils/httpResponses.js';
+const {
+  createProfile,
+  getProfileById,
+  updateProfile,
+} = require('../repositories/index.repo.js');
+const {
+  CREATED,
+  OK,
+  NotFoundError,
+  InternalServerError,
+} = require('../utils/httpResponses.js');
 
-export default class ProfileController {
+class ProfileController {
   static async create(req, res) {
     try {
       const profile = await createProfile(req.body);
@@ -34,3 +43,5 @@ export default class ProfileController {
     }
   }
 }
+
+module.exports = ProfileController;

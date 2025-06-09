@@ -1,1 +1,3 @@
-export * from './post.repo.js';
+module.exports = {
+  ...require('./post.repo.js'),
+};

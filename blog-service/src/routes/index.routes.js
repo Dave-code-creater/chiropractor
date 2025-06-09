@@ -1,6 +1,6 @@
-import { Router } from 'express';
-import HealthController from '../controllers/health.controller.js';
-import PostController from '../controllers/post.controller.js';
+const { Router } = require('express');
+const HealthController = require('../controllers/health.controller.js');
+const PostController = require('../controllers/post.controller.js');
 
 const router = Router();
 
@@ -54,4 +54,4 @@ router.get('/posts/:id', PostController.getById);
  */
 router.get('/posts', PostController.list);
 
-export default router;
+module.exports = router;

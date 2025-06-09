@@ -1,3 +1,5 @@
-export default class AppointmentService {
+class AppointmentService {
   // business logic placeholder
 }
+
+module.exports = AppointmentService;

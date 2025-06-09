@@ -1,7 +1,7 @@
-import { createPost, getPostById, listPosts } from '../repositories/index.repo.js';
-import { CREATED, OK, NotFoundError, InternalServerError } from '../utils/httpResponses.js';
+const { createPost, getPostById, listPosts } = require('../repositories/index.repo.js');
+const { CREATED, OK, NotFoundError, InternalServerError } = require('../utils/httpResponses.js');
 
-export default class PostController {
+class PostController {
   static async create(req, res) {
     try {
       const post = await createPost({ title: req.body.title, body: req.body.body, author: req.body.author, tags: req.body.tags, created_at: new Date() });
@@ -33,3 +33,5 @@ export default class PostController {
     }
   }
 }
+
+module.exports = PostController;

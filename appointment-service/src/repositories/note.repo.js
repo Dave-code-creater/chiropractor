@@ -1,6 +1,6 @@
-import { getDb } from '../config/index.js';
+const { getDb } = require('../config/index.js');
 
-export const createTreatmentNote = async (note) => {
+const createTreatmentNote = async (note) => {
   const db = getDb();
   const [row] = await db
     .insertInto('treatment_notes')
@@ -10,7 +10,7 @@ export const createTreatmentNote = async (note) => {
   return row;
 };
 
-export const getTreatmentNoteById = async (id) => {
+const getTreatmentNoteById = async (id) => {
   const db = getDb();
   return db
     .selectFrom('treatment_notes')
@@ -19,7 +19,7 @@ export const getTreatmentNoteById = async (id) => {
     .executeTakeFirst();
 };
 
-export const updateTreatmentNote = async (id, note) => {
+const updateTreatmentNote = async (id, note) => {
   const db = getDb();
   const [row] = await db
     .updateTable('treatment_notes')
@@ -28,4 +28,10 @@ export const updateTreatmentNote = async (id, note) => {
     .returningAll()
     .execute();
   return row;
+};
+
+module.exports = {
+  createTreatmentNote,
+  getTreatmentNoteById,
+  updateTreatmentNote,
 };

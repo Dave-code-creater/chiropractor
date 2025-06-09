@@ -1,3 +1,5 @@
-export default class ChatService {
+class ChatService {
   // business logic placeholder
 }
+
+module.exports = ChatService;

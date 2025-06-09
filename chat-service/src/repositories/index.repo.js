@@ -1,1 +1,3 @@
-export * from './message.repo.js';
+module.exports = {
+  ...require('./message.repo.js'),
+};

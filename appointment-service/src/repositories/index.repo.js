@@ -1,2 +1,4 @@
-export * from './appointment.repo.js';
-export * from './note.repo.js';
+module.exports = {
+  ...require('./appointment.repo.js'),
+  ...require('./note.repo.js'),
+};

@@ -1,6 +1,6 @@
-import { Router } from 'express';
-import HealthController from '../controllers/health.controller.js';
-import AuthController from '../controllers/auth.controller.js';
+const { Router } = require('express');
+const HealthController = require('../controllers/health.controller.js');
+const AuthController = require('../controllers/auth.controller.js');
 
 const router = Router();
 
@@ -85,4 +85,4 @@ router.post('/refresh', AuthController.refresh);
  */
 router.post('/logout', AuthController.logout);
 
-export default router;
+module.exports = router;

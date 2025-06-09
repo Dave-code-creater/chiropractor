@@ -1,7 +1,7 @@
 'use strict';
-import { StatusCodes, ReasonPhrases } from 'http-status-codes';
+const { StatusCodes, ReasonPhrases } = require('http-status-codes');
 
-export const SuccessCodes = {
+const SuccessCodes = {
     OK: '2000',
     CREATED: '2010',
     SIGNUP_SUCCESS: '2011',
@@ -10,7 +10,7 @@ export const SuccessCodes = {
     LOGOUT_SUCCESS: '2003'
 };
 
-export const ReasonStatusCode = {
+const ReasonStatusCode = {
     OK: ReasonPhrases.OK,
     CREATED: ReasonPhrases.CREATED,
     SIGNUP_SUCCESS: 'User registered successfully',
@@ -19,7 +19,7 @@ export const ReasonStatusCode = {
     LOGOUT_SUCCESS: 'User logged out successfully'
 };
 
-export class SuccessResponse {
+class SuccessResponse {
     constructor({ message = ReasonStatusCode.OK, statusCode = StatusCodes.OK, metadata = {}, reasonCode = SuccessCodes.OK } = {}) {
         this.success = true;
         this.statusCode = statusCode;
@@ -38,40 +38,40 @@ export class SuccessResponse {
     }
 }
 
-export class OK extends SuccessResponse {
+class OK extends SuccessResponse {
     constructor({ message = ReasonStatusCode.OK, metadata = {}, reasonCode = SuccessCodes.OK } = {}) {
         super({ message, statusCode: StatusCodes.OK, metadata, reasonCode });
     }
 }
 
-export class CREATED extends SuccessResponse {
+class CREATED extends SuccessResponse {
     constructor({ message = ReasonStatusCode.CREATED, metadata = {}, reasonCode = SuccessCodes.CREATED } = {}) {
         super({ message, statusCode: StatusCodes.CREATED, metadata, reasonCode });
     }
 }
 
-export class SignupSuccess extends CREATED {
+class SignupSuccess extends CREATED {
     constructor({ metadata = {} } = {}) {
         super({ message: ReasonStatusCode.SIGNUP_SUCCESS, metadata, reasonCode: SuccessCodes.SIGNUP_SUCCESS });
     }
 }
-export class LoginSuccess extends OK {
+class LoginSuccess extends OK {
     constructor({ metadata = {} } = {}) {
         super({ message: ReasonStatusCode.LOGIN_SUCCESS, metadata, reasonCode: SuccessCodes.LOGIN_SUCCESS });
     }
 }
-export class TokenRefreshed extends OK {
+class TokenRefreshed extends OK {
     constructor({ metadata = {} } = {}) {
         super({ message: ReasonStatusCode.TOKEN_REFRESHED, metadata, reasonCode: SuccessCodes.TOKEN_REFRESHED });
     }
 }
-export class LogoutSuccess extends OK {
+class LogoutSuccess extends OK {
     constructor({ metadata = {} } = {}) {
         super({ message: ReasonStatusCode.LOGOUT_SUCCESS, metadata, reasonCode: SuccessCodes.LOGOUT_SUCCESS });
     }
 }
 
-export const ErrorCodes = {
+const ErrorCodes = {
     BAD_REQUEST: '4000',
     UNAUTHORIZED: '4010',
     FORBIDDEN: '4030',
@@ -90,7 +90,7 @@ export const ErrorCodes = {
     JWT_SIGN_FAILED: '5003'
 };
 
-export class ErrorResponse extends Error {
+class ErrorResponse extends Error {
     constructor(message, statusCode = StatusCodes.INTERNAL_SERVER_ERROR, errorCode = ErrorCodes.INTERNAL_SERVER_ERROR) {
         super(message);
         this.statusCode = statusCode;
@@ -115,78 +115,106 @@ export class ErrorResponse extends Error {
     }
 }
 
-export class BadRequestError extends ErrorResponse {
+class BadRequestError extends ErrorResponse {
     constructor(message = ReasonPhrases.BAD_REQUEST, errorCode = ErrorCodes.BAD_REQUEST) {
         super(message, StatusCodes.BAD_REQUEST, errorCode);
     }
 }
-export class UnauthorizedError extends ErrorResponse {
+class UnauthorizedError extends ErrorResponse {
     constructor(message = ReasonPhrases.UNAUTHORIZED, errorCode = ErrorCodes.UNAUTHORIZED) {
         super(message, StatusCodes.UNAUTHORIZED, errorCode);
     }
 }
-export class InvalidRefreshTokenError extends ErrorResponse {
+class InvalidRefreshTokenError extends ErrorResponse {
     constructor(message = 'Invalid refresh token', errorCode = ErrorCodes.INVALID_REFRESH_TOKEN) {
         super(message, StatusCodes.UNAUTHORIZED, errorCode);
     }
 }
-export class ForbiddenError extends ErrorResponse {
+class ForbiddenError extends ErrorResponse {
     constructor(message = ReasonPhrases.FORBIDDEN, errorCode = ErrorCodes.FORBIDDEN) {
         super(message, StatusCodes.FORBIDDEN, errorCode);
     }
 }
-export class NotFoundError extends ErrorResponse {
+class NotFoundError extends ErrorResponse {
     constructor(message = ReasonPhrases.NOT_FOUND, errorCode = ErrorCodes.NOT_FOUND) {
         super(message, StatusCodes.NOT_FOUND, errorCode);
     }
 }
-export class ConflictRequestError extends ErrorResponse {
+class ConflictRequestError extends ErrorResponse {
     constructor(message = ReasonPhrases.CONFLICT, errorCode = ErrorCodes.CONFLICT) {
         super(message, StatusCodes.CONFLICT, errorCode);
     }
 }
-export class UsernameExistsError extends ErrorResponse {
+class UsernameExistsError extends ErrorResponse {
     constructor(message = 'Username already exists', errorCode = ErrorCodes.USERNAME_EXISTS) {
         super(message, StatusCodes.CONFLICT, errorCode);
     }
 }
-export class EmailExistsError extends ErrorResponse {
+class EmailExistsError extends ErrorResponse {
     constructor(message = 'Email already exists', errorCode = ErrorCodes.EMAIL_EXISTS) {
         super(message, StatusCodes.CONFLICT, errorCode);
     }
 }
-export class UserNotFoundError extends ErrorResponse {
+class UserNotFoundError extends ErrorResponse {
     constructor(message = 'User not found', errorCode = ErrorCodes.USER_NOT_FOUND) {
         super(message, StatusCodes.NOT_FOUND, errorCode);
     }
 }
-export class UserIdentityNotFoundError extends ErrorResponse {
+class UserIdentityNotFoundError extends ErrorResponse {
     constructor(message = 'User identity not found', errorCode = ErrorCodes.USER_IDENTITY_NOT_FOUND) {
         super(message, StatusCodes.NOT_FOUND, errorCode);
     }
 }
-export class UserRoleNotFoundError extends ErrorResponse {
+class UserRoleNotFoundError extends ErrorResponse {
     constructor(message = 'User role not found', errorCode = ErrorCodes.USER_ROLE_NOT_FOUND) {
         super(message, StatusCodes.NOT_FOUND, errorCode);
     }
 }
-export class TokenExistsError extends ErrorResponse {
+class TokenExistsError extends ErrorResponse {
     constructor(message = 'Token already exists', errorCode = ErrorCodes.TOKEN_EXISTS) {
         super(message, StatusCodes.CONFLICT, errorCode);
     }
 }
-export class InternalServerError extends ErrorResponse {
+class InternalServerError extends ErrorResponse {
     constructor(message = ReasonPhrases.INTERNAL_SERVER_ERROR, errorCode = ErrorCodes.INTERNAL_SERVER_ERROR) {
         super(message, StatusCodes.INTERNAL_SERVER_ERROR, errorCode);
     }
 }
-export class RsaKeyGenerationError extends ErrorResponse {
+class RsaKeyGenerationError extends ErrorResponse {
     constructor(message = 'Failed to generate RSA key', errorCode = ErrorCodes.RSA_GENERATION_FAILED) {
         super(message, StatusCodes.INTERNAL_SERVER_ERROR, errorCode);
     }
 }
-export class JwtSignError extends ErrorResponse {
+class JwtSignError extends ErrorResponse {
     constructor(message = 'JWT signing failed', errorCode = ErrorCodes.JWT_SIGN_FAILED) {
         super(message, StatusCodes.INTERNAL_SERVER_ERROR, errorCode);
     }
 }
+module.exports = {
+  SuccessCodes,
+  ReasonStatusCode,
+  SuccessResponse,
+  OK,
+  CREATED,
+  SignupSuccess,
+  LoginSuccess,
+  TokenRefreshed,
+  LogoutSuccess,
+  ErrorCodes,
+  ErrorResponse,
+  BadRequestError,
+  UnauthorizedError,
+  InvalidRefreshTokenError,
+  ForbiddenError,
+  NotFoundError,
+  ConflictRequestError,
+  UsernameExistsError,
+  EmailExistsError,
+  UserNotFoundError,
+  UserIdentityNotFoundError,
+  UserRoleNotFoundError,
+  TokenExistsError,
+  InternalServerError,
+  RsaKeyGenerationError,
+  JwtSignError,
+};

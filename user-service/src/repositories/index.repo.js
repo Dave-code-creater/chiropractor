@@ -1,3 +1,5 @@
-export * from './profile.repo.js';
-export * from './emergency.repo.js';
-export * from './insurance.repo.js';
+module.exports = {
+  ...require('./profile.repo.js'),
+  ...require('./emergency.repo.js'),
+  ...require('./insurance.repo.js'),
+};
