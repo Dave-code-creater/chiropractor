@@ -11,7 +11,8 @@ describe('user-service insurance details', () => {
     sinon.stub(repo, 'createInsuranceDetail').resolves({ id: 1 });
     const res = await request(app)
       .post('/insurance-details')
-      .send({ details: 'x' });
+      .set('user-id', '1')
+      .send({ insurance_detail: { details: 'x' } });
     assert.equal(res.status, 201);
   });
 

@@ -11,7 +11,8 @@ describe('user-service emergency contacts', () => {
     sinon.stub(repo, 'createEmergencyContact').resolves({ id: 1 });
     const res = await request(app)
       .post('/emergency-contacts')
-      .send({ name: 'bob' });
+      .set('user-id', '1')
+      .send({ emergency_contact: { name: 'bob' } });
     assert.equal(res.status, 201);
   });
 

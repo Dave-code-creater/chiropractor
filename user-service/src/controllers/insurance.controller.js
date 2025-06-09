@@ -4,16 +4,25 @@ const {
   updateInsuranceDetail,
 } = require('../repositories/insurance.repo.js');
 const {
+  createInsuranceDetailValidator,
+} = require('../validators/profile.validator.js');
+const {
   CREATED,
   OK,
   NotFoundError,
   InternalServerError,
+  BadRequestError,
 } = require('../utils/httpResponses.js');
 
 class InsuranceDetailController {
   static async create(req, res) {
     try {
-      const detail = await createInsuranceDetail(req.body);
+      const { error, value } = createInsuranceDetailValidator.validate(req.body);
+      if (error) return new BadRequestError(error.details[0].message).send(res);
+      const detail = await createInsuranceDetail({
+        user_id: Number(req.headers['user-id']),
+        ...value.insurance_detail,
+      });
       return new CREATED({ metadata: detail }).send(res);
     } catch (err) {
       console.error(err);
