@@ -1,0 +1,48 @@
+version: '3.9'
+
+services:
+  user-db:
+    image: postgres:16-alpine
+    container_name: user_db
+    restart: always
+    environment:
+      POSTGRES_DB: user_db
+      POSTGRES_USER: user_user
+      POSTGRES_PASSWORD: user_pass
+    ports:
+      - "5434:5432"
+    volumes:
+      - user_pgdata:/var/lib/postgresql/data
+
+  migrate-user:
+    image: node:20-alpine
+    working_dir: /app
+    depends_on:
+      - user-db
+    volumes:
+      - .:/app
+    entrypoint: >
+      sh -c "npm install && node scripts/migrate.js"
+    environment:
+      DATABASE_URL: postgresql://user_user:user_pass@user-db:5432/user_db
+
+  user-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      - user-db
+      - migrate-user
+    ports:
+      - "3002:3002"
+    environment:
+      NODE_ENV: development
+      PORT: 3002
+      PRO_POSTGRESQL_USER: user_user
+      PRO_POSTGRESQL_PASS: user_pass
+      PRO_POSTGRESQL_HOST: user-db
+      PRO_POSTGRESQL_PORT: 5432
+      PRO_POSTGRESQL_NAME: user_db
+
+volumes:
+  user_pgdata:
