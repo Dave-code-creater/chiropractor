@@ -1,14 +1,20 @@
+require('dotenv').config();
 const request = require('supertest');
 const sinon = require('sinon');
+const { expect } = require('chai');
+const { loadEnv } = require('../src/config/index.js');
 const service = require('../src/services/index.service.js');
 const repo = require('../src/repositories/profile.repo.js');
 const app = require('../src/index.js');
 const jwt = require('jsonwebtoken');
-const { strict: assert } = require('assert');
 
 before(() => {
-  process.env.JWT_SECRET = 'testsecret';
-  process.env.JWT_EXPIRES_IN = '15m';
+  loadEnv();
+});
+
+    expect(res.status).to.equal(201);
+    expect(res.status).to.equal(200);
+    expect(res.status).to.equal(200);
   loadEnv();
 });
 

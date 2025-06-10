@@ -1,13 +1,13 @@
 const sinon = require('sinon');
 const { expect } = require('chai');
-const service = require('../src/services/index.service.js');
-const profileRepo = require('../src/repositories/profile.repo.js');
-const emergencyRepo = require('../src/repositories/emergency.repo.js');
-const insuranceRepo = require('../src/repositories/insurance.repo.js');
-const painRepo = require('../src/repositories/pain.repo.js');
-const { ForbiddenError } = require('../src/utils/httpResponses.js');
-const { loadEnv, getDb } = require('../src/config/index');
-
+    expect(result.profile.user_id).to.equal(5);
+    expect(profileRepo.createProfile.calledOnce).to.be.true;
+    expect(emergencyRepo.createEmergencyContact.calledOnce).to.be.true;
+    expect(insuranceRepo.createInsuranceDetail.calledOnce).to.be.true;
+    expect(painRepo.createPainDescription.calledOnce).to.be.true;
+    expect(res.id).to.equal(1);
+      expect.fail('expected error');
+      expect(err).to.be.instanceOf(ForbiddenError);
 before(() => {
   process.env.JWT_SECRET = 'testsecret';
   process.env.JWT_EXPIRES_IN = '15m';

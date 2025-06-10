@@ -1,11 +1,17 @@
+require('dotenv').config();
 const request = require('supertest');
+const { expect } = require('chai');
+const { loadEnv } = require('../src/config/index.js');
 const app = require('../src/index.js');
-const { strict: assert } = require('assert');
+
+before(() => {
+  loadEnv();
+});
 
 describe('user-service health', () => {
   it('returns ok', async () => {
     const res = await request(app).get('/');
-    assert.equal(res.status, 200);
-    assert.deepEqual(res.body, { status: 'ok' });
+    expect(res.status).to.equal(200);
+    expect(res.body).to.deep.equal({ status: 'ok' });
   });
 });
