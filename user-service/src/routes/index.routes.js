@@ -3,6 +3,7 @@ const HealthController = require('../controllers/health.controller.js');
 const ProfileController = require('../controllers/profile.controller.js');
 const EmergencyContactController = require('../controllers/emergency.controller.js');
 const InsuranceDetailController = require('../controllers/insurance.controller.js');
+const jwtMiddleware = require('../middlewares/jwt.middleware.js');
 
 const router = Router();
 
@@ -16,6 +17,7 @@ const router = Router();
  *         description: OK
  */
 router.get('/', HealthController.healthCheck);
+router.use(jwtMiddleware);
 
 /**
  * @swagger
