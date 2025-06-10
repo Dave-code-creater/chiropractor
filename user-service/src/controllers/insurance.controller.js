@@ -1,11 +1,7 @@
-const {
-  createInsuranceDetail,
-  getInsuranceDetailById,
-} = require('../repositories/insurance.repo.js');
-const UserService = require('../services/index.service.js');
+const InsuranceService = require('../services/insurance.service.js');
 const {
   createInsuranceDetailValidator,
-} = require('../validate/profile.validator.js');
+} = require('../validate/insurance.validator.js');
 const {
   CREATED,
   OK,
@@ -19,10 +15,10 @@ class InsuranceDetailController {
     try {
       const { error, value } = createInsuranceDetailValidator.validate(req.body);
       if (error) return new BadRequestError(error.details[0].message).send(res);
-      const detail = await createInsuranceDetail({
-        user_id: Number(req.headers['user-id']),
-        ...value.insurance_detail,
-      });
+      const detail = await InsuranceService.create(
+        Number(req.headers['user-id']),
+        value.insurance_detail
+      );
       return new CREATED({ metadata: detail }).send(res);
     } catch (err) {
       console.error(err);
@@ -32,7 +28,7 @@ class InsuranceDetailController {
 
   static async getById(req, res) {
     try {
-      const detail = await getInsuranceDetailById(Number(req.params.id));
+      const detail = await InsuranceService.getById(Number(req.params.id));
       if (!detail) return new NotFoundError('not found').send(res);
       return new OK({ metadata: detail }).send(res);
     } catch (err) {
@@ -43,7 +39,7 @@ class InsuranceDetailController {
 
   static async update(req, res) {
     try {
-      const detail = await UserService.updateInsuranceDetail(
+      const detail = await InsuranceService.update(
         Number(req.params.id),
         req.body,
         req.user

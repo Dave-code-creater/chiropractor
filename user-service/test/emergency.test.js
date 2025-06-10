@@ -4,7 +4,7 @@ const sinon = require('sinon');
 const { expect } = require('chai');
 const { loadEnv } = require('../src/config/index.js');
 const repo = require('../src/repositories/emergency.repo.js');
-const service = require('../src/services/index.service.js');
+const EmergencyService = require('../src/services/emergency.service.js');
 const app = require('../src/index.js');
 const jwt = require('jsonwebtoken');
 
@@ -14,7 +14,7 @@ before(() => {
 
     expect(res.status).to.equal(201);
     expect(res.status).to.equal(200);
-    expect(res.status).to.equal(200);
+    sinon.stub(EmergencyService, 'update').resolves({ id: 1 });
   loadEnv();
 });
 

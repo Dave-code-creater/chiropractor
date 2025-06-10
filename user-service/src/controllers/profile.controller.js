@@ -1,4 +1,4 @@
-const UserService = require('../services/index.service.js');
+const ProfileService = require('../services/profile.service.js');
 const { getProfileById } = require('../repositories/profile.repo.js');
 const {
   CREATED,
@@ -10,7 +10,7 @@ const {
 class ProfileController {
   static async create(req, res) {
     try {
-      const data = await UserService.createProfile(req);
+      const data = await ProfileService.create(req);
       return new CREATED({ metadata: data }).send(res);
     } catch (err) {
       console.error(err);
@@ -32,7 +32,7 @@ class ProfileController {
 
   static async update(req, res) {
     try {
-      const profile = await UserService.updateProfile(
+      const profile = await ProfileService.update(
         Number(req.params.id),
         req.body,
         req.user

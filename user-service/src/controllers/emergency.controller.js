@@ -1,11 +1,7 @@
-const {
-  createEmergencyContact,
-  getEmergencyContactById,
-} = require('../repositories/emergency.repo.js');
-const UserService = require('../services/index.service.js');
+const EmergencyService = require('../services/emergency.service.js');
 const {
   createEmergencyContactValidator,
-} = require('../validate/profile.validator.js');
+} = require('../validate/emergency.validator.js');
 const {
   CREATED,
   OK,
@@ -19,10 +15,7 @@ class EmergencyContactController {
     try {
       const { error, value } = createEmergencyContactValidator.validate(req.body);
       if (error) return new BadRequestError(error.details[0].message).send(res);
-      const contact = await createEmergencyContact({
-        user_id: Number(req.headers['user-id']),
-        ...value.emergency_contact,
-      });
+      const contact = await EmergencyService.create(Number(req.headers['user-id']), value.emergency_contact);
       return new CREATED({ metadata: contact }).send(res);
     } catch (err) {
       console.error(err);
@@ -32,7 +25,7 @@ class EmergencyContactController {
 
   static async getById(req, res) {
     try {
-      const contact = await getEmergencyContactById(Number(req.params.id));
+      const contact = await EmergencyService.getById(Number(req.params.id));
       if (!contact) return new NotFoundError('not found').send(res);
       return new OK({ metadata: contact }).send(res);
     } catch (err) {
@@ -43,7 +36,7 @@ class EmergencyContactController {
 
   static async update(req, res) {
     try {
-      const contact = await UserService.updateEmergencyContact(
+      const contact = await EmergencyService.update(
         Number(req.params.id),
         req.body,
         req.user

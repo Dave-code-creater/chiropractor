@@ -1,47 +1,36 @@
-const { createInsuranceDetail, updateInsuranceDetail, getInsuranceDetailById } = require('../repositories/insurance.repo.js');
+const {
+  createInsuranceDetail,
+  getInsuranceDetailById,
+  updateInsuranceDetail
+} = require('../repositories/insurance.repo.js');
+const { createInsuranceDetailValidator } = require('../validate/insurance.validator.js');
 const { BadRequestError, ForbiddenError } = require('../utils/httpResponses.js');
-const { createInsuranceDetailValidator } = require('../validate/profile.validator.js');
 
 class InsuranceService {
-    static async createInsuranceDetail(req) {
-        const userId = Number(req.user["sub"]);
-        if (!userId) {
-            throw new BadRequestError('User ID is required');
-        }
+  static async create(userIdOrReq, data) {
+    let userId = typeof userIdOrReq === 'object' ? Number(userIdOrReq.headers['user-id']) : userIdOrReq;
+    let detail = data;
+    if (typeof userIdOrReq === 'object') {
+      const { error, value } = createInsuranceDetailValidator.validate(userIdOrReq.body);
+      if (error) throw new BadRequestError(error.details[0].message);
+      detail = value.insurance_detail;
+    }
+    if (!userId) throw new BadRequestError('user-id header required');
+    return createInsuranceDetail({ user_id: userId, ...detail });
+  }
 
-        const { error, value } = createInsuranceDetailValidator.validate(req.body);
-        if (error) {
-            throw new BadRequestError(error.details[0].message);
-        }
-        return createInsuranceDetail({
-            user_id: userId,
-            ...value.insurance_detail,
-        });
+  static async getById(id) {
+    return getInsuranceDetailById(id);
+  }
+
+  static async update(id, data, requester) {
+    const existing = await getInsuranceDetailById(id);
+    if (!existing) return null;
+    if (!requester || !(requester.role === 'doctor' || requester.role === 'staff' || requester.sub === existing.user_id)) {
+      throw new ForbiddenError('not allowed');
     }
-    static async updateInsuranceDetail(id, data, requester) {
-        const existing = await getInsuranceDetailById(id);
-        if (!existing) return null;
-        if (!requester || !(requester.role === 'doctor' || requester.role === 'staff' || requester.sub === existing.user_id)) {
-            throw new ForbiddenError('not allowed');
-        }
-        return updateInsuranceDetail(id, data);
-    }
-    static async getInsuranceDetailById(id) {
-        const detail = await getInsuranceDetailById(id);
-        if (!detail) return null;
-        return detail;
-    }
-    static async getInsuranceDetailByUserId(userId) {
-        const detail = await getInsuranceDetailById(userId);
-        if (!detail) return null;
-        return detail;
-    }
-    static async getInsuranceDetailByUserIdAndRequester(userId, requester) {
-        if (!requester || !(requester.role === 'doctor' || requester.role === 'staff' || requester.sub === userId)) {
-            throw new ForbiddenError('not allowed');
-        }
-        return this.getInsuranceDetailByUserId(userId);
-    }
+    return updateInsuranceDetail(id, data);
+  }
 }
 
 module.exports = InsuranceService;

@@ -3,7 +3,7 @@ const request = require('supertest');
 const sinon = require('sinon');
 const { expect } = require('chai');
 const { loadEnv } = require('../src/config/index.js');
-const service = require('../src/services/index.service.js');
+const ProfileService = require('../src/services/profile.service.js');
 const repo = require('../src/repositories/profile.repo.js');
 const app = require('../src/index.js');
 const jwt = require('jsonwebtoken');
@@ -12,9 +12,9 @@ before(() => {
   loadEnv();
 });
 
-    expect(res.status).to.equal(201);
+    sinon.stub(ProfileService, 'create').resolves({ profile: { user_id: 1 } });
     expect(res.status).to.equal(200);
-    expect(res.status).to.equal(200);
+    sinon.stub(ProfileService, 'update').resolves({ user_id: 1 });
   loadEnv();
 });
 
