@@ -15,10 +15,11 @@ const { createProfileValidator } = require('../validate/profile.validator.js');
 
 class UserService {
   static async createProfile(req) {
-    const userId = Number(req.headers['user-id']);
+    const userId = Number(req.user["sub"]);
     if (!userId) {
-      throw new BadRequestError('user-id header required');
+      throw new BadRequestError('User ID is required');
     }
+
     const { error, value } = createProfileValidator.validate(req.body);
     if (error) {
       throw new BadRequestError(error.details[0].message);
