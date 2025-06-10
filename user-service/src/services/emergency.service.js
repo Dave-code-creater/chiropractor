@@ -3,33 +3,42 @@ const {
   getEmergencyContactById,
   updateEmergencyContact
 } = require('../repositories/emergency.repo.js');
-const { createEmergencyContactValidator } = require('../validate/emergency.validator.js');
 const { BadRequestError, ForbiddenError } = require('../utils/httpResponses.js');
 
 class EmergencyService {
-  static async create(userIdOrReq, data) {
-    let userId = typeof userIdOrReq === 'object' ? Number(userIdOrReq.headers['user-id']) : userIdOrReq;
-    let contact = data;
-    if (typeof userIdOrReq === 'object') {
-      const { error, value } = createEmergencyContactValidator.validate(userIdOrReq.body);
-      if (error) throw new BadRequestError(error.details[0].message);
-      contact = value.emergency_contact;
+  static async create(data, req) {
+    const userId = req.user['sub'];
+    if (!userId) {
+      throw new BadRequestError('user-id header required', '4001');
     }
-    if (!userId) throw new BadRequestError('user-id header required');
-    return createEmergencyContact({ user_id: userId, ...contact });
-  }
+    const contact = {
+      ...data,
+      user_id: userId,
+      created_at: new Date(),
+      updated_at: new Date()
+    };
 
-  static async getById(id) {
-    return getEmergencyContactById(id);
-  }
-
-  static async update(id, data, requester) {
-    const existing = await getEmergencyContactById(id);
-    if (!existing) return null;
-    if (!requester || !(requester.role === 'doctor' || requester.role === 'staff' || requester.sub === existing.user_id)) {
-      throw new ForbiddenError('not allowed');
+    const result = await createEmergencyContact(contact);
+    if (!result) {
+      throw new ForbiddenError('Failed to create emergency contact', '4031');
     }
-    return updateEmergencyContact(id, data);
+    return result;
+  }
+  static async getByID(req) {
+    const id = req.user['sub'];
+    const result = await getEmergencyContactById(id);
+    if (!result) {
+      throw new ForbiddenError('Emergency contact not found', '4032');
+    }
+    return result;
+  }
+  static async update(req, data) {
+    const id = req.user['sub'];
+    const result = await updateEmergencyContact(id, data);
+    if (!result) {
+      throw new ForbiddenError('Failed to update emergency contact', '4033');
+    }
+    return result;
   }
 }
 

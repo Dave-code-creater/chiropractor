@@ -3,33 +3,42 @@ const {
   getInsuranceDetailById,
   updateInsuranceDetail
 } = require('../repositories/insurance.repo.js');
-const { createInsuranceDetailValidator } = require('../validate/insurance.validator.js');
 const { BadRequestError, ForbiddenError } = require('../utils/httpResponses.js');
 
 class InsuranceService {
-  static async create(userIdOrReq, data) {
-    let userId = typeof userIdOrReq === 'object' ? Number(userIdOrReq.headers['user-id']) : userIdOrReq;
-    let detail = data;
-    if (typeof userIdOrReq === 'object') {
-      const { error, value } = createInsuranceDetailValidator.validate(userIdOrReq.body);
-      if (error) throw new BadRequestError(error.details[0].message);
-      detail = value.insurance_detail;
+  static async create(data, req) {
+    const id = req.user['sub'];
+    if (!id) {
+      throw new BadRequestError('user-id header required', '4001');
     }
-    if (!userId) throw new BadRequestError('user-id header required');
-    return createInsuranceDetail({ user_id: userId, ...detail });
-  }
+    const insuranceDetail = {
+      ...data,
+      user_id: id,
+      created_at: new Date(),
+      updated_at: new Date()
+    };
 
-  static async getById(id) {
-    return getInsuranceDetailById(id);
-  }
-
-  static async update(id, data, requester) {
-    const existing = await getInsuranceDetailById(id);
-    if (!existing) return null;
-    if (!requester || !(requester.role === 'doctor' || requester.role === 'staff' || requester.sub === existing.user_id)) {
-      throw new ForbiddenError('not allowed');
+    const result = await createInsuranceDetail(insuranceDetail);
+    if (!result) {
+      throw new ForbiddenError('Failed to create insurance detail', '4031');
     }
-    return updateInsuranceDetail(id, data);
+    return result;
+  }
+  static async getByID(req) {
+    const id = req.user['sub'];
+    const result = await getInsuranceDetailById(id);
+    if (!result) {
+      throw new ForbiddenError('Insurance detail not found', '4032');
+    }
+    return result;
+  }
+  static async update(req, data) {
+    const id = req.user['sub'];
+    const result = await updateInsuranceDetail(id, data);
+    if (!result) {
+      throw new ForbiddenError('Failed to update insurance detail', '4033');
+    }
+    return result;
   }
 }
 

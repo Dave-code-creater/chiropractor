@@ -3,11 +3,11 @@ const EmergencyService = require('./emergency.service.js');
 const InsuranceService = require('./insurance.service.js');
 const PainService = require('./pain.service.js');
 const { BadRequestError, ForbiddenError } = require('../utils/httpResponses.js');
-const { createProfileValidator } = require('../validate/profile.validator.js');
+const { createProfileValidator } = require('../validators/profile.validator.js');
 
 class ProfileService {
   static async create(req) {
-    const userId = Number(req.headers['user-id']);
+    const userId = req.user['sub']
     if (!userId) {
       throw new BadRequestError('user-id header required');
     }

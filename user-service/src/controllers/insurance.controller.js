@@ -1,85 +1,28 @@
-const {
-  createInsuranceDetail,
-  getInsuranceDetailById,
-} = require('../repositories/insurance.repo.js');
-const UserService = require('../services/index.service.js');
-const {
-  createInsuranceDetailValidator,
-} = require('../validate/profile.validator.js');
+const InsuranceService = require('../services/insurance.service');
 const {
   CREATED,
-  OK,
-  NotFoundError,
-  InternalServerError,
-} = require('../utils/httpResponses.js');
-const { getInsuranceDetailById } = require('../repositories/insurance.repo.js');
+  OK
+} = require('../utils/httpResponses');
 
 class InsuranceController {
   static async create(req, res) {
-    try {
-      const { error, value } = createInsuranceDetailValidator.validate(req.body);
-      if (error) return new BadRequestError(error.details[0].message).send(res);
-      const detail = await createInsuranceDetail({
-        user_id: Number(req.headers['user-id']),
-        ...value.insurance_detail,
-      });
-      return new CREATED({ metadata: detail }).send(res);
-    } catch (err) {
-      console.error(err);
-      if (err.send) return err.send(res);
-      return new InternalServerError('error creating insurance detail').send(res);
-    }
+    const result = await InsuranceService.create(req.body, req);
+    return new CREATED({ metadata: result }).send(res);
   }
-  static async getById(req, res) {
-    try {
-      const detail = await InsuranceService.getById(Number(req.params.id));
-      if (!detail) return new NotFoundError('not found').send(res);
-      return new OK({ metadata: detail }).send(res);
-    } catch (err) {
-      console.error(err);
-      return new InternalServerError('error fetching insurance detail').send(res);
-    }
-  }
+
   static async update(req, res) {
-    try {
-      const detail = await UserService.updateInsuranceDetail(
-        Number(req.params.id),
-        req.body,
-        req.user
-      );
-      if (!detail) return new NotFoundError('not found').send(res);
-      return new OK({ metadata: detail }).send(res);
-    } catch (err) {
-      console.error(err);
-      if (err.send) return err.send(res);
-      return new InternalServerError('error updating insurance detail').send(res);
-    }
+    const result = await InsuranceService.update(req.params.id, req.body);
+    return new OK({ metadata: result }).send(res);
   }
-  static async getByUserId(req, res) {
-    try {
-      const detail = await InsuranceService.getInsuranceDetailByUserIdAndRequester(
-        Number(req.params.userId),
-        req.user
-      );
-      if (!detail) return new NotFoundError('not found').send(res);
-      return new OK({ metadata: detail }).send(res);
-    } catch (err) {
-      console.error(err);
-      return new InternalServerError('error fetching insurance detail').send(res);
-    }
+
+  static async getByID(req, res) {
+    const result = await InsuranceService.getByID(req.params.id);
+    return new OK({ metadata: result }).send(res);
   }
-  static async getByUserIdAndRequester(req, res) {
-    try {
-      const detail = await InsuranceService.getInsuranceDetailByUserIdAndRequester(
-        Number(req.params.userId),
-        req.user
-      );
-      if (!detail) return new NotFoundError('not found').send(res);
-      return new OK({ metadata: detail }).send(res);
-    } catch (err) {
-      console.error(err);
-      return new InternalServerError('error fetching insurance detail').send(res);
-    }
+
+  static async delete(req, res) {
+    const result = await InsuranceService.delete(req.params.id);
+    return new OK({ metadata: result }).send(res);
   }
 }
 module.exports = InsuranceController;
