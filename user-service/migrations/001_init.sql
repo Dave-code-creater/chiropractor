@@ -3,7 +3,7 @@ CREATE TYPE insurance_type AS ENUM (
 );
 
 CREATE TABLE IF NOT EXISTS profiles (
-  user_id INT PRIMARY KEY REFERENCES users(id),
+  user_id INT PRIMARY KEY,
   home_addr TEXT NOT NULL,
   city TEXT NOT NULL,
   state CHAR(2),
