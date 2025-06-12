@@ -2,6 +2,7 @@ const { Router } = require('express');
 const HealthController = require('../controllers/health.controller.js');
 const AppointmentController = require('../controllers/appointment.controller.js');
 const TreatmentNoteController = require('../controllers/note.controller.js');
+const jwtMiddleware = require('../middlewares/jwt.middleware.js');
 
 const router = Router();
 
@@ -15,6 +16,7 @@ const router = Router();
  *         description: OK
  */
 router.get('/', HealthController.healthCheck);
+router.use(jwtMiddleware);
 
 /**
  * @swagger

@@ -1,38 +1,38 @@
 const { getDb } = require('../config/index.js');
 
-const createProfile = async (profile) => {
+const createPainDescription = async (desc) => {
   const db = getDb();
   const [row] = await db
-    .insertInto('profiles')
-    .values(profile)
+    .insertInto('pain_descriptions')
+    .values(desc)
     .returningAll()
     .execute();
   return row;
 };
 
-const getProfileById = async (userId) => {
+const getPainDescriptionById = async (userId) => {
   const db = getDb();
   return db
-    .selectFrom('profiles')
+    .selectFrom('pain_descriptions')
     .selectAll()
     .where('user_id', '=', userId)
     .executeTakeFirst();
 };
-
-const updateProfile = async (userId, profile) => {
+const updatePainDescription = async (userId, desc) => {
   const db = getDb();
-  const { updated_at, ...rest } = profile;
+  const { updated_at, ...rest } = desc;
   const [row] = await db
-    .updateTable('profiles')
-    .set(profile)
+    .updateTable('pain_descriptions')
+    .set(rest)
     .where('user_id', '=', userId)
     .returningAll()
     .execute();
   return row;
 };
 
+
 module.exports = {
-  createProfile,
-  getProfileById,
-  updateProfile,
+  createPainDescription,
+  getPainDescriptionById,
+  updatePainDescription
 };

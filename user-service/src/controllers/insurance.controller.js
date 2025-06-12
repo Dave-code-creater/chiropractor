@@ -1,47 +1,28 @@
-const {
-  createInsuranceDetail,
-  getInsuranceDetailById,
-  updateInsuranceDetail,
-} = require('../repositories/insurance.repo.js');
+const InsuranceService = require('../services/insurance.service');
 const {
   CREATED,
-  OK,
-  NotFoundError,
-  InternalServerError,
-} = require('../utils/httpResponses.js');
+  OK
+} = require('../utils/httpResponses');
 
-class InsuranceDetailController {
+class InsuranceController {
   static async create(req, res) {
-    try {
-      const detail = await createInsuranceDetail(req.body);
-      return new CREATED({ metadata: detail }).send(res);
-    } catch (err) {
-      console.error(err);
-      return new InternalServerError('error creating detail').send(res);
-    }
-  }
-
-  static async getById(req, res) {
-    try {
-      const detail = await getInsuranceDetailById(Number(req.params.id));
-      if (!detail) return new NotFoundError('not found').send(res);
-      return new OK({ metadata: detail }).send(res);
-    } catch (err) {
-      console.error(err);
-      return new InternalServerError('error fetching detail').send(res);
-    }
+    const result = await InsuranceService.create(req.body, req);
+    return new CREATED({ metadata: result }).send(res);
   }
 
   static async update(req, res) {
-    try {
-      const detail = await updateInsuranceDetail(Number(req.params.id), req.body);
-      if (!detail) return new NotFoundError('not found').send(res);
-      return new OK({ metadata: detail }).send(res);
-    } catch (err) {
-      console.error(err);
-      return new InternalServerError('error updating detail').send(res);
-    }
+    const result = await InsuranceService.update(req.params.id, req.body);
+    return new OK({ metadata: result }).send(res);
+  }
+
+  static async getByID(req, res) {
+    const result = await InsuranceService.getByID(req.params.id);
+    return new OK({ metadata: result }).send(res);
+  }
+
+  static async delete(req, res) {
+    const result = await InsuranceService.delete(req.params.id);
+    return new OK({ metadata: result }).send(res);
   }
 }
-
-module.exports = InsuranceDetailController;
+module.exports = InsuranceController;

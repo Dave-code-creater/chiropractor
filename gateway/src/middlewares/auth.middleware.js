@@ -1,28 +1,18 @@
+const jwt = require('jsonwebtoken');
 const { UnauthorizedError } = require('../utils/httpResponses.js');
 
-const authMiddleware = async (req, res, next) => {
+const authMiddleware = (req, res, next) => {
   const authHeader = req.headers['authorization'];
   if (!authHeader) {
     return new UnauthorizedError('No token provided').send(res);
   }
 
   try {
-    const verifyRes = await fetch('http://localhost:3001/verify', {
-      method: 'POST',
-      headers: {
-        authorization: authHeader,
-      },
-    });
-
-    const data = await verifyRes.json();
-
-    if (!verifyRes.ok) {
-      return res.status(verifyRes.status).json(data);
-    }
-
-    req.user = data.metadata;
+    const token = authHeader.split(' ')[1];
+    const payload = jwt.verify(token, process.env.PUBLIC_KEY);
+    req.user = payload;
     next();
-  } catch (err) {
+  } catch (_err) {
     return new UnauthorizedError('Invalid token').send(res);
   }
 };

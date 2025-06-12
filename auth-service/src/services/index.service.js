@@ -22,7 +22,7 @@ const {
 } = require('../utils/httpResponses.js');
 
 const { signUpValidator, signInValidator } = require('../validators/access.js');
-const { v4: uuidv4 } = require('UUID');
+const { v4: uuidv4 } = require('uuid');
 const UAParser = require('ua-parser-js');
 
 class AuthService {
@@ -75,7 +75,7 @@ class AuthService {
 
     const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
 
-    const accessToken = jwt.sign({ sub: user.id, email: user.email }, secret, {
+    const accessToken = jwt.sign({ sub: user.id, email: user.email, role: user.role }, secret, {
       expiresIn: process.env.JWT_EXPIRES_IN || '15m',
     });
 

@@ -1,46 +1,27 @@
-const {
-  createEmergencyContact,
-  getEmergencyContactById,
-  updateEmergencyContact,
-} = require('../repositories/emergency.repo.js');
+const EmergencyService = require('../services/emergency.service.js');
 const {
   CREATED,
-  OK,
-  NotFoundError,
-  InternalServerError,
+  OK
 } = require('../utils/httpResponses.js');
 
 class EmergencyContactController {
+
   static async create(req, res) {
-    try {
-      const contact = await createEmergencyContact(req.body);
-      return new CREATED({ metadata: contact }).send(res);
-    } catch (err) {
-      console.error(err);
-      return new InternalServerError('error creating contact').send(res);
-    }
+    const result = await EmergencyService.create(req.body, req);
+    return new CREATED({ metadata: result }).send(res);
   }
-
-  static async getById(req, res) {
-    try {
-      const contact = await getEmergencyContactById(Number(req.params.id));
-      if (!contact) return new NotFoundError('not found').send(res);
-      return new OK({ metadata: contact }).send(res);
-    } catch (err) {
-      console.error(err);
-      return new InternalServerError('error fetching contact').send(res);
-    }
-  }
-
   static async update(req, res) {
-    try {
-      const contact = await updateEmergencyContact(Number(req.params.id), req.body);
-      if (!contact) return new NotFoundError('not found').send(res);
-      return new OK({ metadata: contact }).send(res);
-    } catch (err) {
-      console.error(err);
-      return new InternalServerError('error updating contact').send(res);
-    }
+    const result = await EmergencyService.update(req.params.id, req.body);
+    return new OK({ metadata: result }).send(res);
+  }
+
+  static async getByID(req, res) {
+    const result = await EmergencyService.getByID(req.params.id);
+    return new OK({ metadata: result }).send(res);
+  }
+  static async delete(req, res) {
+    const result = await EmergencyService.delete(req.params.id);
+    return new OK({ metadata: result }).send(res);
   }
 }
 

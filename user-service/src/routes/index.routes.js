@@ -3,7 +3,8 @@ const HealthController = require('../controllers/health.controller.js');
 const ProfileController = require('../controllers/profile.controller.js');
 const EmergencyContactController = require('../controllers/emergency.controller.js');
 const InsuranceDetailController = require('../controllers/insurance.controller.js');
-
+const jwtMiddleware = require('../middlewares/jwt.middleware.js');
+const asyncHandler = require('../helper/asyncHandler.js');
 const router = Router();
 
 /**
@@ -16,6 +17,7 @@ const router = Router();
  *         description: OK
  */
 router.get('/', HealthController.healthCheck);
+router.use(jwtMiddleware);
 
 /**
  * @swagger
@@ -26,7 +28,7 @@ router.get('/', HealthController.healthCheck);
  *       201:
  *         description: Created
  */
-router.post('/profiles', ProfileController.create);
+router.post('/profiles', asyncHandler(ProfileController.create));
 
 /**
  * @swagger
@@ -43,7 +45,7 @@ router.post('/profiles', ProfileController.create);
  *       200:
  *         description: OK
  */
-router.get('/profiles/:id', ProfileController.getById);
+router.get('/profiles/:id', asyncHandler(ProfileController.getById));
 
 /**
  * @swagger
@@ -60,14 +62,14 @@ router.get('/profiles/:id', ProfileController.getById);
  *       200:
  *         description: OK
  */
-router.put('/profiles/:id', ProfileController.update);
+router.put('/profiles/:id', asyncHandler(ProfileController.update));
 
-router.post('/emergency-contacts', EmergencyContactController.create);
-router.get('/emergency-contacts/:id', EmergencyContactController.getById);
-router.put('/emergency-contacts/:id', EmergencyContactController.update);
+router.post('/emergency-contacts', asyncHandler(EmergencyContactController.create));
+router.get('/emergency-contacts/:id', asyncHandler(EmergencyContactController.getById));
+router.put('/emergency-contacts/:id', asyncHandler(EmergencyContactController.update));
 
-router.post('/insurance-details', InsuranceDetailController.create);
-router.get('/insurance-details/:id', InsuranceDetailController.getById);
-router.put('/insurance-details/:id', InsuranceDetailController.update);
+router.post('/insurance-details', asyncHandler(InsuranceDetailController.create));
+router.get('/insurance-details/:id', asyncHandler(InsuranceDetailController.getById));
+router.put('/insurance-details/:id', asyncHandler(InsuranceDetailController.update));
 
 module.exports = router;
