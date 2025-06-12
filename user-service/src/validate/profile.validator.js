@@ -1,3 +1,8 @@
+const Joi = require('joi');
+
+// Validator for creating a user profile
+
+
 const createProfileValidator = {
   validate(data) {
     if (!data || typeof data !== 'object') {
