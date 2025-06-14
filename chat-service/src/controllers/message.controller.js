@@ -1,12 +1,8 @@
 const {
   saveMessage,
   getMessagesByRoom,
-  getMessagesByIds,
+  getMessagesByUserId,
 } = require('../repositories/message.repo.js');
-const {
-  createMessageRecord,
-  getMessageRecordsByUserId,
-} = require('../repositories/messagePg.repo.js');
 const { CREATED, OK, InternalServerError } = require('../utils/httpResponses.js');
 
 class MessageController {
@@ -19,7 +15,6 @@ class MessageController {
         text: req.body.text,
         ts: new Date(),
       });
-      await createMessageRecord(req.body.sender, req.body.receiver, msg._id.toString());
       return new CREATED({ metadata: msg }).send(res);
     } catch (err) {
       console.error(err);
@@ -38,9 +33,7 @@ class MessageController {
   }
   static async historyByUser(req, res) {
     try {
-      const records = await getMessageRecordsByUserId(Number(req.params.id));
-      const ids = records.map((r) => r.mongo_id);
-      const messages = ids.length ? await getMessagesByIds(ids) : [];
+      const messages = await getMessagesByUserId(req.params.id);
       return new OK({ metadata: messages }).send(res);
     } catch (err) {
       console.error(err);
