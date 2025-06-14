@@ -26,3 +26,20 @@ paths:
       responses:
         '200':
           description: OK
+    put:
+      summary: Update post
+      responses:
+        '200':
+          description: OK
+    delete:
+      summary: Delete post
+      responses:
+        '200':
+          description: OK
+
+  /users/{userId}/posts:
+    get:
+      summary: List posts by user
+      responses:
+        '200':
+          description: OK

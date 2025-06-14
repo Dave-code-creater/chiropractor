@@ -45,6 +45,9 @@ router.post('/posts', PostController.create);
  */
 router.get('/posts/:id', PostController.getById);
 
+router.put('/posts/:id', PostController.update);
+router.delete('/posts/:id', PostController.delete);
+
 /**
  * @swagger
  * /posts:
@@ -55,5 +58,7 @@ router.get('/posts/:id', PostController.getById);
  *         description: OK
  */
 router.get('/posts', PostController.list);
+
+router.get('/users/:userId/posts', PostController.listByUser);
 
 module.exports = router;
