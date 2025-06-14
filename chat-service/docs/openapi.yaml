@@ -10,14 +10,27 @@ paths:
         '200':
           description: OK
   /messages:
+    $ref: '#/components/schemas/Deprecated'
+  /api/conversations:
     post:
-      summary: Send message
+      summary: Open conversation
       responses:
-        '201':
-          description: Created
-  /history/{room}:
+        '200':
+          description: OK
     get:
-      summary: Get history
+      summary: List conversations
+      responses:
+        '200':
+          description: OK
+  /api/conversations/{id}/messages:
+    get:
+      summary: Conversation history
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
       responses:
         '200':
           description: OK
