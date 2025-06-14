@@ -2,15 +2,10 @@ const {
   createPost,
   getPostById,
   listPosts,
+  listPostsByUser,
   updatePost,
   deletePost,
 } = require('../repositories/post.repo.js');
-const {
-  savePostMapping,
-  getMappingsByUserId,
-  updateMapping,
-  deleteMapping,
-} = require('../repositories/mapping.repo.js');
 const { CREATED, OK, NotFoundError, InternalServerError } = require('../utils/httpResponses.js');
 
 class PostController {
@@ -21,9 +16,9 @@ class PostController {
         body: req.body.body,
         author: req.body.author,
         tags: req.body.tags,
+        user_id: req.user.sub,
         created_at: new Date(),
       });
-      await savePostMapping({ user_id: req.body.author, mongo_id: String(post._id) });
       return new CREATED({ metadata: post }).send(res);
     } catch (err) {
       console.error(err);
@@ -59,11 +54,9 @@ class PostController {
         body: req.body.body,
         author: req.body.author,
         tags: req.body.tags,
+        user_id: req.user.sub,
       });
       if (!post) return new NotFoundError('not found').send(res);
-      if (req.body.author) {
-        await updateMapping(String(post._id), { user_id: req.body.author });
-      }
       return new OK({ metadata: post }).send(res);
     } catch (err) {
       console.error(err);
@@ -76,7 +69,6 @@ class PostController {
       const post = await getPostById(req.params.id);
       if (!post) return new NotFoundError('not found').send(res);
       await deletePost(req.params.id);
-      await deleteMapping(String(post._id));
       return new OK({ metadata: true }).send(res);
     } catch (err) {
       console.error(err);
@@ -86,12 +78,7 @@ class PostController {
 
   static async listByUser(req, res) {
     try {
-      const mappings = await getMappingsByUserId(Number(req.params.userId));
-      const posts = [];
-      for (const map of mappings) {
-        const p = await getPostById(map.mongo_id);
-        if (p) posts.push(p);
-      }
+      const posts = await listPostsByUser(Number(req.params.userId));
       return new OK({ metadata: posts }).send(res);
     } catch (err) {
       console.error(err);
