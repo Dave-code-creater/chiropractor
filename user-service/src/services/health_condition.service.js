@@ -6,7 +6,7 @@ const {
 
 class HealthConditionService {
     static async create(data, req) {
-        const userId = req.user['sub'];
+        const userId = req.user.sub;
         if (!userId) {
             throw new BadRequestError('user-id header required', '4001');
         }
@@ -25,12 +25,12 @@ class HealthConditionService {
     }
 
     static async getById(req) {
-        const userId = req.user['sub'];
+        const userId = req.user.sub;
         return await getHealthConditionById(userId);
     }
 
     static async update(req, data) {
-        const userId = req.user['sub'];
+        const userId = req.user.sub;
         const result = await updateHealthCondition(userId, data);
         if (!result) {
             throw new Error('Failed to update health condition');

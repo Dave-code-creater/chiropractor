@@ -7,7 +7,7 @@ const app = express();
 if (process.env.NODE_ENV !== 'test') {
   loadEnv();
 }
-app.use(cors());
+
 app.use(express.json());
 
 app.use('/', routes);

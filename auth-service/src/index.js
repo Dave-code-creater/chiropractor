@@ -5,11 +5,26 @@ const { loadEnv } = require('./config/index.js');
 require('dotenv').config();
 const app = express();
 const { ErrorResponse } = require('./utils/httpResponses.js');
+const morgan = require('morgan');
+const helmet = require('helmet');
+const compression = require('compression');
+
 if (process.env.NODE_ENV !== 'test') {
   loadEnv();
 }
-app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(morgan('dev'));
+app.use(helmet());
+app.use(compression());
+app.use(cors(
+  {
+    origin: "http://localhost:5173",
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    credentials: true,
+  }
+))
+
 
 app.use('/', routes);
 

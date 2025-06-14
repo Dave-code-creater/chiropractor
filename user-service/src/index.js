@@ -3,13 +3,27 @@ const cors = require('cors');
 const routes = require('./routes/index.routes.js');
 const { loadEnv } = require('./config/index.js');
 const { ErrorResponse } = require('./utils/httpResponses.js');
-
+const morgan = require('morgan');
+const helmet = require('helmet');
+const compression = require('compression');
 const app = express();
 if (process.env.NODE_ENV !== 'test') {
   loadEnv();
 }
-app.use(cors());
+
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(morgan('dev'));
+app.use(helmet());
+app.use(compression());
+app.use(cors(
+  {
+    origin: "http://localhost:5173",
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    credentials: true,
+  }
+))
+
 
 app.use('/', routes);
 

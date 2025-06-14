@@ -6,22 +6,22 @@ const {
 
 class ProfileController {
   static async create(req, res) {
-    const result = await ProfileService.create(req);
+    const result = await ProfileService.create(req.user, req.body);
     return new CREATED({ metadata: result }).send(res);
   }
 
   static async update(req, res) {
-    const result = await ProfileService.update(req.params.id, req.body);
+    const result = await ProfileService.update(req.user, req.body);
     return new OK({ metadata: result }).send(res);
   }
 
   static async getByID(req, res) {
-    const result = await ProfileService.getByID(req.params.id);
+    const result = await ProfileService.getByID(req.user);
     return new OK({ metadata: result }).send(res);
   }
 
   static async delete(req, res) {
-    const result = await ProfileService.delete(req.params.id);
+    const result = await ProfileService.delete(req.user);
     return new OK({ metadata: result }).send(res);
   }
 }

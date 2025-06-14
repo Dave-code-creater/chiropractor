@@ -1,6 +1,19 @@
-FROM node:20
+FROM node:20-alpine AS builder
+
 WORKDIR /app
-COPY package.json ./
-RUN npm install
-COPY src ./src
-CMD ["node", "src/index.js"]
+
+COPY package*.json ./
+
+RUN npm install --legacy-peer-deps
+# ✅ Copy EVERYTHING (src, validators, migrations, etc.)
+COPY . .
+
+FROM node:20-alpine
+
+WORKDIR /app
+
+COPY --from=builder /app /app
+
+EXPOSE 3000
+
+CMD ["npm", "start"]

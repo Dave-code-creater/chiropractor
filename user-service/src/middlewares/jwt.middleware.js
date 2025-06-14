@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const { UnauthorizedError } = require('../utils/httpResponses.js'); // 👈 structured error response
+const { UnauthorizedError } = require('../utils/httpResponses.js');
 
 function jwtMiddleware(req, res, next) {
   try {
@@ -14,7 +14,7 @@ function jwtMiddleware(req, res, next) {
     next();
   } catch (err) {
     if (err.name === 'JsonWebTokenError' || err.name === 'TokenExpiredError') {
-      return new UnauthorizedError('Invalid token').send(res); // 👈 structured error response
+      return new UnauthorizedError('Invalid token').send(res);
     }
 
     return new UnauthorizedError().send(res); // fallback

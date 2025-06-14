@@ -7,7 +7,7 @@ const { createProfileValidator } = require('../validators/profile.validator.js')
 
 class ProfileService {
   static async create(req) {
-    const userId = req.user['sub']
+    const userId = req.user.sub;
     if (!userId) {
       throw new BadRequestError('user-id header required');
     }

@@ -7,13 +7,13 @@ const { BadRequestError, ForbiddenError } = require('../utils/httpResponses.js')
 
 class InsuranceService {
   static async create(data, req) {
-    const id = req.user['sub'];
-    if (!id) {
+    const userId = req.user.sub;
+    if (!userId) {
       throw new BadRequestError('user-id header required', '4001');
     }
     const insuranceDetail = {
       ...data,
-      user_id: id,
+      user_id: userId,
       created_at: new Date(),
       updated_at: new Date()
     };
@@ -25,16 +25,16 @@ class InsuranceService {
     return result;
   }
   static async getByID(req) {
-    const id = req.user['sub'];
-    const result = await getInsuranceDetailById(id);
+    const userId = req.user.sub;
+    const result = await getInsuranceDetailById(userId);
     if (!result) {
       throw new ForbiddenError('Insurance detail not found', '4032');
     }
     return result;
   }
   static async update(req, data) {
-    const id = req.user['sub'];
-    const result = await updateInsuranceDetail(id, data);
+    const userId = req.user.sub;
+    const result = await updateInsuranceDetail(userId, data);
     if (!result) {
       throw new ForbiddenError('Failed to update insurance detail', '4033');
     }

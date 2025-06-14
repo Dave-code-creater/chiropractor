@@ -9,7 +9,7 @@ const start = async () => {
   if (process.env.NODE_ENV !== 'test') {
     await loadEnv();
   }
-  app.use(cors());
+
   app.use(express.json());
   app.use('/', routes);
   if (process.env.NODE_ENV !== 'test') {

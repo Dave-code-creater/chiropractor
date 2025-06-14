@@ -7,7 +7,8 @@ const { BadRequestError, ForbiddenError } = require('../utils/httpResponses.js')
 
 class PainService {
   static async create(data, req) {
-    const userId = req.user['sub'];
+    const userId = req.user.sub;
+
     if (!userId) {
       throw new BadRequestError('user-id header required', '4001');
     }
@@ -26,7 +27,8 @@ class PainService {
   }
 
   static async getById(req) {
-    const userId = req.user['sub'];
+    const userId = req.user.sub;
+
     const result = await getPainDescriptionById(userId);
     if (!result) {
       throw new ForbiddenError('Pain description not found', '4032');
@@ -35,7 +37,8 @@ class PainService {
   }
 
   static async update(req, data) {
-    const userId = req.user['sub'];
+    const userId = req.user.sub;
+
     const result = await updatePainDescription(userId, data);
     if (!result) {
       throw new ForbiddenError('Failed to update pain description', '4033');

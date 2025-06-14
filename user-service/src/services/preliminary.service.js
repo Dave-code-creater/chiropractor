@@ -7,7 +7,8 @@ const { BadRequestError, ForbiddenError } = require('../utils/httpResponses.js')
 
 class Preliminary {
     static async create(data, req) {
-        const userId = req.user['sub'];
+        const userId = req.user.sub;
+
         if (!id) {
             throw new BadRequestError('user-id header required', '4001');
         }
@@ -26,7 +27,8 @@ class Preliminary {
     }
 
     static async getById(req) {
-        const userId = req.user['sub'];
+        const userId = req.user.sub;
+
         const result = await getPreliminaryById(userId);
         if (!result) {
             throw new ForbiddenError('Preliminary data not found', '4032');
@@ -35,7 +37,8 @@ class Preliminary {
     }
 
     static async update(req, data) {
-        const userId = req.user['sub'];
+        const userId = req.user.sub;
+
         const result = await updatePreliminary(userId, data);
         if (!result) {
             throw new ForbiddenError('Failed to update preliminary data', '4033');
@@ -43,3 +46,5 @@ class Preliminary {
         return result;
     }
 }
+
+module.exports = Preliminary;

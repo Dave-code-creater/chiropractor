@@ -1,20 +1,25 @@
 const jwt = require('jsonwebtoken');
 const { UnauthorizedError } = require('../utils/httpResponses.js');
 
-const authMiddleware = (req, res, next) => {
-  const authHeader = req.headers['authorization'];
-  if (!authHeader) {
-    return new UnauthorizedError('No token provided').send(res);
-  }
-
+function jwtMiddleware(req, res, next) {
   try {
-    const token = authHeader.split(' ')[1];
-    const payload = jwt.verify(token, process.env.PUBLIC_KEY);
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) {
+      throw new UnauthorizedError('No token provided');
+    }
+    const payload = jwt.verify(token, process.env.JWT_SECRET, {
+      algorithms: ['HS256'],
+    });
     req.user = payload;
     next();
-  } catch (_err) {
-    return new UnauthorizedError('Invalid token').send(res);
-  }
-};
+  } catch (err) {
+    if (err.name === 'JsonWebTokenError' || err.name === 'TokenExpiredError') {
+      return new UnauthorizedError('Invalid token').send(res);
+    }
 
-module.exports = authMiddleware;
+    return new UnauthorizedError().send(res); // fallback
+  }
+}
+
+module.exports = jwtMiddleware;
+
