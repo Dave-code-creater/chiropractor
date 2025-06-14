@@ -1,24 +1,10 @@
-const {
-  createPost,
-  getPostById,
-  listPosts,
-  listPostsByUser,
-  updatePost,
-  deletePost,
-} = require('../repositories/post.repo.js');
+const PostService = require('../services/post.service.js');
 const { CREATED, OK, NotFoundError, InternalServerError } = require('../utils/httpResponses.js');
 
 class PostController {
   static async create(req, res) {
     try {
-      const post = await createPost({
-        title: req.body.title,
-        body: req.body.body,
-        author: req.body.author,
-        tags: req.body.tags,
-        user_id: req.user.sub,
-        created_at: new Date(),
-      });
+      const post = await PostService.create(req.body, req.user.sub);
       return new CREATED({ metadata: post }).send(res);
     } catch (err) {
       console.error(err);
@@ -28,7 +14,7 @@ class PostController {
 
   static async getById(req, res) {
     try {
-      const post = await getPostById(req.params.id);
+      const post = await PostService.getById(req.params.id);
       if (!post) return new NotFoundError('not found').send(res);
       return new OK({ metadata: post }).send(res);
     } catch (err) {
@@ -39,7 +25,7 @@ class PostController {
 
   static async list(_req, res) {
     try {
-      const posts = await listPosts();
+      const posts = await PostService.list();
       return new OK({ metadata: posts }).send(res);
     } catch (err) {
       console.error(err);
@@ -49,13 +35,11 @@ class PostController {
 
   static async update(req, res) {
     try {
-      const post = await updatePost(req.params.id, {
-        title: req.body.title,
-        body: req.body.body,
-        author: req.body.author,
-        tags: req.body.tags,
-        user_id: req.user.sub,
-      });
+      const post = await PostService.update(
+        req.params.id,
+        req.body,
+        req.user.sub,
+      );
       if (!post) return new NotFoundError('not found').send(res);
       return new OK({ metadata: post }).send(res);
     } catch (err) {
@@ -66,9 +50,8 @@ class PostController {
 
   static async delete(req, res) {
     try {
-      const post = await getPostById(req.params.id);
-      if (!post) return new NotFoundError('not found').send(res);
-      await deletePost(req.params.id);
+      const deleted = await PostService.delete(req.params.id);
+      if (!deleted) return new NotFoundError('not found').send(res);
       return new OK({ metadata: true }).send(res);
     } catch (err) {
       console.error(err);
@@ -78,7 +61,7 @@ class PostController {
 
   static async listByUser(req, res) {
     try {
-      const posts = await listPostsByUser(Number(req.params.userId));
+      const posts = await PostService.listByUser(Number(req.params.userId));
       return new OK({ metadata: posts }).send(res);
     } catch (err) {
       console.error(err);

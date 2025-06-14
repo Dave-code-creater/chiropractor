@@ -1,6 +1,6 @@
 const request = require('supertest');
 const sinon = require('sinon');
-const postRepo = require('../src/repositories/post.repo.js');
+const PostService = require('../src/services/post.service.js');
 const app = require('../src/index.js');
 const { strict: assert } = require('assert');
 const jwt = require('jsonwebtoken');
@@ -10,7 +10,7 @@ describe('blog-service post endpoints', () => {
 
   it('creates post', async () => {
     sinon.stub(jwt, 'verify').returns({ sub: 1 });
-    sinon.stub(postRepo, 'createPost').resolves({ _id: '1' });
+    sinon.stub(PostService, 'create').resolves({ _id: '1' });
     const res = await request(app)
       .post('/posts')
       .set('authorization', 'Bearer token')
@@ -20,7 +20,7 @@ describe('blog-service post endpoints', () => {
 
   it('gets post', async () => {
     sinon.stub(jwt, 'verify').returns({ sub: 1 });
-    sinon.stub(postRepo, 'getPostById').resolves({ _id: '1' });
+    sinon.stub(PostService, 'getById').resolves({ _id: '1' });
     const res = await request(app)
       .get('/posts/1')
       .set('authorization', 'Bearer token');
@@ -29,7 +29,7 @@ describe('blog-service post endpoints', () => {
 
   it('lists posts by user', async () => {
     sinon.stub(jwt, 'verify').returns({ sub: 1 });
-    sinon.stub(postRepo, 'listPostsByUser').resolves([{ _id: '1' }]);
+    sinon.stub(PostService, 'listByUser').resolves([{ _id: '1' }]);
     const res = await request(app)
       .get('/users/1/posts')
       .set('authorization', 'Bearer token');
