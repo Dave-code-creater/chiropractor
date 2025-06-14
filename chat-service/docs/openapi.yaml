@@ -27,3 +27,9 @@ paths:
       responses:
         '200':
           description: OK
+  /messages/inbox:
+    get:
+      summary: Get inbox list
+      responses:
+        '200':
+          description: OK

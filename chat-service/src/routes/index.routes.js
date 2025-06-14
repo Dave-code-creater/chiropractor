@@ -2,6 +2,7 @@ const { Router } = require('express');
 const HealthController = require('../controllers/health.controller.js');
 const MessageController = require('../controllers/message.controller.js');
 const jwtMiddleware = require('../middlewares/jwt.middleware.js');
+const { rbac } = require('../middlewares/rbac.middleware.js');
 
 const router = Router();
 
@@ -16,6 +17,7 @@ const router = Router();
  */
 router.get('/', HealthController.healthCheck);
 router.use(jwtMiddleware);
+router.use(rbac);
 
 /**
  * @swagger
@@ -61,5 +63,16 @@ router.get('/chat/history/:room', MessageController.history);
  *         description: OK
  */
 router.get('/messages/user/:id', MessageController.historyByUser);
+
+/**
+ * @swagger
+ * /messages/inbox:
+ *   get:
+ *     summary: Get inbox list
+ *     responses:
+ *       200:
+ *         description: OK
+ */
+router.get('/messages/inbox', MessageController.inbox);
 
 module.exports = router;

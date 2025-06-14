@@ -35,5 +35,23 @@ describe('message endpoints', () => {
       .set('authorization', 'Bearer token');
     assert.equal(res.status, 200);
   });
+
+  it('forbids sending to random user when not doctor', async () => {
+    sinon.stub(jwt, 'verify').returns({ sub: 1, role: 'patient' });
+    const res = await request(app)
+      .post('/messages')
+      .set('authorization', 'Bearer token')
+      .send({ room: 'r1', sender: 1, receiver: 99, text: 'hi' });
+    assert.equal(res.status, 403);
+  });
+
+  it('returns inbox list', async () => {
+    sinon.stub(jwt, 'verify').returns({ sub: 1 });
+    sinon.stub(ChatService, 'inboxForUser').resolves([2, 3]);
+    const res = await request(app)
+      .get('/messages/inbox')
+      .set('authorization', 'Bearer token');
+    assert.equal(res.status, 200);
+  });
 });
 

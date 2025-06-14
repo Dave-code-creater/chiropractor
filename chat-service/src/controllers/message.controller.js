@@ -31,6 +31,16 @@ class MessageController {
       return new InternalServerError('error fetching history').send(res);
     }
   }
+
+  static async inbox(req, res) {
+    try {
+      const list = await ChatService.inboxForUser(req.user.sub);
+      return new OK({ metadata: list }).send(res);
+    } catch (err) {
+      console.error(err);
+      return new InternalServerError('error fetching inbox').send(res);
+    }
+  }
 }
 
 module.exports = MessageController;
