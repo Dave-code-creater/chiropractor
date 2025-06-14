@@ -1,6 +1,14 @@
-const rbac = (_req, _res, next) => {
-  // role-based access control placeholder
-  next();
-};
+// src/middlewares/rbac.middleware.js
+function rbac(...allowedRoles) {
+  return (req, res, next) => {
+    const userRole = req.user?.role;
+    if (!userRole || !allowedRoles.includes(userRole)) {
+      return res
+        .status(403)
+        .json({ success: false, error: 'Forbidden' });
+    }
+    next();
+  };
+}
 
 module.exports = { rbac };

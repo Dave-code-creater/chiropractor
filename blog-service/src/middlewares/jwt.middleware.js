@@ -1,18 +1,22 @@
+// src/middlewares/jwt.middleware.js
 const jwt = require('jsonwebtoken');
 
 function jwtMiddleware(req, res, next) {
   try {
     const token = req.headers.authorization?.split(' ')[1];
     if (!token) {
-      return res.status(401).json({ error: 'Invalid token' });
+      return res
+        .status(401)
+        .json({ success: false, error: 'Invalid token' });
     }
-    const payload = jwt.verify(token, process.env.PUBLIC_KEY);
+    const payload = jwt.verify(token, process.env.JWT_SECRET);
     req.user = payload;
     next();
   } catch (err) {
-    res.status(401).json({ error: 'Invalid token' });
+    return res
+      .status(401)
+      .json({ success: false, error: 'Invalid token' });
   }
 }
 
 module.exports = jwtMiddleware;
-

@@ -59,15 +59,7 @@ class PostController {
     }
   }
 
-  static async listByUser(req, res) {
-    try {
-      const posts = await PostService.listByUser(Number(req.params.userId));
-      return new OK({ metadata: posts }).send(res);
-    } catch (err) {
-      console.error(err);
-      return new InternalServerError('error listing posts').send(res);
-    }
-  }
+
 }
 
 module.exports = PostController;
