@@ -12,6 +12,7 @@ for experimentation and further development.
 - **appointment-service** (port 3004) – handles appointments.
 - **chat-service** (port 3005) – simple chat API.
 - **blog-service** (port 3006) – blog endpoints.
+- **booking-service** (port 3007) – manages doctor bookings.
 
 ## Infrastructure
 Docker Compose sets up:
@@ -24,4 +25,4 @@ Docker Compose sets up:
 ```bash
 docker-compose up --build
 ```
-This starts all services on ports 3000–3006.
+This starts all services on ports 3000–3007.
