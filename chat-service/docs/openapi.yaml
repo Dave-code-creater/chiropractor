@@ -21,3 +21,9 @@ paths:
       responses:
         '200':
           description: OK
+  /messages/user/{id}:
+    get:
+      summary: Get user messages
+      responses:
+        '200':
+          description: OK

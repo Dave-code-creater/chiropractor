@@ -45,4 +45,21 @@ router.post('/messages', MessageController.send);
  */
 router.get('/chat/history/:room', MessageController.history);
 
+/**
+ * @swagger
+ * /messages/user/{id}:
+ *   get:
+ *     summary: Get user messages
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: OK
+ */
+router.get('/messages/user/:id', MessageController.historyByUser);
+
 module.exports = router;

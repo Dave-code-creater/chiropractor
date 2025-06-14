@@ -1,10 +1,25 @@
-const { saveMessage, getMessagesByRoom } = require('../repositories/message.repo.js');
+const {
+  saveMessage,
+  getMessagesByRoom,
+  getMessagesByIds,
+} = require('../repositories/message.repo.js');
+const {
+  createMessageRecord,
+  getMessageRecordsByUserId,
+} = require('../repositories/messagePg.repo.js');
 const { CREATED, OK, InternalServerError } = require('../utils/httpResponses.js');
 
 class MessageController {
   static async send(req, res) {
     try {
-      const msg = await saveMessage({ room: req.body.room, sender: req.body.sender, text: req.body.text, ts: new Date() });
+      const msg = await saveMessage({
+        room: req.body.room,
+        sender: req.body.sender,
+        receiver: req.body.receiver,
+        text: req.body.text,
+        ts: new Date(),
+      });
+      await createMessageRecord(req.body.sender, req.body.receiver, msg._id.toString());
       return new CREATED({ metadata: msg }).send(res);
     } catch (err) {
       console.error(err);
@@ -15,6 +30,17 @@ class MessageController {
   static async history(req, res) {
     try {
       const messages = await getMessagesByRoom(req.params.room);
+      return new OK({ metadata: messages }).send(res);
+    } catch (err) {
+      console.error(err);
+      return new InternalServerError('error fetching history').send(res);
+    }
+  }
+  static async historyByUser(req, res) {
+    try {
+      const records = await getMessageRecordsByUserId(Number(req.params.id));
+      const ids = records.map((r) => r.mongo_id);
+      const messages = ids.length ? await getMessagesByIds(ids) : [];
       return new OK({ metadata: messages }).send(res);
     } catch (err) {
       console.error(err);
