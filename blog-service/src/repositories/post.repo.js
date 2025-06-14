@@ -17,8 +17,27 @@ const listPosts = async () => {
   return db.collection('posts').find().toArray();
 };
 
+const listPostsByUser = async (userId) => {
+  const db = getDb();
+  return db.collection('posts').find({ user_id: userId }).toArray();
+};
+
+const updatePost = async (id, post) => {
+  const db = getDb();
+  await db.collection('posts').updateOne({ _id: new ObjectId(id) }, { $set: post });
+  return getPostById(id);
+};
+
+const deletePost = async (id) => {
+  const db = getDb();
+  await db.collection('posts').deleteOne({ _id: new ObjectId(id) });
+};
+
 module.exports = {
   createPost,
   getPostById,
   listPosts,
+  listPostsByUser,
+  updatePost,
+  deletePost,
 };

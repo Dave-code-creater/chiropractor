@@ -14,5 +14,4 @@ const loadEnv = async () => {
 };
 
 const getDb = () => db;
-
 module.exports = { loadEnv, getDb };
