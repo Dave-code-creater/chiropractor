@@ -3,6 +3,7 @@ const HealthController = require('../controllers/health.controller.js');
 const AppointmentController = require('../controllers/appointment.controller.js');
 const TreatmentNoteController = require('../controllers/note.controller.js');
 const jwtMiddleware = require('../middlewares/jwt.middleware.js');
+const { rbac } = require('../middlewares/rbac.middleware.js');
 
 const router = Router();
 
@@ -72,7 +73,7 @@ router.put('/appointments/:id', AppointmentController.update);
  *       200:
  *         description: OK
  */
-router.get('/appointments', AppointmentController.list);
+router.get('/appointments', rbac('doctor', 'user'), AppointmentController.list);
 
 router.post('/treatment-notes', TreatmentNoteController.create);
 router.get('/treatment-notes/:id', TreatmentNoteController.getById);

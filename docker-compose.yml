@@ -151,6 +151,51 @@ services:
       - "27018:27017"
     volumes:
       - chat_mongo_data:/data/db
+
+  # APPOINTMENT SERVICE STACK
+  appointment-db:
+    image: postgres:16-alpine
+    container_name: appointment_db
+    restart: always
+    environment:
+      POSTGRES_DB: appointment_db
+      POSTGRES_USER: appointment_user
+      POSTGRES_PASSWORD: appointment_pass
+    ports:
+      - "5435:5432"
+    volumes:
+      - appointment_pgdata:/var/lib/postgresql/data
+
+  migrate-appointment:
+    image: postgres:16-alpine
+    depends_on:
+      - appointment-db
+    volumes:
+      - ./appointment-service/migrations:/migrations
+    entrypoint: >
+      sh -c "
+        echo '⏳ Waiting for appointment-db...' &&
+        sleep 3 &&
+        psql postgresql://appointment_user:appointment_pass@appointment-db:5432/appointment_db -f /migrations/001_init.sql
+      "
+
+  appointment-service:
+    build: ./appointment-service
+    depends_on:
+      - appointment-db
+      - migrate-appointment
+    ports:
+      - '3005:3005'
+    environment:
+      NODE_ENV: development
+      PORT: 3005
+      PRO_POSTGRESQL_USER: appointment_user
+      PRO_POSTGRESQL_PASS: appointment_pass
+      PRO_POSTGRESQL_HOST: appointment-db
+      PRO_POSTGRESQL_PORT: 5432
+      PRO_POSTGRESQL_NAME: appointment_db
+      JWT_SECRET: supersecretkey
+      JWT_EXPIRES_IN: 1h
   
 
 volumes:
@@ -161,6 +206,8 @@ volumes:
   blog_mongo_data:
     driver: local
   chat_mongo_data:
+    driver: local
+  appointment_pgdata:
     driver: local
   
 networks:

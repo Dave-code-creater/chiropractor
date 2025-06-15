@@ -1,9 +1,4 @@
-const {
-  createAppointment,
-  getAppointmentById,
-  updateAppointment,
-  listAppointments,
-} = require('../repositories/appointment.repo.js');
+const AppointmentService = require('../services/index.service.js');
 const {
   CREATED,
   OK,
@@ -14,7 +9,7 @@ const {
 class AppointmentController {
   static async create(req, res) {
     try {
-      const appt = await createAppointment(req.body);
+      const appt = await AppointmentService.createAppointment(req.body);
       return new CREATED({ metadata: appt }).send(res);
     } catch (err) {
       console.error(err);
@@ -24,7 +19,7 @@ class AppointmentController {
 
   static async getById(req, res) {
     try {
-      const appt = await getAppointmentById(Number(req.params.id));
+      const appt = await AppointmentService.getAppointment(Number(req.params.id));
       if (!appt) return new NotFoundError('not found').send(res);
       return new OK({ metadata: appt }).send(res);
     } catch (err) {
@@ -35,7 +30,10 @@ class AppointmentController {
 
   static async update(req, res) {
     try {
-      const appt = await updateAppointment(Number(req.params.id), req.body);
+      const appt = await AppointmentService.updateAppointment(
+        Number(req.params.id),
+        req.body
+      );
       if (!appt) return new NotFoundError('not found').send(res);
       return new OK({ metadata: appt }).send(res);
     } catch (err) {
@@ -44,9 +42,14 @@ class AppointmentController {
     }
   }
 
-  static async list(_req, res) {
+  static async list(req, res) {
     try {
-      const appts = await listAppointments();
+      let appts;
+      if (req.user.role === 'doctor') {
+        appts = await AppointmentService.listAppointments();
+      } else {
+        appts = await AppointmentService.listAppointmentsByPatient(req.user.sub);
+      }
       return new OK({ metadata: appts }).send(res);
     } catch (err) {
       console.error(err);

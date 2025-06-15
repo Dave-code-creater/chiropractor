@@ -35,9 +35,19 @@ const listAppointments = async () => {
   return db.selectFrom('appointments').selectAll().execute();
 };
 
+const listAppointmentsByPatient = async (patientId) => {
+  const db = getDb();
+  return db
+    .selectFrom('appointments')
+    .selectAll()
+    .where('patient_id', '=', patientId)
+    .execute();
+};
+
 module.exports = {
   createAppointment,
   getAppointmentById,
   updateAppointment,
   listAppointments,
+  listAppointmentsByPatient,
 };
