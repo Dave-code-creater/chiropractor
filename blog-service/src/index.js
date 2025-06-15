@@ -1,23 +1,50 @@
 const express = require('express');
 const cors = require('cors');
 const routes = require('./routes/index.routes.js');
+const morgan = require('morgan');
+const helmet = require('helmet');
+const compression = require('compression');
 const { loadEnv } = require('./config/index.js');
+const { ErrorResponse } = require('./utils/httpResponses.js');
 
-const app = express();
+const app = express(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(morgan('dev'));
+app.use(helmet());
+app.use(compression());
+app.use(cors({
+  origin: "http://localhost:5173",
+  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+  credentials: true,
+}));
 
-const start = async () => {
-  if (process.env.NODE_ENV !== 'test') {
-    await loadEnv();
+
+app.use('/', routes);
+
+if (process.env.NODE_ENV !== 'test') {
+  loadEnv();
+  const PORT = process.env.PORT || 3003;
+  app.listen(PORT, () => console.log('blog-service listening on ' + PORT));
+}
+
+app.use((error, req, res, next) => {
+  if (error instanceof ErrorResponse) {
+    return error.send(res); // Use the custom `send()` method
   }
 
-  app.use(express.json());
-  app.use('/', routes);
-  if (process.env.NODE_ENV !== 'test') {
-    const PORT = process.env.PORT || 3006;
-    app.listen(PORT, () => console.log('blog-service listening on ' + PORT));
+  if (process.env.NODE_ENV !== 'production') {
+    console.error(error); // only log full stack in dev
   }
-};
 
-start();
+  return res.status(500).json({
+    success: false,
+    statusCode: 500,
+    message: error.message || 'Internal Server Error',
+    errorCode: '5000',
+  });
+});
+
+
+
 
 module.exports = app;

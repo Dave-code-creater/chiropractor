@@ -6,58 +6,14 @@ const { rbac } = require('../middlewares/rbac.middleware.js');
 
 const router = Router();
 
-/**
- * @swagger
- * /:
- *   get:
- *     summary: Health check
- *     responses:
- *       200:
- *         description: OK
- */
+
 router.get('/', HealthController.healthCheck);
 router.use(jwtMiddleware);
-
-/**
- * @swagger
- * /posts:
- *   post:
- *     summary: Create post
- *     responses:
- *       201:
- *         description: Created
- */
 router.post('/posts', rbac('doctor'), PostController.create);
-
-/**
- * @swagger
- * /posts/{id}:
- *   get:
- *     summary: Get post by id
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: OK
- */
+router.get("/posts", PostController.listPost);
 router.get('/posts/:id', PostController.getById);
-
 router.put('/posts/:id', rbac('doctor'), PostController.update);
 router.delete('/posts/:id', rbac('doctor'), PostController.delete);
-
-/**
- * @swagger
- * /posts:
- *   get:
- *     summary: List posts
- *     responses:
- *       200:
- *         description: OK
- */
 router.get('/posts', PostController.list);
 
 

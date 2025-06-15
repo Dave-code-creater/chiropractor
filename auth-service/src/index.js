@@ -2,7 +2,6 @@ const express = require('express');
 const cors = require('cors');
 const routes = require('./routes/index.routes.js');
 const { loadEnv } = require('./config/index.js');
-require('dotenv').config();
 const app = express();
 const { ErrorResponse } = require('./utils/httpResponses.js');
 const morgan = require('morgan');

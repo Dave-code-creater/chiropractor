@@ -59,6 +59,16 @@ class PostController {
     }
   }
 
+  static async listPost(req, res) {
+    try {
+      const posts = await PostService.listByUser(req.user.sub);
+      return new OK({ metadata: posts }).send(res);
+    } catch (err) {
+      console.error(err);
+      return new InternalServerError('error listing user posts').send(res);
+    }
+  }
+
 
 }
 

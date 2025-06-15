@@ -9,6 +9,7 @@ services:
     depends_on:
       - auth-service
       - user-service
+      - blog-service
     environment:
       JWT_SECRET: supersecretkey
       JWT_EXPIRES_IN: 1h
@@ -40,6 +41,7 @@ services:
         echo '⏳ Waiting for auth-db...' &&
         sleep 3 &&
         psql postgresql://auth_user:auth_pass@auth-db:5432/auth_db -f /migrations/001_init.sql
+        psql postgresql://auth_user:auth_pass@auth-db:5432/auth_db -f /migrations/002_create_doctor.sql
       "
 
   auth-service:
@@ -106,9 +108,61 @@ services:
       JWT_SECRET: supersecretkey
       JWT_EXPIRES_IN: 1h
 
+  blog-service:
+    build: ./blog-service
+    ports:
+      - '3003:3003'
+    environment:
+      NODE_ENV: development
+      PORT: 3003
+      JWT_SECRET: supersecretkey
+      JWT_EXPIRES_IN: 1h
+      PRO_MONGODB_HOST: blog-db
+      PRO_MONGODB_PORT: 27017
+      PRO_MONGODB_NAME: blog-db
+  
+  blog-db:
+    image: mongo:latest
+    container_name: blog-db
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - blog_mongo_data:/data/db
+  
+  chat-service:
+    build: ./chat-service
+    ports:
+      - '3004:3004'
+    environment:
+      NODE_ENV: development
+      PORT: 3004
+      JWT_SECRET: supersecretkey
+      JWT_EXPIRES_IN: 1h
+      PRO_MONGODB_HOST: blog-db
+      PRO_MONGODB_PORT: 27018
+      PRO_MONGODB_NAME: blog-db
+    
+  chat-db:
+    image: mongo:latest
+    container_name: chat-db
+    restart: always
+    ports:
+      - "27018:27017"
+    volumes:
+      - chat_mongo_data:/data/db
+  
+
 volumes:
   auth_pgdata:
     driver: local
   user_pgdata:
     driver: local
+  blog_mongo_data:
+    driver: local
+  chat_mongo_data:
+    driver: local
   
+networks:
+  default:
+    driver: bridge
