@@ -64,7 +64,7 @@ router.use('/v1/api/2025/auth', ...setupServiceProxy('/v1/api/2025/auth', 'http:
 router.use('/v1/api/2025/users', ...setupServiceProxy('/v1/api/2025/users', 'http://user-service:3002'));
 router.use('/v1/api/2025/blog', ...setupServiceProxy('/v1/api/2025/blog', 'http://blog-service:3003'));
 router.use('/v1/api/2025/chat', ...setupServiceProxy('/v1/api/2025/chat', 'http://chat-service:3004'));
-
+router.use('/v1/api/2025/appointments', ...setupServiceProxy('/v1/api/2025/appointments', 'http://appointment-service:3005'));
 router.get('/', HealthController.healthCheck);
 router.use((req, res) => res.status(404).json({ error: 'Not found' }));
 

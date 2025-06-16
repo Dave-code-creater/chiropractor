@@ -1,7 +1,6 @@
 const { Router } = require('express');
 const HealthController = require('../controllers/health.controller.js');
 const AppointmentController = require('../controllers/appointment.controller.js');
-const TreatmentNoteController = require('../controllers/note.controller.js');
 const jwtMiddleware = require('../middlewares/jwt.middleware.js');
 const { rbac } = require('../middlewares/rbac.middleware.js');
 
@@ -74,9 +73,5 @@ router.put('/appointments/:id', AppointmentController.update);
  *         description: OK
  */
 router.get('/appointments', rbac('doctor', 'user'), AppointmentController.list);
-
-router.post('/treatment-notes', TreatmentNoteController.create);
-router.get('/treatment-notes/:id', TreatmentNoteController.getById);
-router.put('/treatment-notes/:id', TreatmentNoteController.update);
 
 module.exports = router;

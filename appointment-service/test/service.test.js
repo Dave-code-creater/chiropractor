@@ -43,30 +43,5 @@ describe('AppointmentService methods', () => {
     expect(result).to.deep.equal([]);
   });
 
-  it('creates note via repo', async () => {
-    const createSpy = chai.spy.on(noteRepo, 'createTreatmentNote', () =>
-      Promise.resolve({ id: 10 })
-    );
-    const result = await AppointmentService.createNote({ appointment_id: 7 });
-    expect(createSpy).to.have.been.called.with({ appointment_id: 7 });
-    expect(result).to.deep.equal({ id: 10 });
-  });
-
-  it('gets note via repo', async () => {
-    const getSpy = chai.spy.on(noteRepo, 'getTreatmentNoteById', () =>
-      Promise.resolve({ id: 11 })
-    );
-    const result = await AppointmentService.getNote(11);
-    expect(getSpy).to.have.been.called.with(11);
-    expect(result).to.deep.equal({ id: 11 });
-  });
-
-  it('updates note via repo', async () => {
-    const updateSpy = chai.spy.on(noteRepo, 'updateTreatmentNote', () =>
-      Promise.resolve({ id: 12 })
-    );
-    const result = await AppointmentService.updateNote(12, { content: 'a' });
-    expect(updateSpy).to.have.been.called.with(12, { content: 'a' });
-    expect(result).to.deep.equal({ id: 12 });
-  });
+  
 });

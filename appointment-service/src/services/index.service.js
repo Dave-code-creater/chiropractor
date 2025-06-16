@@ -6,11 +6,6 @@ const {
   listAppointmentsByPatient,
 } = require('../repositories/appointment.repo.js');
 
-const {
-  createTreatmentNote,
-  getTreatmentNoteById,
-  updateTreatmentNote,
-} = require('../repositories/note.repo.js');
 
 class AppointmentService {
   static async createAppointment(data) {
@@ -31,18 +26,6 @@ class AppointmentService {
 
   static async listAppointmentsByPatient(patientId) {
     return listAppointmentsByPatient(patientId);
-  }
-
-  static async createNote(data) {
-    return createTreatmentNote(data);
-  }
-
-  static async getNote(id) {
-    return getTreatmentNoteById(id);
-  }
-
-  static async updateNote(id, data) {
-    return updateTreatmentNote(id, data);
   }
 }
 
