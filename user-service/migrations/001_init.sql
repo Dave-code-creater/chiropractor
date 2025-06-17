@@ -97,9 +97,9 @@ CREATE TABLE IF NOT EXISTS patient_intake_responses (
 
   spouse_phone          TEXT,
 
-  contact1              TEXT           NOT NULL,
-  contact1_phone        TEXT           NOT NULL,
-  contact1_relationship TEXT           NOT NULL,
+  emergency_contact_name          TEXT           NOT NULL,
+  emergency_contact_phone         TEXT           NOT NULL,
+  emergency_contact_relationship  TEXT           NOT NULL,
 
   created_at            TIMESTAMPTZ    NOT NULL DEFAULT NOW()
 );
