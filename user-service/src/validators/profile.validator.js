@@ -1,33 +1,29 @@
-const Joi = require('joi');
+const joi = require('joi');
 
-// Validator for creating a user profile
-
-
-const createProfileValidator = {
-  validate(data) {
-    if (!data || typeof data !== 'object') {
-      return { error: { details: [{ message: 'invalid payload' }] } };
-    }
-    const {
-      emergency_contact,
-      insurance_detail,
-      pain_descriptions = [],
-      ...profile
-    } = data;
-    if (!profile.home_addr || !profile.city || !profile.zip || !profile.home_phone) {
-      return { error: { details: [{ message: 'missing profile fields' }] } };
-    }
-    if (!emergency_contact || !emergency_contact.name || !emergency_contact.phone) {
-      return { error: { details: [{ message: 'invalid emergency contact' }] } };
-    }
-    if (!insurance_detail || !insurance_detail.insurance_type) {
-      return { error: { details: [{ message: 'invalid insurance detail' }] } };
-    }
-    return { value: { profile, emergency_contact, insurance_detail, pain_descriptions } };
-  }
-};
+const createProfileValidator = joi.object({
+  first_name: joi.string().required(),
+  last_name: joi.string().required(),
+  middle_name: joi.string().optional(),
+  day_of_birth: joi.number().integer().min(1).max(31).required(),
+  gender: joi.string()
+    .valid('Male', 'Female', 'Other')
+    .required(),
+  month_of_birth: joi.string().valid(
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ).required(),
+  year_of_birth: joi.string()
+    .pattern(/^\d{4}$/)
+    .required(),
+  street_address: joi.string().required(),
+  city: joi.string().required(),
+  state: joi.string().required(),
+  zip_code: joi.string().required(),
+  country: joi.string().required(),
+  emergency_contact_name: joi.string().required(),
+  emergency_contact_phone: joi.string().pattern(/^\+?[1-9]\d{1,14}$/).required(),
+  emergency_contact_relationship: joi.string().required(),
+})
 
 
-module.exports = {
-  createProfileValidator,
-};
+module.exports = createProfileValidator;

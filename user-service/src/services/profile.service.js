@@ -3,15 +3,16 @@ const EmergencyService = require('./emergency.service.js');
 const InsuranceService = require('./insurance.service.js');
 const PainService = require('./pain.service.js');
 const { BadRequestError, ForbiddenError } = require('../utils/httpResponses.js');
-const { createProfileValidator } = require('../validators/profile.validator.js');
+const createProfileValidator = require('../validators/profile.validator.js');
 
 class ProfileService {
-  static async create(req) {
-    const userId = req.user.sub;
+  static async create(user, body) {
+    console.log(user, body);
+    const userId = user.sub;
     if (!userId) {
       throw new BadRequestError('user-id header required');
     }
-    const { error, value } = createProfileValidator.validate(req.body);
+    const { error, value } = createProfileValidator.validate(body);
     if (error) {
       throw new BadRequestError(error.details[0].message);
     }
