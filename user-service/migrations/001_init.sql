@@ -25,9 +25,7 @@ CREATE TYPE work_time_type AS ENUM('Full Time','Part Time');
 -- 2) Patient Intake (REQUIRED fields NOT NULL)
 -- ========================================
 CREATE TABLE patient_intake_responses (
-  user_id               INT            PRIMARY KEY
-                                 REFERENCES profiles(user_id)
-                                 ON DELETE CASCADE,
+  user_id               INT            PRIMARY KEY,
 
   first_name            TEXT           NOT NULL,
   middle_name           TEXT,
@@ -71,9 +69,7 @@ CREATE TABLE patient_intake_responses (
 -- 3) Accident & Insurance (ALL columns NULLABLE)
 -- ========================================
 CREATE TABLE accident_insurance_responses (
-  user_id                INT           PRIMARY KEY
-                                   REFERENCES profiles(user_id)
-                                   ON DELETE CASCADE,
+  user_id                INT           PRIMARY KEY,
 
   type_of_car            TEXT,
   accident_date          DATE,
@@ -107,9 +103,7 @@ CREATE TABLE accident_insurance_responses (
 -- 4) Pain & Symptom Eval (OPTIONAL)
 -- ========================================
 CREATE TABLE pain_evaluation_responses (
-  user_id       INT        PRIMARY KEY
-                     REFERENCES profiles(user_id)
-                     ON DELETE CASCADE,
+  user_id       INT        PRIMARY KEY,
   pain_chart    JSONB,
   created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -119,9 +113,7 @@ CREATE TABLE pain_evaluation_responses (
 -- 5) Detailed Symptom Description
 -- ========================================
 CREATE TABLE symptom_details_responses (
-  user_id               INT        PRIMARY KEY
-                            REFERENCES profiles(user_id)
-                            ON DELETE CASCADE,
+  user_id               INT        PRIMARY KEY,
 
   symptom_details       TEXT,
   main_complaints       TEXT,
@@ -135,9 +127,7 @@ CREATE TABLE symptom_details_responses (
 -- 6) Recovery & Work Impact
 -- ========================================
 CREATE TABLE work_impact_responses (
-  user_id        INT        PRIMARY KEY
-                        REFERENCES profiles(user_id)
-                        ON DELETE CASCADE,
+  user_id        INT        PRIMARY KEY,
   work_activities TEXT[],
   created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -147,9 +137,7 @@ CREATE TABLE work_impact_responses (
 -- 7) Extended Health History
 -- ========================================
 CREATE TABLE extended_health_history_responses (
-  user_id                       INT        PRIMARY KEY
-                                 REFERENCES profiles(user_id)
-                                 ON DELETE CASCADE,
+  user_id                       INT        PRIMARY KEY,
 
   has_past_medical_history      BOOLEAN,
   medical_condition_details     TEXT,
@@ -189,4 +177,10 @@ CREATE TABLE extended_health_history_responses (
   weeks_pregnant                INT,
 
   created_at                    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS pgmigrations (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  run_on TIMESTAMPTZ NOT NULL
 );
