@@ -33,6 +33,7 @@ router.use(jwtMiddleware);
  *         description: Created
  */
 router.post('/profiles', asyncHandler(ProfileController.create));
+router.post('/patient-intake', asyncHandler(ProfileController.create));
 
 /**
  * @swagger

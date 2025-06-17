@@ -30,7 +30,7 @@ describe('user-service form submissions', () => {
     chai.spy.on(painRepo, 'createPainDescription', () => Promise.resolve({ id: 1 }));
 
     const res = await request(app)
-      .post('/profiles')
+      .post('/patient-intake')
       .set('authorization', 'Bearer token')
       .send({
         first_name: 'Alice',
