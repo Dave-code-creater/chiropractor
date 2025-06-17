@@ -77,13 +77,30 @@ describe('user-service form submissions', () => {
     expect(spy).to.have.been.called();
   });
 
-  it('creates empty preliminary form', async () => {
+  it('creates preliminary form with required fields', async () => {
     chai.spy.on(jwt, 'verify', () => ({ sub: 1 }));
     const spy = chai.spy.on(prelimRepo, 'createPreliminary', () => Promise.resolve({ id: 1 }));
+    const intake = {
+      first_name: 'Alice',
+      last_name: 'Smith',
+      middle_name: 'Marie',
+      day_of_birth: '15',
+      month_of_birth: 'June',
+      year_of_birth: '1990',
+      gender: 'Female',
+      street_address: '123 Maple Street',
+      city: 'Springfield',
+      state: 'IL',
+      zip_code: '62704',
+      country: 'United States',
+      emergency_contact_name: 'Bob Smith',
+      emergency_contact_phone: '+13175551234',
+      emergency_contact_relationship: 'Sibling',
+    };
     const res = await request(app)
       .post('/preliminaries')
       .set('authorization', 'Bearer token')
-      .send({});
+      .send(intake);
     expect(res.status).to.equal(201);
     expect(spy).to.have.been.called();
   });

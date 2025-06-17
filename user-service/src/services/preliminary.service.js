@@ -17,7 +17,6 @@ class Preliminary {
             ...data,
             user_id: userId,
             created_at: new Date(),
-            updated_at: new Date()
         };
 
         const result = await createPreliminary(preliminary);

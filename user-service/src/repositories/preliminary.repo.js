@@ -3,7 +3,7 @@ const { getDb } = require('../config/index.js');
 const createPreliminary = async (preliminary) => {
     const db = getDb();
     const [row] = await db
-        .insertInto('preliminaries')
+        .insertInto('patient_intake_responses')
         .values(preliminary)
         .returningAll()
         .execute();
@@ -13,17 +13,16 @@ const createPreliminary = async (preliminary) => {
 const getPreliminaryById = async (userId) => {
     const db = getDb();
     return db
-        .selectFrom('preliminaries')
+        .selectFrom('patient_intake_responses')
         .selectAll()
         .where('user_id', '=', userId)
         .executeTakeFirst();
 };
 const updatePreliminary = async (userId, preliminary) => {
     const db = getDb();
-    const { updated_at, ...rest } = preliminary;
     const [row] = await db
-        .updateTable('preliminaries')
-        .set(rest)
+        .updateTable('patient_intake_responses')
+        .set(preliminary)
         .where('user_id', '=', userId)
         .returningAll()
         .execute();
@@ -33,7 +32,7 @@ const updatePreliminary = async (userId, preliminary) => {
 const deletePreliminary = async (userId) => {
     const db = getDb();
     const [row] = await db
-        .deleteFrom('preliminaries')
+        .deleteFrom('patient_intake_responses')
         .where('user_id', '=', userId)
         .returningAll()
         .execute();
