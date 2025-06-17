@@ -3,7 +3,9 @@ const HealthController = require('../controllers/health.controller.js');
 const ProfileController = require('../controllers/profile.controller.js');
 const EmergencyContactController = require('../controllers/emergency.controller.js');
 const InsuranceDetailController = require('../controllers/insurance.controller.js');
+const PatientIntakeController = require('../controllers/patientIntake.controller.js');
 const jwtMiddleware = require('../middlewares/jwt.middleware.js');
+const lowercaseMiddleware = require('../middlewares/lowercase.middleware.js');
 const asyncHandler = require('../helper/asyncHandler.js');
 const router = Router();
 
@@ -18,6 +20,27 @@ const router = Router();
  */
 router.get('/', HealthController.healthCheck);
 router.use(jwtMiddleware);
+router.use(
+  lowercaseMiddleware([
+    'month_of_birth',
+    'monthOfBirth',
+    'accident_date',
+    'accidentDate',
+    'accident_time_period',
+    'accidentTimePeriod',
+    'ssn',
+    'homePhone',
+    'workPhone',
+    'spousePhone',
+    'contact1Phone',
+    'first_name',
+    'last_name',
+    'middle_name',
+    'emergency_contact_name',
+    'emergency_contact_phone',
+    'emergency_contact_relationship',
+  ])
+);
 
 /**
  * @swagger
@@ -71,5 +94,9 @@ router.put('/emergency-contacts/:id', asyncHandler(EmergencyContactController.up
 router.post('/insurance-details', asyncHandler(InsuranceDetailController.create));
 router.get('/insurance-details/:id', asyncHandler(InsuranceDetailController.getById));
 router.put('/insurance-details/:id', asyncHandler(InsuranceDetailController.update));
+
+router.post('/patient-intake', asyncHandler(PatientIntakeController.create));
+router.get('/patient-intake', asyncHandler(PatientIntakeController.getById));
+router.put('/patient-intake', asyncHandler(PatientIntakeController.update));
 
 module.exports = router;
