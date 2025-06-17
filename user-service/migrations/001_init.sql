@@ -1,31 +1,49 @@
 -- ========================================
--- 1) Re‐used ENUMS
+-- 1) ALL ENUM TYPES (must be first)
 -- ========================================
--- (assumes these already exist in your DB)
---   gender, marriage_status, race, insurance_type,
---   mental_work, physical_work, exercise_level, smoking_status
+CREATE TYPE IF NOT EXISTS gender           AS ENUM ('Male','Female','Other');
+CREATE TYPE IF NOT EXISTS marriage_status  AS ENUM ('Single','Married','Divorced','Widowed','Other');
+CREATE TYPE IF NOT EXISTS race             AS ENUM ('White','Black','Asian','Hispanic','Other');
+CREATE TYPE IF NOT EXISTS insurance_type   AS ENUM ('Private','Medicare','Medicaid','Self-pay','Other');
+CREATE TYPE IF NOT EXISTS mental_work      AS ENUM ('Sitting','Standing','Mixed','Other');
+CREATE TYPE IF NOT EXISTS physical_work    AS ENUM ('Light','Moderate','Heavy','Other');
+CREATE TYPE IF NOT EXISTS exercise_level   AS ENUM ('None','Low','Moderate','High','Other');
+CREATE TYPE IF NOT EXISTS smoking_status   AS ENUM ('Never','Former','Current','Other');
 
-CREATE TYPE month_name AS ENUM (
+CREATE TYPE IF NOT EXISTS month_name       AS ENUM (
   'January','February','March','April','May','June',
   'July','August','September','October','November','December'
 );
 
-CREATE TYPE am_pm AS ENUM('AM','PM');
+CREATE TYPE IF NOT EXISTS am_pm            AS ENUM('AM','PM');
 
-CREATE TYPE accident_cause AS ENUM(
+CREATE TYPE IF NOT EXISTS accident_cause   AS ENUM(
   'Auto Collision','On the job','Other'
 );
 
-CREATE TYPE alcohol_status AS ENUM('none','yes','no');
+CREATE TYPE IF NOT EXISTS alcohol_status  AS ENUM('none','yes','no');
 
-CREATE TYPE work_time_type AS ENUM('Full Time','Part Time');
+CREATE TYPE IF NOT EXISTS work_time_type  AS ENUM('Full Time','Part Time');
 
 
 -- ========================================
--- 2) Patient Intake (REQUIRED fields NOT NULL)
+-- 2) PARENT TABLE
 -- ========================================
-CREATE TABLE patient_intake_responses (
-  user_id               INT            PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS profiles (
+  user_id       SERIAL PRIMARY KEY,
+  email         TEXT    NOT NULL UNIQUE,
+  password_hash TEXT    NOT NULL,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+
+-- ========================================
+-- 3) PATIENT INTAKE (REQUIRED fields NOT NULL)
+-- ========================================
+CREATE TABLE IF NOT EXISTS patient_intake_responses (
+  user_id               INT            PRIMARY KEY
+                                 REFERENCES profiles(user_id)
+                                   ON DELETE CASCADE,
 
   first_name            TEXT           NOT NULL,
   middle_name           TEXT,
@@ -66,10 +84,12 @@ CREATE TABLE patient_intake_responses (
 
 
 -- ========================================
--- 3) Accident & Insurance (ALL columns NULLABLE)
+-- 4) ACCIDENT & INSURANCE (ALL COLUMNS NULLABLE)
 -- ========================================
-CREATE TABLE accident_insurance_responses (
-  user_id                INT           PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS accident_insurance_responses (
+  user_id                INT           PRIMARY KEY
+                                   REFERENCES profiles(user_id)
+                                     ON DELETE CASCADE,
 
   type_of_car            TEXT,
   accident_date          DATE,
@@ -100,20 +120,24 @@ CREATE TABLE accident_insurance_responses (
 
 
 -- ========================================
--- 4) Pain & Symptom Eval (OPTIONAL)
+-- 5) PAIN & SYMPTOM EVAL (OPTIONAL)
 -- ========================================
-CREATE TABLE pain_evaluation_responses (
-  user_id       INT        PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS pain_evaluation_responses (
+  user_id       INT        PRIMARY KEY
+                     REFERENCES profiles(user_id)
+                       ON DELETE CASCADE,
   pain_chart    JSONB,
   created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 
 -- ========================================
--- 5) Detailed Symptom Description
+-- 6) DETAILED SYMPTOM DESCRIPTION
 -- ========================================
-CREATE TABLE symptom_details_responses (
-  user_id               INT        PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS symptom_details_responses (
+  user_id               INT        PRIMARY KEY
+                            REFERENCES profiles(user_id)
+                              ON DELETE CASCADE,
 
   symptom_details       TEXT,
   main_complaints       TEXT,
@@ -124,20 +148,24 @@ CREATE TABLE symptom_details_responses (
 
 
 -- ========================================
--- 6) Recovery & Work Impact
+-- 7) RECOVERY & WORK IMPACT
 -- ========================================
-CREATE TABLE work_impact_responses (
-  user_id        INT        PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS work_impact_responses (
+  user_id        INT        PRIMARY KEY
+                        REFERENCES profiles(user_id)
+                          ON DELETE CASCADE,
   work_activities TEXT[],
   created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 
 -- ========================================
--- 7) Extended Health History
+-- 8) EXTENDED HEALTH HISTORY
 -- ========================================
-CREATE TABLE extended_health_history_responses (
-  user_id                       INT        PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS extended_health_history_responses (
+  user_id                       INT        PRIMARY KEY
+                                 REFERENCES profiles(user_id)
+                                   ON DELETE CASCADE,
 
   has_past_medical_history      BOOLEAN,
   medical_condition_details     TEXT,
@@ -179,8 +207,12 @@ CREATE TABLE extended_health_history_responses (
   created_at                    TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+
+-- ========================================
+-- 9) MIGRATION TRACKER
+-- ========================================
 CREATE TABLE IF NOT EXISTS pgmigrations (
-  id SERIAL PRIMARY KEY,
-  name VARCHAR(255) NOT NULL,
+  id     SERIAL       PRIMARY KEY,
+  name   VARCHAR(255) NOT NULL,
   run_on TIMESTAMPTZ NOT NULL
 );
