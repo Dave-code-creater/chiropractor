@@ -6,13 +6,28 @@ const {
 const { BadRequestError, ForbiddenError } = require('../utils/httpResponses.js');
 
 class PatientIntakeService {
+  static mapFields(data) {
+    const mapping = {
+      street_address: 'street',
+      zip_code: 'zip',
+      emergency_contact_name: 'contact1',
+      emergency_contact_phone: 'contact1_phone',
+      emergency_contact_relationship: 'contact1_relationship',
+    };
+    const transformed = {};
+    for (const [key, value] of Object.entries(data)) {
+      const mappedKey = mapping[key] || key;
+      transformed[mappedKey] = value;
+    }
+    return transformed;
+  }
   static async create(data, req) {
     const userId = req.user.sub;
     if (!userId) {
       throw new BadRequestError('user-id header required', '4001');
     }
     const intake = {
-      ...data,
+      ...this.mapFields(data),
       user_id: userId,
       created_at: new Date(),
       updated_at: new Date(),
@@ -35,7 +50,7 @@ class PatientIntakeService {
 
   static async update(req, data) {
     const userId = req.user.sub;
-    const result = await updatePatientIntake(userId, data);
+    const result = await updatePatientIntake(userId, this.mapFields(data));
     if (!result) {
       throw new ForbiddenError('Failed to update patient intake', '4033');
     }

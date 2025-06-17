@@ -36,6 +36,7 @@ router.use(
     'first_name',
     'last_name',
     'middle_name',
+    'gender',
     'emergency_contact_name',
     'emergency_contact_phone',
     'emergency_contact_relationship',
