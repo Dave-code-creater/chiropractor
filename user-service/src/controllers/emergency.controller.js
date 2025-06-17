@@ -11,16 +11,16 @@ class EmergencyContactController {
     return new CREATED({ metadata: result }).send(res);
   }
   static async update(req, res) {
-    const result = await EmergencyService.update(req.params.id, req.body);
+    const result = await EmergencyService.update(req, req.body);
     return new OK({ metadata: result }).send(res);
   }
 
   static async getByID(req, res) {
-    const result = await EmergencyService.getByID(req.params.id);
+    const result = await EmergencyService.getByID(req);
     return new OK({ metadata: result }).send(res);
   }
   static async delete(req, res) {
-    const result = await EmergencyService.delete(req.params.id);
+    const result = await EmergencyService.delete(req);
     return new OK({ metadata: result }).send(res);
   }
 }

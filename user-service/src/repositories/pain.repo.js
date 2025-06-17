@@ -30,9 +30,20 @@ const updatePainDescription = async (userId, desc) => {
   return row;
 };
 
+const deletePainDescription = async (userId) => {
+  const db = getDb();
+  const [row] = await db
+    .deleteFrom('pain_descriptions')
+    .where('user_id', '=', userId)
+    .returningAll()
+    .execute();
+  return row;
+};
+
 
 module.exports = {
   createPainDescription,
   getPainDescriptionById,
-  updatePainDescription
+  updatePainDescription,
+  deletePainDescription,
 };

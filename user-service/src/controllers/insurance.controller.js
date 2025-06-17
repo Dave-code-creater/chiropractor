@@ -11,17 +11,17 @@ class InsuranceController {
   }
 
   static async update(req, res) {
-    const result = await InsuranceService.update(req.params.id, req.body);
+    const result = await InsuranceService.update(req, req.body);
     return new OK({ metadata: result }).send(res);
   }
 
   static async getByID(req, res) {
-    const result = await InsuranceService.getByID(req.params.id);
+    const result = await InsuranceService.getByID(req);
     return new OK({ metadata: result }).send(res);
   }
 
   static async delete(req, res) {
-    const result = await InsuranceService.delete(req.params.id);
+    const result = await InsuranceService.delete(req);
     return new OK({ metadata: result }).send(res);
   }
 }
