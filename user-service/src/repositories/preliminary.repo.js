@@ -1,4 +1,4 @@
-const { getDb } = require('../db');
+const { getDb } = require('../config/index.js');
 
 const createPreliminary = async (preliminary) => {
     const db = getDb();

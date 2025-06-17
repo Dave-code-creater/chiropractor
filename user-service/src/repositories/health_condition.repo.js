@@ -1,4 +1,4 @@
-const { getDb } = require('../db');
+const { getDb } = require('../config/index.js');
 const createHealthCondition = async (condition) => {
     const db = getDb();
     const [row] = await db
