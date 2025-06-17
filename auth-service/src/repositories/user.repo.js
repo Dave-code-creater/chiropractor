@@ -37,5 +37,14 @@ const findUserById = async (id) => {
     .executeTakeFirst();
 };
 
+const findUserByRole = async (role) => {
+  const db = getDb();
+  return db
+    .selectFrom('users')
+    .selectAll()
+    .where('role', '=', role)
+    .execute();
+};
 
-module.exports = { createUser, findUserByEmail, findUserByUsername, findUserById };
+
+module.exports = { createUser, findUserByEmail, findUserByUsername, findUserById, findUserByRole };
