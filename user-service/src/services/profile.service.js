@@ -1,4 +1,9 @@
-const { createProfile, updateProfile } = require('../repositories/profile.repo.js');
+const {
+  createProfile,
+  updateProfile,
+  getProfileById,
+  deleteProfile,
+} = require('../repositories/profile.repo.js');
 const EmergencyService = require('./emergency.service.js');
 const InsuranceService = require('./insurance.service.js');
 const PainService = require('./pain.service.js');
@@ -31,6 +36,17 @@ class ProfileService {
       throw new ForbiddenError('not allowed');
     }
     return updateProfile(id, data);
+  }
+
+  static async getByID(id) {
+    return getProfileById(id);
+  }
+
+  static async delete(id, requester) {
+    if (!requester || !(requester.role === 'doctor' || requester.role === 'staff' || requester.sub === id)) {
+      throw new ForbiddenError('not allowed');
+    }
+    return deleteProfile(id);
   }
 }
 

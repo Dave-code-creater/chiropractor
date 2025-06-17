@@ -1,7 +1,8 @@
 const {
   createEmergencyContact,
   getEmergencyContactById,
-  updateEmergencyContact
+  updateEmergencyContact,
+  deleteEmergencyContact,
 } = require('../repositories/emergency.repo.js');
 const { BadRequestError, ForbiddenError } = require('../utils/httpResponses.js');
 
@@ -37,6 +38,15 @@ class EmergencyService {
     const result = await updateEmergencyContact(userId, data);
     if (!result) {
       throw new ForbiddenError('Failed to update emergency contact', '4033');
+    }
+    return result;
+  }
+
+  static async delete(req) {
+    const userId = req.user.sub;
+    const result = await deleteEmergencyContact(userId);
+    if (!result) {
+      throw new ForbiddenError('Failed to delete emergency contact', '4034');
     }
     return result;
   }

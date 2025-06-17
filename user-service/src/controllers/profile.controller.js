@@ -11,17 +11,17 @@ class ProfileController {
   }
 
   static async update(req, res) {
-    const result = await ProfileService.update(req.user, req.body);
+    const result = await ProfileService.update(req.params.id, req.body, req.user);
     return new OK({ metadata: result }).send(res);
   }
 
   static async getByID(req, res) {
-    const result = await ProfileService.getByID(req.user);
+    const result = await ProfileService.getByID(req.params.id);
     return new OK({ metadata: result }).send(res);
   }
 
   static async delete(req, res) {
-    const result = await ProfileService.delete(req.user);
+    const result = await ProfileService.delete(req.params.id, req.user);
     return new OK({ metadata: result }).send(res);
   }
 }

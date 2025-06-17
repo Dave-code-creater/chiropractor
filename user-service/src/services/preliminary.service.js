@@ -1,7 +1,8 @@
 const {
     createPreliminary,
     getPreliminaryById,
-    updatePreliminary
+    updatePreliminary,
+    deletePreliminary,
 } = require('../repositories/preliminary.repo');
 const { BadRequestError, ForbiddenError } = require('../utils/httpResponses.js');
 
@@ -9,7 +10,7 @@ class Preliminary {
     static async create(data, req) {
         const userId = req.user.sub;
 
-        if (!id) {
+        if (!userId) {
             throw new BadRequestError('user-id header required', '4001');
         }
         const preliminary = {
@@ -42,6 +43,15 @@ class Preliminary {
         const result = await updatePreliminary(userId, data);
         if (!result) {
             throw new ForbiddenError('Failed to update preliminary data', '4033');
+        }
+        return result;
+    }
+
+    static async delete(req) {
+        const userId = req.user.sub;
+        const result = await deletePreliminary(userId);
+        if (!result) {
+            throw new ForbiddenError('Failed to delete preliminary data', '4034');
         }
         return result;
     }

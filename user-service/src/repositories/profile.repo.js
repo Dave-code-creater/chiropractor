@@ -24,7 +24,17 @@ const updateProfile = async (userId, profile) => {
   const { updated_at, ...rest } = profile;
   const [row] = await db
     .updateTable('profiles')
-    .set(profile)
+    .set(rest)
+    .where('user_id', '=', userId)
+    .returningAll()
+    .execute();
+  return row;
+};
+
+const deleteProfile = async (userId) => {
+  const db = getDb();
+  const [row] = await db
+    .deleteFrom('profiles')
     .where('user_id', '=', userId)
     .returningAll()
     .execute();
@@ -35,4 +45,5 @@ module.exports = {
   createProfile,
   getProfileById,
   updateProfile,
+  deleteProfile,
 };

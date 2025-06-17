@@ -1,4 +1,4 @@
-const { getDb } = require('../db');
+const { getDb } = require('../config/index.js');
 const createHealthCondition = async (condition) => {
     const db = getDb();
     const [row] = await db
@@ -27,8 +27,19 @@ const updateHealthCondition = async (userId, condition) => {
         .execute();
     return row;
 };
+
+const deleteHealthCondition = async (userId) => {
+    const db = getDb();
+    const [row] = await db
+        .deleteFrom('health_conditions')
+        .where('user_id', '=', userId)
+        .returningAll()
+        .execute();
+    return row;
+};
 module.exports = {
     createHealthCondition,
     getHealthConditionById,
-    updateHealthCondition
+    updateHealthCondition,
+    deleteHealthCondition,
 };

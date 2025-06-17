@@ -1,4 +1,4 @@
-const { getDb } = require('../db');
+const { getDb } = require('../config/index.js');
 
 const createPreliminary = async (preliminary) => {
     const db = getDb();
@@ -29,8 +29,19 @@ const updatePreliminary = async (userId, preliminary) => {
         .execute();
     return row;
 };
+
+const deletePreliminary = async (userId) => {
+    const db = getDb();
+    const [row] = await db
+        .deleteFrom('preliminaries')
+        .where('user_id', '=', userId)
+        .returningAll()
+        .execute();
+    return row;
+};
 module.exports = {
     createPreliminary,
     getPreliminaryById,
-    updatePreliminary
+    updatePreliminary,
+    deletePreliminary,
 };

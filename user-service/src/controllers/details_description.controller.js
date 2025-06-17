@@ -12,17 +12,17 @@ class DetailsDescriptionController {
         return new CREATED({ metadata: result }).send(res);
     }
     static async update(req, res) {
-        const result = await updateDetailsDescription(req.params.id, req.body);
+        const result = await DetailsDescriptionService.update(req, req.body);
         return new OK({ metadata: result }).send(res);
     }
 
     static async getById(req, res) {
-        const result = await getDetailsDescriptionById(req.params.id);
+        const result = await DetailsDescriptionService.getById(req);
         return new OK({ metadata: result }).send(res);
     }
 
     static async delete(req, res) {
-        const result = await DetailsDescriptionService.delete(req.params.id);
+        const result = await DetailsDescriptionService.delete(req);
         return new OK({ metadata: result }).send(res);
     }
 }

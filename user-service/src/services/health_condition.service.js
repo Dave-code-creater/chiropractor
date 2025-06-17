@@ -1,7 +1,8 @@
 const {
     createHealthCondition,
     getHealthConditionById,
-    updateHealthCondition
+    updateHealthCondition,
+    deleteHealthCondition,
 } = require('../repositories/health_condition.repo');
 
 class HealthConditionService {
@@ -34,6 +35,15 @@ class HealthConditionService {
         const result = await updateHealthCondition(userId, data);
         if (!result) {
             throw new Error('Failed to update health condition');
+        }
+        return result;
+    }
+
+    static async delete(req) {
+        const userId = req.user.sub;
+        const result = await deleteHealthCondition(userId);
+        if (!result) {
+            throw new Error('Failed to delete health condition');
         }
         return result;
     }

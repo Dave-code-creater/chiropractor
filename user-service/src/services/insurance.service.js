@@ -1,7 +1,8 @@
 const {
   createInsuranceDetail,
   getInsuranceDetailById,
-  updateInsuranceDetail
+  updateInsuranceDetail,
+  deleteInsuranceDetail,
 } = require('../repositories/insurance.repo.js');
 const { BadRequestError, ForbiddenError } = require('../utils/httpResponses.js');
 
@@ -37,6 +38,15 @@ class InsuranceService {
     const result = await updateInsuranceDetail(userId, data);
     if (!result) {
       throw new ForbiddenError('Failed to update insurance detail', '4033');
+    }
+    return result;
+  }
+
+  static async delete(req) {
+    const userId = req.user.sub;
+    const result = await deleteInsuranceDetail(userId);
+    if (!result) {
+      throw new ForbiddenError('Failed to delete insurance detail', '4034');
     }
     return result;
   }
