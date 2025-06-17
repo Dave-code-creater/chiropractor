@@ -1,33 +1,71 @@
 -- ========================================
--- 1) Re‐used ENUMS
+-- 1) ALL ENUM TYPES (must be first)
 -- ========================================
--- (assumes these already exist in your DB)
---   gender, marriage_status, race, insurance_type,
---   mental_work, physical_work, exercise_level, smoking_status
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'gender') THEN
+    CREATE TYPE gender AS ENUM ('Male','Female','Other');
+  END IF;
 
-CREATE TYPE month_name AS ENUM (
-  'January','February','March','April','May','June',
-  'July','August','September','October','November','December'
-);
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'marriage_status') THEN
+    CREATE TYPE marriage_status AS ENUM ('Single','Married','Divorced','Widowed','Other');
+  END IF;
 
-CREATE TYPE am_pm AS ENUM('AM','PM');
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'race') THEN
+    CREATE TYPE race AS ENUM ('White','Black','Asian','Hispanic','Other');
+  END IF;
 
-CREATE TYPE accident_cause AS ENUM(
-  'Auto Collision','On the job','Other'
-);
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'insurance_type') THEN
+    CREATE TYPE insurance_type AS ENUM ('Private','Medicare','Medicaid','Self-pay','Other');
+  END IF;
 
-CREATE TYPE alcohol_status AS ENUM('none','yes','no');
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'mental_work') THEN
+    CREATE TYPE mental_work AS ENUM ('Sitting','Standing','Mixed','Other');
+  END IF;
 
-CREATE TYPE work_time_type AS ENUM('Full Time','Part Time');
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'physical_work') THEN
+    CREATE TYPE physical_work AS ENUM ('Light','Moderate','Heavy','Other');
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'exercise_level') THEN
+    CREATE TYPE exercise_level AS ENUM ('None','Low','Moderate','High','Other');
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'smoking_status') THEN
+    CREATE TYPE smoking_status AS ENUM ('Never','Former','Current','Other');
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'month_name') THEN
+    CREATE TYPE month_name AS ENUM (
+      'January','February','March','April','May','June',
+      'July','August','September','October','November','December'
+    );
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'am_pm') THEN
+    CREATE TYPE am_pm AS ENUM('AM','PM');
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'accident_cause') THEN
+    CREATE TYPE accident_cause AS ENUM('Auto Collision','On the job','Other');
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'alcohol_status') THEN
+    CREATE TYPE alcohol_status AS ENUM('none','yes','no');
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'work_time_type') THEN
+    CREATE TYPE work_time_type AS ENUM('Full Time','Part Time');
+  END IF;
+END
+$$;
 
 
 -- ========================================
--- 2) Patient Intake (REQUIRED fields NOT NULL)
+-- 2) PATIENT INTAKE (REQUIRED fields NOT NULL)
 -- ========================================
-CREATE TABLE patient_intake_responses (
-  user_id               INT            PRIMARY KEY
-                                 REFERENCES profiles(user_id)
-                                 ON DELETE CASCADE,
+CREATE TABLE IF NOT EXISTS patient_intake_responses (
+  user_id               INT            PRIMARY KEY,
 
   first_name            TEXT           NOT NULL,
   middle_name           TEXT,
@@ -59,97 +97,67 @@ CREATE TABLE patient_intake_responses (
 
   spouse_phone          TEXT,
 
-  contact1              TEXT           NOT NULL,
-  contact1_phone        TEXT           NOT NULL,
-  contact1_relationship TEXT           NOT NULL,
+  emergency_contact_name          TEXT           NOT NULL,
+  emergency_contact_phone         TEXT           NOT NULL,
+  emergency_contact_relationship  TEXT           NOT NULL,
 
   created_at            TIMESTAMPTZ    NOT NULL DEFAULT NOW()
 );
 
 
 -- ========================================
--- 3) Accident & Insurance (ALL columns NULLABLE)
+CREATE TABLE IF NOT EXISTS emergency_contacts (
+  id            SERIAL PRIMARY KEY,
+  user_id       INT NOT NULL,
+  name          TEXT,
+  phone         TEXT,
+  relationship  TEXT,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 -- ========================================
-CREATE TABLE accident_insurance_responses (
-  user_id                INT           PRIMARY KEY
-                                   REFERENCES profiles(user_id)
-                                   ON DELETE CASCADE,
-
-  type_of_car            TEXT,
-  accident_date          DATE,
-  accident_time          TIME,
-  accident_time_period   am_pm,
-  accident_location      TEXT,
-  accident_cause         accident_cause,
-  accident_description   TEXT,
-  awareness_of_accident  BOOLEAN,
-  ambulance_notes        TEXT,
-  airbag_deployed        BOOLEAN,
-  seatbelt_used          BOOLEAN,
-  police_on_scene        BOOLEAN,
-  past_accidents_notes   TEXT,
-
-  lost_time              BOOLEAN,
-  lost_time_dates        TEXT,
-
-  pregnant               BOOLEAN,
-  children_info          TEXT,
-
-  covered_by_insurance   BOOLEAN,
-  insurance_type         insurance_type,
-  insurance_details      TEXT,
-
-  created_at             TIMESTAMPTZ   NOT NULL DEFAULT NOW()
+-- 3) INSURANCE DETAILS
+-- ========================================
+CREATE TABLE IF NOT EXISTS insurance_details (
+  id            SERIAL PRIMARY KEY,
+  user_id       INT NOT NULL,
+  insurance_type insurance_type,
+  provider      TEXT,
+  policy_number TEXT,
+  details       TEXT,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 
 -- ========================================
--- 4) Pain & Symptom Eval (OPTIONAL)
--- ========================================
-CREATE TABLE pain_evaluation_responses (
-  user_id       INT        PRIMARY KEY
-                     REFERENCES profiles(user_id)
-                     ON DELETE CASCADE,
+CREATE TABLE IF NOT EXISTS pain_descriptions (
+  user_id       INT        PRIMARY KEY,
   pain_chart    JSONB,
-  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 
 -- ========================================
--- 5) Detailed Symptom Description
+-- 6) DETAILED SYMPTOM DESCRIPTION
 -- ========================================
-CREATE TABLE symptom_details_responses (
-  user_id               INT        PRIMARY KEY
-                            REFERENCES profiles(user_id)
-                            ON DELETE CASCADE,
-
+CREATE TABLE IF NOT EXISTS details_descriptions (
+  user_id               INT        PRIMARY KEY,
   symptom_details       TEXT,
   main_complaints       TEXT,
   previous_healthcare   TEXT,
-
-  created_at            TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  created_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at            TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 
 -- ========================================
--- 6) Recovery & Work Impact
+-- 8) EXTENDED HEALTH HISTORY
 -- ========================================
-CREATE TABLE work_impact_responses (
-  user_id        INT        PRIMARY KEY
-                        REFERENCES profiles(user_id)
-                        ON DELETE CASCADE,
-  work_activities TEXT[],
-  created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-
--- ========================================
--- 7) Extended Health History
--- ========================================
-CREATE TABLE extended_health_history_responses (
+CREATE TABLE IF NOT EXISTS health_conditions (
   user_id                       INT        PRIMARY KEY
-                                 REFERENCES profiles(user_id)
-                                 ON DELETE CASCADE,
 
   has_past_medical_history      BOOLEAN,
   medical_condition_details     TEXT,
@@ -187,6 +195,16 @@ CREATE TABLE extended_health_history_responses (
   last_menstrual_period         TEXT,
   is_pregnant_now               BOOLEAN,
   weeks_pregnant                INT,
+  created_at                    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at                    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
 
-  created_at                    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+
+-- ========================================
+-- 9) MIGRATION TRACKER
+-- ========================================
+CREATE TABLE IF NOT EXISTS pgmigrations (
+  id     SERIAL       PRIMARY KEY,
+  name   VARCHAR(255) NOT NULL,
+  run_on TIMESTAMPTZ NOT NULL
 );

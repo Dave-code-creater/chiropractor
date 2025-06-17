@@ -30,8 +30,19 @@ const updateEmergencyContact = async (id, contact) => {
   return row;
 };
 
+const deleteEmergencyContact = async (id) => {
+  const db = getDb();
+  const [row] = await db
+    .deleteFrom('emergency_contacts')
+    .where('id', '=', id)
+    .returningAll()
+    .execute();
+  return row;
+};
+
 module.exports = {
   createEmergencyContact,
   getEmergencyContactById,
   updateEmergencyContact,
+  deleteEmergencyContact,
 };

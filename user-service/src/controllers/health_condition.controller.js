@@ -12,17 +12,17 @@ class HealthConditionController {
     }
 
     static async update(req, res) {
-        const result = await HealthConditionService.update(req.params.id, req.body);
+        const result = await HealthConditionService.update(req, req.body);
         return new OK({ metadata: result }).send(res);
     }
 
     static async getByID(req, res) {
-        const result = await HealthConditionService.getByID(req.params.id);
+        const result = await HealthConditionService.getById(req);
         return new OK({ metadata: result }).send(res);
     }
 
     static async delete(req, res) {
-        const result = await HealthConditionService.delete(req.params.id);
+        const result = await HealthConditionService.delete(req);
         return new OK({ metadata: result }).send(res);
     }
 }

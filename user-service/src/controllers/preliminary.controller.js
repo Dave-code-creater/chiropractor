@@ -10,17 +10,17 @@ class PreliminaryController {
     }
 
     static async update(req, res) {
-        const result = await PreliminaryService.update(req.params.id, req.body);
+        const result = await PreliminaryService.update(req, req.body);
         return new OK({ metadata: result }).send(res);
     }
 
     static async getByID(req, res) {
-        const result = await PreliminaryService.getByID(req.params.id);
+        const result = await PreliminaryService.getById(req);
         return new OK({ metadata: result }).send(res);
     }
 
     static async delete(req, res) {
-        const result = await PreliminaryService.delete(req.params.id);
+        const result = await PreliminaryService.delete(req);
         return new OK({ metadata: result }).send(res);
     }
 }

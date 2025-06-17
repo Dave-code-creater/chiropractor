@@ -1,6 +1,7 @@
 const { createPainDescription,
   getPainDescriptionById,
-  updatePainDescription
+  updatePainDescription,
+  deletePainDescription,
 } = require('../repositories/pain.repo.js');
 
 const { BadRequestError, ForbiddenError } = require('../utils/httpResponses.js');
@@ -42,6 +43,15 @@ class PainService {
     const result = await updatePainDescription(userId, data);
     if (!result) {
       throw new ForbiddenError('Failed to update pain description', '4033');
+    }
+    return result;
+  }
+
+  static async delete(req) {
+    const userId = req.user.sub;
+    const result = await deletePainDescription(userId);
+    if (!result) {
+      throw new ForbiddenError('Failed to delete pain description', '4034');
     }
     return result;
   }

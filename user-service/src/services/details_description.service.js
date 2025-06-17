@@ -1,7 +1,8 @@
 const {
     createDetailsDescription,
     getDetailsDescriptionById,
-    updateDetailsDescription
+    updateDetailsDescription,
+    deleteDetailsDescription,
 } = require('../repositories/details_description.repo');
 const {
     BadRequestError,
@@ -39,6 +40,15 @@ class DetailsDescriptionService {
         const result = await updateDetailsDescription(userId, data);
         if (!result) {
             throw new InternalServerError('Failed to update details description', '5002');
+        }
+        return result;
+    }
+
+    static async delete(req) {
+        const userId = req.user.sub;
+        const result = await deleteDetailsDescription(userId);
+        if (!result) {
+            throw new InternalServerError('Failed to delete details description', '5003');
         }
         return result;
     }

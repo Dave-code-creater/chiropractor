@@ -30,8 +30,19 @@ const updateInsuranceDetail = async (id, detail) => {
   return row;
 };
 
+const deleteInsuranceDetail = async (id) => {
+  const db = getDb();
+  const [row] = await db
+    .deleteFrom('insurance_details')
+    .where('id', '=', id)
+    .returningAll()
+    .execute();
+  return row;
+};
+
 module.exports = {
   createInsuranceDetail,
   getInsuranceDetailById,
   updateInsuranceDetail,
+  deleteInsuranceDetail,
 };

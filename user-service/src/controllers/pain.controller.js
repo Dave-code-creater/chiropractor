@@ -10,15 +10,15 @@ class PainController {
         return new CREATED({ metadata: result }).send(res);
     }
     static async update(req, res) {
-        const result = await PainService.update(req.params.id, req.body);
+        const result = await PainService.update(req, req.body);
         return new OK({ metadata: result }).send(res);
     }
     static async getByID(req, res) {
-        const result = await PainService.getByID(req.params.id);
+        const result = await PainService.getById(req);
         return new OK({ metadata: result }).send(res);
     }
     static async delete(req, res) {
-        const result = await PainService.delete(req.params.id);
+        const result = await PainService.delete(req);
         return new OK({ metadata: result }).send(res);
     }
 }
