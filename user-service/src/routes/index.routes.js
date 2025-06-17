@@ -34,12 +34,17 @@ router.use(
     'spousePhone',
     'contact1Phone',
     'first_name',
+    'firstName',
     'last_name',
+    'lastName',
     'middle_name',
+    'middleName',
     'gender',
     'emergency_contact_name',
     'emergency_contact_phone',
     'emergency_contact_relationship',
+    'contact1',
+    'contact1Relationship',
   ])
 );
 
