@@ -4,6 +4,7 @@ const {
     updateHealthCondition,
     deleteHealthCondition,
 } = require('../repositories/health_condition.repo');
+const { BadRequestError, ForbiddenError } = require('../utils/httpResponses');
 
 class HealthConditionService {
     static async create(data, req) {
@@ -20,7 +21,7 @@ class HealthConditionService {
 
         const result = await createHealthCondition(condition);
         if (!result) {
-            throw new Error('Failed to create health condition');
+            throw new ForbiddenError('Failed to create health condition', '4031');
         }
         return result;
     }
@@ -34,7 +35,7 @@ class HealthConditionService {
         const userId = req.user.sub;
         const result = await updateHealthCondition(userId, data);
         if (!result) {
-            throw new Error('Failed to update health condition');
+            throw new ForbiddenError('Failed to update health condition', '4032');
         }
         return result;
     }
@@ -43,7 +44,7 @@ class HealthConditionService {
         const userId = req.user.sub;
         const result = await deleteHealthCondition(userId);
         if (!result) {
-            throw new Error('Failed to delete health condition');
+            throw new ForbiddenError('Failed to delete health condition', '4033');
         }
         return result;
     }
