@@ -98,7 +98,7 @@ describe('user-service form submissions', () => {
       emergency_contact_relationship: 'Sibling',
     };
     const res = await request(app)
-      .post('/preliminaries')
+      .post('/patient-intake')
       .set('authorization', 'Bearer token')
       .send(intake);
     expect(res.status).to.equal(201);

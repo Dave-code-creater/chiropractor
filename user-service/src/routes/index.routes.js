@@ -29,28 +29,28 @@ router.put('/emergency-contacts/:id', asyncHandler(EmergencyContactController.up
 router.delete('/emergency-contacts/:id', asyncHandler(EmergencyContactController.delete));
 
 router.post('/insurance-details', asyncHandler(InsuranceDetailController.create));
-router.get('/insurance-details/:id', asyncHandler(InsuranceDetailController.getById));
+router.get('/insurance-details/:id', asyncHandler(InsuranceDetailController.getByID));
 router.put('/insurance-details/:id', asyncHandler(InsuranceDetailController.update));
 router.delete('/insurance-details/:id', asyncHandler(InsuranceDetailController.delete));
 
 router.post('/pain-descriptions', asyncHandler(PainController.create));
-router.get('/pain-descriptions/:id', asyncHandler(PainController.getByID));
-router.put('/pain-descriptions/:id', asyncHandler(PainController.update));
-router.delete('/pain-descriptions/:id', asyncHandler(PainController.delete));
+router.get('/pain-descriptions', asyncHandler(PainController.getByID));
+router.put('/pain-descriptions', asyncHandler(PainController.update));
+router.delete('/pain-descriptions', asyncHandler(PainController.delete));
 
 router.post('/details-descriptions', asyncHandler(DetailsDescriptionController.create));
-router.get('/details-descriptions/:id', asyncHandler(DetailsDescriptionController.getById));
-router.put('/details-descriptions/:id', asyncHandler(DetailsDescriptionController.update));
-router.delete('/details-descriptions/:id', asyncHandler(DetailsDescriptionController.delete));
+router.get('/details-descriptions', asyncHandler(DetailsDescriptionController.getById));
+router.put('/details-descriptions', asyncHandler(DetailsDescriptionController.update));
+router.delete('/details-descriptions', asyncHandler(DetailsDescriptionController.delete));
 
 router.post('/health-conditions', asyncHandler(HealthConditionController.create));
-router.get('/health-conditions/:id', asyncHandler(HealthConditionController.getByID));
-router.put('/health-conditions/:id', asyncHandler(HealthConditionController.update));
-router.delete('/health-conditions/:id', asyncHandler(HealthConditionController.delete));
+router.get('/health-conditions', asyncHandler(HealthConditionController.getByID));
+router.put('/health-conditions', asyncHandler(HealthConditionController.update));
+router.delete('/health-conditions', asyncHandler(HealthConditionController.delete));
 
-router.post('/preliminaries', asyncHandler(PreliminaryController.create));
-router.get('/preliminaries/:id', asyncHandler(PreliminaryController.getByID));
-router.put('/preliminaries/:id', asyncHandler(PreliminaryController.update));
-router.delete('/preliminaries/:id', asyncHandler(PreliminaryController.delete));
+router.post('/patient-intake', asyncHandler(PreliminaryController.create));
+router.get('/patient-intake', asyncHandler(PreliminaryController.getByID));
+router.put('/patient-intake', asyncHandler(PreliminaryController.update));
+router.delete('/patient-intake', asyncHandler(PreliminaryController.delete));
 
 module.exports = router;

@@ -26,16 +26,16 @@ class EmergencyService {
     return result;
   }
   static async getByID(req) {
-    const userId = req.user.sub;
-    const result = await getEmergencyContactById(userId);
+    const { id } = req.params;
+    const result = await getEmergencyContactById(id);
     if (!result) {
       throw new ForbiddenError('Emergency contact not found', '4032');
     }
     return result;
   }
   static async update(req, data) {
-    const userId = req.user.sub;
-    const result = await updateEmergencyContact(userId, data);
+    const { id } = req.params;
+    const result = await updateEmergencyContact(id, data);
     if (!result) {
       throw new ForbiddenError('Failed to update emergency contact', '4033');
     }
@@ -43,8 +43,8 @@ class EmergencyService {
   }
 
   static async delete(req) {
-    const userId = req.user.sub;
-    const result = await deleteEmergencyContact(userId);
+    const { id } = req.params;
+    const result = await deleteEmergencyContact(id);
     if (!result) {
       throw new ForbiddenError('Failed to delete emergency contact', '4034');
     }

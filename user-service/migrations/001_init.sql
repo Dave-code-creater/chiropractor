@@ -62,23 +62,10 @@ $$;
 
 
 -- ========================================
--- 2) PARENT TABLE
--- ========================================
-CREATE TABLE IF NOT EXISTS profiles (
-  user_id       SERIAL PRIMARY KEY,
-  email         TEXT    NOT NULL UNIQUE,
-  password_hash TEXT    NOT NULL,
-  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-
--- ========================================
--- 3) PATIENT INTAKE (REQUIRED fields NOT NULL)
+-- 2) PATIENT INTAKE (REQUIRED fields NOT NULL)
 -- ========================================
 CREATE TABLE IF NOT EXISTS patient_intake_responses (
-  user_id               INT            PRIMARY KEY
-                                 REFERENCES profiles(user_id)
-                                   ON DELETE CASCADE,
+  user_id               INT            PRIMARY KEY,
 
   first_name            TEXT           NOT NULL,
   middle_name           TEXT,
@@ -119,88 +106,58 @@ CREATE TABLE IF NOT EXISTS patient_intake_responses (
 
 
 -- ========================================
--- 4) ACCIDENT & INSURANCE (ALL COLUMNS NULLABLE)
+CREATE TABLE IF NOT EXISTS emergency_contacts (
+  id            SERIAL PRIMARY KEY,
+  user_id       INT NOT NULL,
+  name          TEXT,
+  phone         TEXT,
+  relationship  TEXT,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 -- ========================================
-CREATE TABLE IF NOT EXISTS accident_insurance_responses (
-  user_id                INT           PRIMARY KEY
-                                   REFERENCES profiles(user_id)
-                                     ON DELETE CASCADE,
-
-  type_of_car            TEXT,
-  accident_date          DATE,
-  accident_time          TIME,
-  accident_time_period   am_pm,
-  accident_location      TEXT,
-  accident_cause         accident_cause,
-  accident_description   TEXT,
-  awareness_of_accident  BOOLEAN,
-  ambulance_notes        TEXT,
-  airbag_deployed        BOOLEAN,
-  seatbelt_used          BOOLEAN,
-  police_on_scene        BOOLEAN,
-  past_accidents_notes   TEXT,
-
-  lost_time              BOOLEAN,
-  lost_time_dates        TEXT,
-
-  pregnant               BOOLEAN,
-  children_info          TEXT,
-
-  covered_by_insurance   BOOLEAN,
-  insurance_type         insurance_type,
-  insurance_details      TEXT,
-
-  created_at             TIMESTAMPTZ   NOT NULL DEFAULT NOW()
+-- 3) INSURANCE DETAILS
+-- ========================================
+CREATE TABLE IF NOT EXISTS insurance_details (
+  id            SERIAL PRIMARY KEY,
+  user_id       INT NOT NULL,
+  insurance_type insurance_type,
+  provider      TEXT,
+  policy_number TEXT,
+  details       TEXT,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 
 -- ========================================
--- 5) PAIN & SYMPTOM EVAL (OPTIONAL)
--- ========================================
-CREATE TABLE IF NOT EXISTS pain_evaluation_responses (
-  user_id       INT        PRIMARY KEY
-                     REFERENCES profiles(user_id)
-                       ON DELETE CASCADE,
+CREATE TABLE IF NOT EXISTS pain_descriptions (
+  user_id       INT        PRIMARY KEY,
   pain_chart    JSONB,
-  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 
 -- ========================================
 -- 6) DETAILED SYMPTOM DESCRIPTION
 -- ========================================
-CREATE TABLE IF NOT EXISTS symptom_details_responses (
-  user_id               INT        PRIMARY KEY
-                            REFERENCES profiles(user_id)
-                              ON DELETE CASCADE,
-
+CREATE TABLE IF NOT EXISTS details_descriptions (
+  user_id               INT        PRIMARY KEY,
   symptom_details       TEXT,
   main_complaints       TEXT,
   previous_healthcare   TEXT,
-
-  created_at            TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-
--- ========================================
--- 7) RECOVERY & WORK IMPACT
--- ========================================
-CREATE TABLE IF NOT EXISTS work_impact_responses (
-  user_id        INT        PRIMARY KEY
-                        REFERENCES profiles(user_id)
-                          ON DELETE CASCADE,
-  work_activities TEXT[],
-  created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  created_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at            TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 
 -- ========================================
 -- 8) EXTENDED HEALTH HISTORY
 -- ========================================
-CREATE TABLE IF NOT EXISTS extended_health_history_responses (
+CREATE TABLE IF NOT EXISTS health_conditions (
   user_id                       INT        PRIMARY KEY
-                                 REFERENCES profiles(user_id)
-                                   ON DELETE CASCADE,
 
   has_past_medical_history      BOOLEAN,
   medical_condition_details     TEXT,
@@ -238,8 +195,8 @@ CREATE TABLE IF NOT EXISTS extended_health_history_responses (
   last_menstrual_period         TEXT,
   is_pregnant_now               BOOLEAN,
   weeks_pregnant                INT,
-
-  created_at                    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  created_at                    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at                    TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 
