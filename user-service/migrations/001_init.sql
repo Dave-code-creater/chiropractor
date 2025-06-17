@@ -1,29 +1,64 @@
 -- ========================================
 -- 1) ALL ENUM TYPES (must be first)
 -- ========================================
-CREATE TYPE IF NOT EXISTS gender           AS ENUM ('Male','Female','Other');
-CREATE TYPE IF NOT EXISTS marriage_status  AS ENUM ('Single','Married','Divorced','Widowed','Other');
-CREATE TYPE IF NOT EXISTS race             AS ENUM ('White','Black','Asian','Hispanic','Other');
-CREATE TYPE IF NOT EXISTS insurance_type   AS ENUM ('Private','Medicare','Medicaid','Self-pay','Other');
-CREATE TYPE IF NOT EXISTS mental_work      AS ENUM ('Sitting','Standing','Mixed','Other');
-CREATE TYPE IF NOT EXISTS physical_work    AS ENUM ('Light','Moderate','Heavy','Other');
-CREATE TYPE IF NOT EXISTS exercise_level   AS ENUM ('None','Low','Moderate','High','Other');
-CREATE TYPE IF NOT EXISTS smoking_status   AS ENUM ('Never','Former','Current','Other');
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'gender') THEN
+    CREATE TYPE gender AS ENUM ('Male','Female','Other');
+  END IF;
 
-CREATE TYPE IF NOT EXISTS month_name       AS ENUM (
-  'January','February','March','April','May','June',
-  'July','August','September','October','November','December'
-);
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'marriage_status') THEN
+    CREATE TYPE marriage_status AS ENUM ('Single','Married','Divorced','Widowed','Other');
+  END IF;
 
-CREATE TYPE IF NOT EXISTS am_pm            AS ENUM('AM','PM');
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'race') THEN
+    CREATE TYPE race AS ENUM ('White','Black','Asian','Hispanic','Other');
+  END IF;
 
-CREATE TYPE IF NOT EXISTS accident_cause   AS ENUM(
-  'Auto Collision','On the job','Other'
-);
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'insurance_type') THEN
+    CREATE TYPE insurance_type AS ENUM ('Private','Medicare','Medicaid','Self-pay','Other');
+  END IF;
 
-CREATE TYPE IF NOT EXISTS alcohol_status  AS ENUM('none','yes','no');
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'mental_work') THEN
+    CREATE TYPE mental_work AS ENUM ('Sitting','Standing','Mixed','Other');
+  END IF;
 
-CREATE TYPE IF NOT EXISTS work_time_type  AS ENUM('Full Time','Part Time');
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'physical_work') THEN
+    CREATE TYPE physical_work AS ENUM ('Light','Moderate','Heavy','Other');
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'exercise_level') THEN
+    CREATE TYPE exercise_level AS ENUM ('None','Low','Moderate','High','Other');
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'smoking_status') THEN
+    CREATE TYPE smoking_status AS ENUM ('Never','Former','Current','Other');
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'month_name') THEN
+    CREATE TYPE month_name AS ENUM (
+      'January','February','March','April','May','June',
+      'July','August','September','October','November','December'
+    );
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'am_pm') THEN
+    CREATE TYPE am_pm AS ENUM('AM','PM');
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'accident_cause') THEN
+    CREATE TYPE accident_cause AS ENUM('Auto Collision','On the job','Other');
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'alcohol_status') THEN
+    CREATE TYPE alcohol_status AS ENUM('none','yes','no');
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'work_time_type') THEN
+    CREATE TYPE work_time_type AS ENUM('Full Time','Part Time');
+  END IF;
+END
+$$;
 
 
 -- ========================================
