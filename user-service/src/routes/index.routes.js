@@ -1,6 +1,5 @@
 const { Router } = require('express');
 const HealthController = require('../controllers/health.controller.js');
-const ProfileController = require('../controllers/profile.controller.js');
 const EmergencyContactController = require('../controllers/emergency.controller.js');
 const InsuranceDetailController = require('../controllers/insurance.controller.js');
 const PainController = require('../controllers/pain.controller.js');
@@ -23,52 +22,6 @@ const router = Router();
 router.get('/', HealthController.healthCheck);
 router.use(jwtMiddleware);
 
-/**
- * @swagger
- * /profiles:
- *   post:
- *     summary: Create profile
- *     responses:
- *       201:
- *         description: Created
- */
-router.post('/profiles', asyncHandler(ProfileController.create));
-router.post('/patient-intake', asyncHandler(ProfileController.create));
-
-/**
- * @swagger
- * /profiles/{id}:
- *   get:
- *     summary: Get profile by id
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *     responses:
- *       200:
- *         description: OK
- */
-router.get('/profiles/:id', asyncHandler(ProfileController.getById));
-
-/**
- * @swagger
- * /profiles/{id}:
- *   put:
- *     summary: Update profile
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *     responses:
- *       200:
- *         description: OK
- */
-router.put('/profiles/:id', asyncHandler(ProfileController.update));
-router.delete('/profiles/:id', asyncHandler(ProfileController.delete));
 
 router.post('/emergency-contacts', asyncHandler(EmergencyContactController.create));
 router.get('/emergency-contacts/:id', asyncHandler(EmergencyContactController.getById));
