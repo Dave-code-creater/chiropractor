@@ -24,46 +24,12 @@ CREATE TYPE work_time_type AS ENUM('Full Time','Part Time');
 -- ========================================
 -- 2) Patient Intake (REQUIRED fields NOT NULL)
 -- ========================================
-CREATE TABLE patient_intake_responses (
-  user_id               INT            PRIMARY KEY
-                                 REFERENCES profiles(user_id)
-                                 ON DELETE CASCADE,
-
-  first_name            TEXT           NOT NULL,
-  middle_name           TEXT,
-  last_name             TEXT           NOT NULL,
-  ssn                   VARCHAR(11),
-
-  day_of_birth          INT            NOT NULL
-                                 CHECK (day_of_birth BETWEEN 1 AND 31),
-  month_of_birth        month_name     NOT NULL,
-  year_of_birth         CHAR(4)        NOT NULL
-                                 CHECK (year_of_birth ~ '^[0-9]{4}$'),
-  age                   INT,
-
-  gender                gender         NOT NULL,
-
-  marriage_status       marriage_status NOT NULL,
-  race                  race           NOT NULL,
-
-  street                TEXT           NOT NULL,
-  city                  TEXT           NOT NULL,
-  state                 CHAR(2)        NOT NULL,
-  zip                   TEXT           NOT NULL,
-  home_phone            TEXT           NOT NULL,
-
-  employer              TEXT,
-  occupation            TEXT,
-  work_address          TEXT,
-  work_phone            TEXT,
-
-  spouse_phone          TEXT,
-
-  contact1              TEXT           NOT NULL,
-  contact1_phone        TEXT           NOT NULL,
-  contact1_relationship TEXT           NOT NULL,
-
-  created_at            TIMESTAMPTZ    NOT NULL DEFAULT NOW()
+-- Deprecated table kept for reference
+CREATE TABLE IF NOT EXISTS patient_intake_responses (
+  user_id     INT PRIMARY KEY REFERENCES profiles(user_id) ON DELETE CASCADE,
+  data        JSONB,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at  TIMESTAMPTZ
 );
 
 

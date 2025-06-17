@@ -5,18 +5,28 @@ const {
 } = require('../repositories/patientIntake.repo.js');
 const { BadRequestError, ForbiddenError } = require('../utils/httpResponses.js');
 
+const mapFields = (data) => {
+  if (!data || typeof data !== 'object') return {};
+  const mapped = {};
+  for (const [key, value] of Object.entries(data)) {
+    // convert camelCase keys to snake_case
+    const snake = key
+      .replace(/([A-Z])/g, '_$1')
+      .replace(/__/g, '_')
+      .toLowerCase();
+    mapped[snake] = value;
+  }
+  return mapped;
+};
+
 class PatientIntakeService {
   static async create(data, req) {
     const userId = req.user.sub;
     if (!userId) {
       throw new BadRequestError('user-id header required', '4001');
     }
-    const intake = {
-      ...data,
-      user_id: userId,
-      created_at: new Date(),
-    };
-    const result = await createPatientIntake(intake);
+    const mapped = mapFields(data);
+    const result = await createPatientIntake(userId, mapped);
     if (!result) {
       throw new ForbiddenError('Failed to create patient intake', '4031');
     }
@@ -25,16 +35,17 @@ class PatientIntakeService {
 
   static async getById(req) {
     const userId = req.user.sub;
-    const result = await getPatientIntakeById(userId);
-    if (!result) {
+    const row = await getPatientIntakeById(userId);
+    if (!row) {
       throw new ForbiddenError('Patient intake not found', '4032');
     }
-    return result;
+    return row;
   }
 
   static async update(req, data) {
     const userId = req.user.sub;
-    const result = await updatePatientIntake(userId, data);
+    const mapped = mapFields(data);
+    const result = await updatePatientIntake(userId, mapped);
     if (!result) {
       throw new ForbiddenError('Failed to update patient intake', '4033');
     }

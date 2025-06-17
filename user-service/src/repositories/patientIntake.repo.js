@@ -1,10 +1,10 @@
 const { getDb } = require('../config/index.js');
 
-const createPatientIntake = async (intake) => {
+const createPatientIntake = async (userId, data) => {
   const db = getDb();
   const [row] = await db
     .insertInto('patient_intake_responses')
-    .values(intake)
+    .values({ user_id: userId, data })
     .returningAll()
     .execute();
   return row;
@@ -19,12 +19,11 @@ const getPatientIntakeById = async (userId) => {
     .executeTakeFirst();
 };
 
-const updatePatientIntake = async (userId, intake) => {
+const updatePatientIntake = async (userId, data) => {
   const db = getDb();
-  const { updated_at, ...rest } = intake;
   const [row] = await db
     .updateTable('patient_intake_responses')
-    .set(rest)
+    .set({ data, updated_at: new Date() })
     .where('user_id', '=', userId)
     .returningAll()
     .execute();
