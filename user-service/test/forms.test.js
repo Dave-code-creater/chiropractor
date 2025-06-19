@@ -5,7 +5,8 @@ chai.use(spies);
 const { expect } = chai;
 const jwt = require('jsonwebtoken');
 const app = require('../src/index.js');
-const emergencyRepo = require('../src/repositories/emergency.repo.js');
+const recoveryRepo = require('../src/repositories/recovery.repo.js');
+const workImpactRepo = require('../src/repositories/work_impact.repo.js');
 const insuranceRepo = require('../src/repositories/insurance.repo.js');
 const painRepo = require('../src/repositories/pain.repo.js');
 const detailsRepo = require('../src/repositories/details_description.repo.js');
@@ -22,11 +23,23 @@ describe('user-service form submissions', () => {
   afterEach(() => chai.spy.restore());
 
 
-  it('creates empty emergency contact form', async () => {
+
+  it('creates empty recovery form', async () => {
     chai.spy.on(jwt, 'verify', () => ({ sub: 1 }));
-    const spy = chai.spy.on(emergencyRepo, 'createEmergencyContact', () => Promise.resolve({ id: 1 }));
+    const spy = chai.spy.on(recoveryRepo, 'createRecovery', () => Promise.resolve({ id: 1 }));
     const res = await request(app)
-      .post('/emergency-contacts')
+      .post('/recovery')
+      .set('authorization', 'Bearer token')
+      .send({});
+    expect(res.status).to.equal(201);
+    expect(spy).to.have.been.called();
+  });
+
+  it('creates empty work impact form', async () => {
+    chai.spy.on(jwt, 'verify', () => ({ sub: 1 }));
+    const spy = chai.spy.on(workImpactRepo, 'createWorkImpact', () => Promise.resolve({ id: 1 }));
+    const res = await request(app)
+      .post('/work-impact')
       .set('authorization', 'Bearer token')
       .send({});
     expect(res.status).to.equal(201);

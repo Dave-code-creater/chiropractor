@@ -1,11 +1,12 @@
 const { Router } = require('express');
 const HealthController = require('../controllers/health.controller.js');
-const EmergencyContactController = require('../controllers/emergency.controller.js');
 const InsuranceDetailController = require('../controllers/insurance.controller.js');
 const PainController = require('../controllers/pain.controller.js');
 const DetailsDescriptionController = require('../controllers/details_description.controller.js');
 const HealthConditionController = require('../controllers/health_condition.controller.js');
 const PreliminaryController = require('../controllers/preliminary.controller.js');
+const RecoveryController = require('../controllers/recovery.controller.js');
+const WorkImpactController = require('../controllers/work_impact.controller.js');
 const jwtMiddleware = require('../middlewares/jwt.middleware.js');
 const asyncHandler = require('../helper/asyncHandler.js');
 const router = Router();
@@ -23,10 +24,16 @@ router.get('/', HealthController.healthCheck);
 router.use(jwtMiddleware);
 
 
-router.post('/emergency-contacts', asyncHandler(EmergencyContactController.create));
-router.get('/emergency-contacts/:id', asyncHandler(EmergencyContactController.getById));
-router.put('/emergency-contacts/:id', asyncHandler(EmergencyContactController.update));
-router.delete('/emergency-contacts/:id', asyncHandler(EmergencyContactController.delete));
+
+router.post('/recovery', asyncHandler(RecoveryController.create));
+router.get('/recovery', asyncHandler(RecoveryController.getByID));
+router.put('/recovery', asyncHandler(RecoveryController.update));
+router.delete('/recovery', asyncHandler(RecoveryController.delete));
+
+router.post('/work-impact', asyncHandler(WorkImpactController.create));
+router.get('/work-impact', asyncHandler(WorkImpactController.getByID));
+router.put('/work-impact', asyncHandler(WorkImpactController.update));
+router.delete('/work-impact', asyncHandler(WorkImpactController.delete));
 
 router.post('/insurance-details', asyncHandler(InsuranceDetailController.create));
 router.get('/insurance-details/:id', asyncHandler(InsuranceDetailController.getByID));

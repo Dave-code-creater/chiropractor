@@ -26,3 +26,45 @@ paths:
       responses:
         '200':
           description: OK
+  /recovery:
+    post:
+      summary: Create recovery record
+      responses:
+        '201':
+          description: Created
+    get:
+      summary: Get recovery record
+      responses:
+        '200':
+          description: OK
+    put:
+      summary: Update recovery record
+      responses:
+        '200':
+          description: OK
+    delete:
+      summary: Delete recovery record
+      responses:
+        '200':
+          description: OK
+  /work-impact:
+    post:
+      summary: Create work impact record
+      responses:
+        '201':
+          description: Created
+    get:
+      summary: Get work impact record
+      responses:
+        '200':
+          description: OK
+    put:
+      summary: Update work impact record
+      responses:
+        '200':
+          description: OK
+    delete:
+      summary: Delete work impact record
+      responses:
+        '200':
+          description: OK
