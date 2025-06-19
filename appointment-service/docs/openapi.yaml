@@ -31,3 +31,8 @@ paths:
       responses:
         '200':
           description: OK
+    delete:
+      summary: Delete appointment
+      responses:
+        '200':
+          description: OK

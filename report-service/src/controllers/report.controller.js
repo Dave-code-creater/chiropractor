@@ -3,6 +3,8 @@ const {
   getReportById,
   updateReport,
   listReports,
+  listReportsByOwner,
+  deleteReport,
 } = require('../repositories/report.repo.js');
 const {
   CREATED,
@@ -51,6 +53,27 @@ class ReportController {
     } catch (err) {
       console.error(err);
       return new InternalServerError('error listing reports').send(res);
+    }
+  }
+
+  static async listByOwner(req, res) {
+    try {
+      const reports = await listReportsByOwner(Number(req.params.ownerId));
+      return new OK({ metadata: reports }).send(res);
+    } catch (err) {
+      console.error(err);
+      return new InternalServerError('error listing reports').send(res);
+    }
+  }
+
+  static async delete(req, res) {
+    try {
+      const report = await deleteReport(Number(req.params.id));
+      if (!report) return new NotFoundError('not found').send(res);
+      return new OK({ metadata: report }).send(res);
+    } catch (err) {
+      console.error(err);
+      return new InternalServerError('error deleting report').send(res);
     }
   }
 }

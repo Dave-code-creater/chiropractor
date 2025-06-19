@@ -20,6 +20,18 @@ paths:
       responses:
         '200':
           description: OK
+  /reports/owner/{ownerId}:
+    get:
+      summary: List reports by owner
+      parameters:
+        - in: path
+          name: ownerId
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: OK
   /reports/{id}:
     get:
       summary: Get report
@@ -28,6 +40,11 @@ paths:
           description: OK
     put:
       summary: Update report
+      responses:
+        '200':
+          description: OK
+    delete:
+      summary: Delete report
       responses:
         '200':
           description: OK
