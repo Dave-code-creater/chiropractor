@@ -35,30 +35,9 @@ const listReports = async () => {
   return db.selectFrom('reports').selectAll().execute();
 };
 
-const listReportsByOwner = async (ownerId) => {
-  const db = getDb();
-  return db
-    .selectFrom('reports')
-    .selectAll()
-    .where('owner_id', '=', ownerId)
-    .execute();
-};
-
-const deleteReport = async (id) => {
-  const db = getDb();
-  const [row] = await db
-    .deleteFrom('reports')
-    .where('id', '=', id)
-    .returningAll()
-    .execute();
-  return row;
-};
-
 module.exports = {
   createReport,
   getReportById,
   updateReport,
   listReports,
-  listReportsByOwner,
-  deleteReport,
 };
