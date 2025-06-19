@@ -11,6 +11,11 @@ class DetailsDescriptionController {
         const result = await DetailsDescriptionService.create(req.body, req);
         return new CREATED({ metadata: result }).send(res);
     }
+
+    static async list(req, res) {
+        const result = await DetailsDescriptionService.list(req);
+        return new OK({ metadata: result }).send(res);
+    }
     static async update(req, res) {
         const result = await DetailsDescriptionService.update(req, req.body);
         return new OK({ metadata: result }).send(res);

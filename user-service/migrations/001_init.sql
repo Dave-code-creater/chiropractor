@@ -146,7 +146,8 @@ CREATE TABLE IF NOT EXISTS pain_descriptions (
 -- 6) DETAILED SYMPTOM DESCRIPTION
 -- ========================================
 CREATE TABLE IF NOT EXISTS details_descriptions (
-  user_id               INT        PRIMARY KEY,
+  id                    SERIAL      PRIMARY KEY,
+  user_id               INT         NOT NULL,
   symptom_details       TEXT,
   main_complaints       TEXT,
   previous_healthcare   TEXT,

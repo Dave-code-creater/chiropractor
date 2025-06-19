@@ -81,6 +81,47 @@ describe('user-service form submissions', () => {
     expect(spy).to.have.been.called();
   });
 
+  it('lists details descriptions', async () => {
+    chai.spy.on(jwt, 'verify', () => ({ sub: 1 }));
+    const spy = chai.spy.on(DetailsService, 'list', () => Promise.resolve([]));
+    const res = await request(app)
+      .get('/details-descriptions')
+      .set('authorization', 'Bearer token');
+    expect(res.status).to.equal(200);
+    expect(spy).to.have.been.called();
+  });
+
+  it('gets details description', async () => {
+    chai.spy.on(jwt, 'verify', () => ({ sub: 1 }));
+    const spy = chai.spy.on(DetailsService, 'getById', () => Promise.resolve({ id: 1 }));
+    const res = await request(app)
+      .get('/details-descriptions/1')
+      .set('authorization', 'Bearer token');
+    expect(res.status).to.equal(200);
+    expect(spy).to.have.been.called();
+  });
+
+  it('updates details description', async () => {
+    chai.spy.on(jwt, 'verify', () => ({ sub: 1 }));
+    const spy = chai.spy.on(DetailsService, 'update', () => Promise.resolve({ id: 1 }));
+    const res = await request(app)
+      .put('/details-descriptions/1')
+      .set('authorization', 'Bearer token')
+      .send({});
+    expect(res.status).to.equal(200);
+    expect(spy).to.have.been.called();
+  });
+
+  it('deletes details description', async () => {
+    chai.spy.on(jwt, 'verify', () => ({ sub: 1 }));
+    const spy = chai.spy.on(DetailsService, 'delete', () => Promise.resolve({ id: 1 }));
+    const res = await request(app)
+      .delete('/details-descriptions/1')
+      .set('authorization', 'Bearer token');
+    expect(res.status).to.equal(200);
+    expect(spy).to.have.been.called();
+  });
+
   it('creates empty health condition form', async () => {
     chai.spy.on(jwt, 'verify', () => ({ sub: 1 }));
     const spy = chai.spy.on(HealthConditionService, 'create', () => Promise.resolve({ id: 1 }));

@@ -87,6 +87,12 @@ paths:
         '201':
           description: Created
     get:
+      summary: List details descriptions
+      responses:
+        '200':
+          description: OK
+  /details-descriptions/{id}:
+    get:
       summary: Get details description
       responses:
         '200':

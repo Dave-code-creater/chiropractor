@@ -49,9 +49,10 @@ router.put('/pain-descriptions/:id', asyncHandler(PainController.update));
 router.delete('/pain-descriptions/:id', asyncHandler(PainController.delete));
 
 router.post('/details-descriptions', asyncHandler(DetailsDescriptionController.create));
-router.get('/details-descriptions', asyncHandler(DetailsDescriptionController.getById));
-router.put('/details-descriptions', asyncHandler(DetailsDescriptionController.update));
-router.delete('/details-descriptions', asyncHandler(DetailsDescriptionController.delete));
+router.get('/details-descriptions', asyncHandler(DetailsDescriptionController.list));
+router.get('/details-descriptions/:id', asyncHandler(DetailsDescriptionController.getById));
+router.put('/details-descriptions/:id', asyncHandler(DetailsDescriptionController.update));
+router.delete('/details-descriptions/:id', asyncHandler(DetailsDescriptionController.delete));
 
 router.post('/health-conditions', asyncHandler(HealthConditionController.create));
 router.get('/health-conditions', asyncHandler(HealthConditionController.list));
