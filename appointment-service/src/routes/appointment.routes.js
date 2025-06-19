@@ -20,6 +20,22 @@ router.post('/', AppointmentController.create);
 
 /**
  * @swagger
+ * /appointments/{id}/profile:
+ *   get:
+ *     summary: Get patient profile
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: OK
+ */
+router.get('/:id/profile', AppointmentController.patientProfile);
+/**
+ * @swagger
  * /appointments/{id}:
  *   get:
  *     summary: Get appointment
@@ -54,9 +70,9 @@ router.put('/:id', AppointmentController.update);
 
 /**
  * @swagger
- * /appointments/{id}:
- *   delete:
- *     summary: Delete appointment
+ * /appointments/{id}/profile:
+ *   get:
+ *     summary: Get patient profile
  *     parameters:
  *       - in: path
  *         name: id

@@ -36,3 +36,9 @@ paths:
       responses:
         '200':
           description: OK
+  /appointments/{id}/profile:
+    get:
+      summary: Get patient profile
+      responses:
+        '200':
+          description: OK

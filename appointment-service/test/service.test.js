@@ -68,5 +68,18 @@ describe('AppointmentService methods', () => {
     expect(result).to.deep.equal([]);
   });
 
+  it('fetches user profile via fetch', async () => {
+    const fakeFetch = chai.spy(() =>
+      Promise.resolve({ ok: true, json: () => Promise.resolve({ id: 7 }) })
+    );
+    global.fetch = fakeFetch;
+    delete require.cache[require.resolve('../src/services/index.service.js')];
+    AppointmentService = require('../src/services/index.service.js');
+    const result = await AppointmentService.getUserProfile(7);
+    expect(fakeFetch).to.have.been.called();
+    expect(result).to.deep.equal({ id: 7 });
+    delete global.fetch;
+  });
+
   
 });

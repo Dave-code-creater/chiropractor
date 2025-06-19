@@ -35,6 +35,21 @@ describe('appointment-service endpoints', () => {
     expect(getSpy).to.have.been.called();
   });
 
+  it('gets patient profile for appointment', async () => {
+    chai.spy.on(jwt, 'verify', () => ({ sub: 1, role: 'doctor' }));
+    chai.spy.on(AppointmentService, 'getAppointment', () =>
+      Promise.resolve({ patient_id: 4 })
+    );
+    const profileSpy = chai.spy.on(AppointmentService, 'getUserProfile', () =>
+      Promise.resolve({ id: 4 })
+    );
+    const res = await request(app)
+      .get('/appointments/1/profile')
+      .set('authorization', 'Bearer token');
+    expect(res.status).to.equal(200);
+    expect(profileSpy).to.have.been.called.with(4);
+  });
+
   it('updates appointment', async () => {
     chai.spy.on(jwt, 'verify', () => ({ sub: 1, role: 'doctor' }));
     const updateSpy = chai.spy.on(AppointmentService, 'updateAppointment', () =>

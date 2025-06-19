@@ -37,6 +37,12 @@ class AppointmentService {
   static async deleteAppointment(id) {
     return deleteAppointment(id);
   }
+
+  static async getUserProfile(userId) {
+    const res = await fetch(`http://user-service:3002/profiles/${userId}`);
+    if (!res.ok) throw new Error('failed to fetch profile');
+    return res.json();
+  }
 }
 
 module.exports = AppointmentService;

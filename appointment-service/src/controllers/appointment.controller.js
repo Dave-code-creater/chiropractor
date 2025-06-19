@@ -69,6 +69,18 @@ class AppointmentController {
       return new InternalServerError('error deleting appointment').send(res);
     }
   }
+
+  static async patientProfile(req, res) {
+    try {
+      const appt = await AppointmentService.getAppointment(Number(req.params.id));
+      if (!appt) return new NotFoundError('not found').send(res);
+      const profile = await AppointmentService.getUserProfile(appt.patient_id);
+      return new OK({ metadata: profile }).send(res);
+    } catch (err) {
+      console.error(err);
+      return new InternalServerError('error fetching profile').send(res);
+    }
+  }
 }
 
 module.exports = AppointmentController;
