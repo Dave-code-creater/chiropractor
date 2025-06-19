@@ -10,9 +10,11 @@ services:
       - auth-service
       - user-service
       - blog-service
+      - rabbitmq
     environment:
       JWT_SECRET: supersecretkey
       JWT_EXPIRES_IN: 1h
+      RABBITMQ_URL: amqp://rabbitmq:5672
 
 
 
@@ -49,6 +51,7 @@ services:
     depends_on:
       - auth-db
       - migrate-auth
+      - rabbitmq
     ports:
       - "3001:3001"
     environment:
@@ -61,6 +64,7 @@ services:
       PRO_POSTGRESQL_NAME: auth_db
       JWT_SECRET: supersecretkey
       JWT_EXPIRES_IN: 1h
+      RABBITMQ_URL: amqp://rabbitmq:5672
 
   # USER SERVICE STACK
   user-db:
@@ -95,6 +99,7 @@ services:
     depends_on:
       - user-db
       - migrate-user
+      - rabbitmq
     ports:
       - '3002:3002'
     environment:
@@ -107,6 +112,7 @@ services:
       PRO_POSTGRESQL_NAME: user_db
       JWT_SECRET: supersecretkey
       JWT_EXPIRES_IN: 1h
+      RABBITMQ_URL: amqp://rabbitmq:5672
 
   blog-service:
     build: ./blog-service
@@ -120,6 +126,7 @@ services:
       PRO_MONGODB_HOST: blog-db
       PRO_MONGODB_PORT: 27017
       PRO_MONGODB_NAME: blog-db
+      RABBITMQ_URL: amqp://rabbitmq:5672
   
   blog-db:
     image: mongo:latest
@@ -142,6 +149,7 @@ services:
       PRO_MONGODB_HOST: blog-db
       PRO_MONGODB_PORT: 27018
       PRO_MONGODB_NAME: blog-db
+      RABBITMQ_URL: amqp://rabbitmq:5672
     
   chat-db:
     image: mongo:latest
@@ -184,6 +192,7 @@ services:
     depends_on:
       - appointment-db
       - migrate-appointment
+      - rabbitmq
     ports:
       - '3005:3005'
     environment:
@@ -196,7 +205,54 @@ services:
       PRO_POSTGRESQL_NAME: appointment_db
       JWT_SECRET: supersecretkey
       JWT_EXPIRES_IN: 1h
+      RABBITMQ_URL: amqp://rabbitmq:5672
 
+  report-db:
+    image: postgres:16-alpine
+    container_name: report_db
+    restart: always
+    environment:
+      POSTGRES_DB: report_db
+      POSTGRES_USER: report_user
+      POSTGRES_PASSWORD: report_pass
+    ports:
+      - "5436:5432"
+    volumes:
+      - report_pgdata:/var/lib/postgresql/data
+
+  migrate-report:
+    image: postgres:16-alpine
+    depends_on:
+      - report-db
+    volumes:
+      - ./report-service/migrations:/migrations
+    entrypoint: >
+      sh -c "
+        echo '⏳ Waiting for report-db...' &&
+        sleep 3 &&
+        psql postgresql://report_user:report_pass@report-db:5432/report_db -f /migrations/001_init.sql
+      "
+
+  report-service:
+    build: ./report-service
+    depends_on:
+      - report-db
+      - migrate-report
+      - rabbitmq
+    ports:
+      - '3006:3006'
+    environment:
+      NODE_ENV: development
+      PORT: 3006
+      PRO_POSTGRESQL_USER: report_user
+      PRO_POSTGRESQL_PASS: report_pass
+      PRO_POSTGRESQL_HOST: report-db
+      PRO_POSTGRESQL_PORT: 5432
+      PRO_POSTGRESQL_NAME: report_db
+      JWT_SECRET: supersecretkey
+      JWT_EXPIRES_IN: 1h
+      RABBITMQ_URL: amqp://rabbitmq:5672
+      
   rabbitmq:
     image: rabbitmq:3-management
     ports:
@@ -216,6 +272,8 @@ volumes:
   chat_mongo_data:
     driver: local
   appointment_pgdata:
+    driver: local
+  report_pgdata:
     driver: local
   rabbitmq_data:
     driver: local

@@ -88,6 +88,11 @@ const deleteUser = async (id) => {
   return row;
 };
 
+const listUsers = async () => {
+  const db = getDb();
+  return db.selectFrom('users').selectAll().execute();
+};
+
 
 module.exports = {
   createUser,
@@ -99,5 +104,6 @@ module.exports = {
   updateUserPassword,
   updateUser,
   deleteUser,
+  listUsers,
 };
 

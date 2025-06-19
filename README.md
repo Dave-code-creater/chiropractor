@@ -8,10 +8,10 @@ for experimentation and further development.
 - **gateway** (port 3000) – API Gateway that proxies requests to other services.
 - **auth-service** (port 3001) – handles authentication and returns a JWT token on login.
 - **user-service** (port 3002) – manages user profiles.
-- **report-service** (port 3003) – stores patient reports.
-- **appointment-service** (port 3004) – handles appointments.
-- **chat-service** (port 3005) – simple chat API.
-- **blog-service** (port 3006) – blog endpoints.
+ - **blog-service** (port 3003) – blog endpoints.
+ - **chat-service** (port 3004) – simple chat API.
+ - **appointment-service** (port 3005) – handles appointments.
+ - **report-service** (port 3006) – stores patient reports.
 
 ## Infrastructure
 Docker Compose sets up:
@@ -28,6 +28,8 @@ This starts all services on ports 3000–3006.
 
 Docker Compose now also starts a RabbitMQ container on ports 5672 and 15672 so
 services can publish and consume events locally.
+All services are configured with `RABBITMQ_URL=amqp://rabbitmq:5672` so they
+connect to the broker automatically.
 
 ## Additional Endpoints
 
@@ -40,6 +42,7 @@ services can publish and consume events locally.
 - `GET /doctors/{doctorId}/appointments` – list appointments for a doctor
 - `PUT /users/{id}` – update an auth user
 - `DELETE /users/{id}` – remove an auth user
+- `GET /users` – list all auth users
 
 ## Kubernetes
 

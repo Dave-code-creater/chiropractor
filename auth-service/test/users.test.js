@@ -27,4 +27,11 @@ describe('auth user CRUD', () => {
       .delete('/users/1');
     expect(res.status).to.equal(200);
   });
+
+  it('lists users', async () => {
+    chai.spy.on(service, 'listUsers', () => Promise.resolve([{ id: 1 }]));
+    const res = await request(app).get('/users');
+    expect(res.status).to.equal(200);
+    expect(service.listUsers).to.have.been.called();
+  });
 });

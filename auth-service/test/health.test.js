@@ -1,11 +1,16 @@
 const request = require('supertest');
+const chai = require('chai');
+const spies = require('chai-spies');
+chai.use(spies);
+const { expect } = chai;
 const app = require('../src/index.js');
-const { strict: assert } = require('assert');
 
 describe('auth-service health', () => {
   it('returns ok', async () => {
+    const spy = chai.spy.on(console, 'log');
     const res = await request(app).get('/');
-    assert.equal(res.status, 200);
-    assert.deepEqual(res.body, { status: 'ok' });
+    expect(res.status).to.equal(200);
+    expect(res.body).to.deep.equal({ status: 'ok' });
+    chai.spy.restore(spy);
   });
 });

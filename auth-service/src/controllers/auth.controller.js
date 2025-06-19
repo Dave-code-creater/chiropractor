@@ -63,6 +63,11 @@ class AuthController {
     }
     return new OK({ metadata: deleted }).send(res);
   }
+
+  static async listUsers(_req, res) {
+    const users = await AuthService.listUsers();
+    return new OK({ metadata: users }).send(res);
+  }
 }
 
 module.exports = AuthController;

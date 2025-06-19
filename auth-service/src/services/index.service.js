@@ -9,6 +9,7 @@ const {
   updateUserPassword,
   updateUser,
   deleteUser,
+  listUsers,
 } = require('../repositories/user.repo.js');
 
 const {
@@ -220,6 +221,11 @@ class AuthService {
       return { id };
     }
     return null;
+  }
+
+  static async listUsers() {
+    const users = await listUsers();
+    return users.map(({ password_hash, ...rest }) => rest);
   }
 }
 

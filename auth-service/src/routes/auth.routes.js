@@ -13,5 +13,6 @@ router.post('/forgot-password', asyncHandler(AuthController.forgotPassword));
 router.get('/users/:id', asyncHandler(AuthController.getUser));
 router.put('/users/:id', asyncHandler(AuthController.updateUser));
 router.delete('/users/:id', asyncHandler(AuthController.deleteUser));
+router.get('/users', asyncHandler(AuthController.listUsers));
 
 module.exports = router;
