@@ -196,6 +196,14 @@ services:
       PRO_POSTGRESQL_NAME: appointment_db
       JWT_SECRET: supersecretkey
       JWT_EXPIRES_IN: 1h
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
   
 
 volumes:
@@ -208,6 +216,8 @@ volumes:
   chat_mongo_data:
     driver: local
   appointment_pgdata:
+    driver: local
+  rabbitmq_data:
     driver: local
   
 networks:

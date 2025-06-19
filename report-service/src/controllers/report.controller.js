@@ -1,9 +1,4 @@
-const {
-  createReport,
-  getReportById,
-  updateReport,
-  listReports,
-} = require('../repositories/report.repo.js');
+const ReportService = require('../services/index.service.js');
 const {
   CREATED,
   OK,
@@ -14,7 +9,7 @@ const {
 class ReportController {
   static async create(req, res) {
     try {
-      const report = await createReport(req.body.owner_id, req.body.data);
+      const report = await ReportService.create(req.body.owner_id, req.body.data);
       return new CREATED({ metadata: report }).send(res);
     } catch (err) {
       console.error(err);
@@ -24,7 +19,7 @@ class ReportController {
 
   static async getById(req, res) {
     try {
-      const report = await getReportById(Number(req.params.id));
+      const report = await ReportService.getById(Number(req.params.id));
       if (!report) return new NotFoundError('not found').send(res);
       return new OK({ metadata: report }).send(res);
     } catch (err) {
@@ -35,7 +30,7 @@ class ReportController {
 
   static async update(req, res) {
     try {
-      const report = await updateReport(Number(req.params.id), req.body.data);
+      const report = await ReportService.update(Number(req.params.id), req.body.data);
       if (!report) return new NotFoundError('not found').send(res);
       return new OK({ metadata: report }).send(res);
     } catch (err) {
@@ -46,11 +41,22 @@ class ReportController {
 
   static async list(_req, res) {
     try {
-      const reports = await listReports();
+      const reports = await ReportService.list();
       return new OK({ metadata: reports }).send(res);
     } catch (err) {
       console.error(err);
       return new InternalServerError('error listing reports').send(res);
+    }
+  }
+
+  static async delete(req, res) {
+    try {
+      const report = await ReportService.delete(Number(req.params.id));
+      if (!report) return new NotFoundError('not found').send(res);
+      return new OK({ metadata: report }).send(res);
+    } catch (err) {
+      console.error(err);
+      return new InternalServerError('error deleting report').send(res);
     }
   }
 }

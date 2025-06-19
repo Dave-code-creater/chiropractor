@@ -46,5 +46,58 @@ const findUserByRole = async (role) => {
     .execute();
 };
 
+const findUserByEmailAndPhone = async (email, phone) => {
+  const db = getDb();
+  return db
+    .selectFrom('users')
+    .selectAll()
+    .where('email', '=', email)
+    .where('phone_number', '=', phone)
+    .executeTakeFirst();
+};
 
-module.exports = { createUser, findUserByEmail, findUserByUsername, findUserById, findUserByRole };
+const updateUserPassword = async (id, passwordHash) => {
+  const db = getDb();
+  const [row] = await db
+    .updateTable('users')
+    .set({ password_hash: passwordHash, updated_at: db.fn.now() })
+    .where('id', '=', id)
+    .returningAll()
+    .execute();
+  return row;
+};
+
+const updateUser = async (id, data) => {
+  const db = getDb();
+  const [row] = await db
+    .updateTable('users')
+    .set({ ...data, updated_at: db.fn.now() })
+    .where('id', '=', id)
+    .returningAll()
+    .execute();
+  return row;
+};
+
+const deleteUser = async (id) => {
+  const db = getDb();
+  const [row] = await db
+    .deleteFrom('users')
+    .where('id', '=', id)
+    .returningAll()
+    .execute();
+  return row;
+};
+
+
+module.exports = {
+  createUser,
+  findUserByEmail,
+  findUserByUsername,
+  findUserById,
+  findUserByRole,
+  findUserByEmailAndPhone,
+  updateUserPassword,
+  updateUser,
+  deleteUser,
+};
+

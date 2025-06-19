@@ -59,13 +59,23 @@ class PostController {
     }
   }
 
-  static async listPost(req, res) {
+  static async listUserPosts(req, res) {
     try {
-      const posts = await PostService.listByUser(req.user.sub);
+      const posts = await PostService.listByUser(req.params.userId);
       return new OK({ metadata: posts }).send(res);
     } catch (err) {
       console.error(err);
       return new InternalServerError('error listing user posts').send(res);
+    }
+  }
+
+  static async listByTag(req, res) {
+    try {
+      const posts = await PostService.listByTag(req.params.tag);
+      return new OK({ metadata: posts }).send(res);
+    } catch (err) {
+      console.error(err);
+      return new InternalServerError('error listing tag posts').send(res);
     }
   }
 

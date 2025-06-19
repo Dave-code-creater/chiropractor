@@ -5,6 +5,10 @@ const {
   findUserByUsername,
   findUserByEmail,
   findUserById,
+  findUserByEmailAndPhone,
+  updateUserPassword,
+  updateUser,
+  deleteUser,
 } = require('../repositories/user.repo.js');
 
 const {
@@ -24,6 +28,7 @@ const {
 const { signUpValidator, signInValidator } = require('../validators/access.js');
 const { v4: uuidv4 } = require('uuid');
 const UAParser = require('ua-parser-js');
+const { publish } = require('../utils/messageBroker.js');
 
 class AuthService {
   static async register(data, req) {
@@ -32,7 +37,11 @@ class AuthService {
       throw new BadRequestError(error.details[0].message, '4001');
     }
 
-    const { email, password, role = 'patient', first_name, last_name } = data;
+    const email = data.email.toLowerCase();
+    const password = data.password;
+    const role = (data.role || 'patient').toLowerCase();
+    const first_name = data.first_name.toLowerCase();
+    const last_name = data.last_name.toLowerCase();
 
     const existing = await findUserByEmail(email);
     if (existing) {
@@ -52,6 +61,8 @@ class AuthService {
       throw new InternalServerError('user creation failed', '5002');
     }
 
+    await publish('users.created', { id: user.id, email: user.email, role });
+
     return await AuthService.login({ email, password }, req);
   }
 
@@ -59,7 +70,8 @@ class AuthService {
     const { error } = signInValidator.validate(data);
     if (error) throw new BadRequestError(error.details[0].message, '4002');
 
-    const { email, password } = data;
+    const email = data.email.toLowerCase();
+    const password = data.password;
     const user = await findUserByEmail(email);
     if (!user) throw new UnauthorizedError('invalid credentials', '4011');
 
@@ -160,6 +172,54 @@ class AuthService {
 
     await deleteApiKeyByKey(token); // Soft invalidate refresh token
     return true;
+  }
+
+  static async forgotPassword(data) {
+    const email = data.email.toLowerCase();
+    const phone = data.phone_number.toLowerCase();
+    const newPassword = data.new_password;
+
+    const user = await findUserByEmailAndPhone(email, phone);
+    if (!user) {
+      throw new UnauthorizedError('invalid credentials');
+    }
+
+    const hash = await bcrypt.hash(newPassword, 10);
+    const updated = await updateUserPassword(user.id, hash);
+    if (!updated) {
+      throw new InternalServerError('password update failed');
+    }
+    await publish('users.passwordReset', { id: user.id });
+    return true;
+  }
+
+  static async getUser(id) {
+    const user = await findUserById(id);
+    if (user) {
+      // remove sensitive fields
+      const { password_hash, ...rest } = user;
+      return rest;
+    }
+    return null;
+  }
+
+  static async updateUser(id, data) {
+    const updated = await updateUser(id, {
+      email: data.email && data.email.toLowerCase(),
+      first_name: data.first_name && data.first_name.toLowerCase(),
+      last_name: data.last_name && data.last_name.toLowerCase(),
+      phone_number: data.phone_number && data.phone_number.toLowerCase(),
+    });
+    return updated ? { id: updated.id } : null;
+  }
+
+  static async deleteUser(id) {
+    const deleted = await deleteUser(id);
+    if (deleted) {
+      await publish('users.deleted', { id });
+      return { id };
+    }
+    return null;
   }
 }
 

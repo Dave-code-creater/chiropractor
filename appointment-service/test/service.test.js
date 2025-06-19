@@ -4,17 +4,23 @@ chai.use(spies);
 const { expect } = chai;
 const AppointmentService = require('../src/services/index.service.js');
 const apptRepo = require('../src/repositories/appointment.repo.js');
-const noteRepo = require('../src/repositories/note.repo.js');
+const authClient = require('../src/services/auth.service.js');
+const broker = require('../src/utils/messageBroker.js');
 
 describe('AppointmentService methods', () => {
+  beforeEach(() => {
+    chai.spy.on(broker, 'publish', () => Promise.resolve());
+  });
   afterEach(() => chai.spy.restore());
 
   it('creates appointment via repo', async () => {
     const createSpy = chai.spy.on(apptRepo, 'createAppointment', () =>
       Promise.resolve({ id: 1 })
     );
-    const result = await AppointmentService.createAppointment({ patient_id: 1 });
-    expect(createSpy).to.have.been.called.with({ patient_id: 1 });
+    const authSpy = chai.spy.on(authClient, 'getUser', () => Promise.resolve({ id: 1 }));
+    const result = await AppointmentService.createAppointment({ patient_id: 1, doctor_id: 1 });
+    expect(createSpy).to.have.been.called.with({ patient_id: 1, doctor_id: 1 });
+    expect(authSpy).to.have.been.called.with(1);
     expect(result).to.deep.equal({ id: 1 });
   });
 
@@ -41,6 +47,22 @@ describe('AppointmentService methods', () => {
     const result = await AppointmentService.listAppointments();
     expect(listSpy).to.have.been.called();
     expect(result).to.deep.equal([]);
+  });
+
+  it('lists appointments by doctor via repo', async () => {
+    const listSpy = chai.spy.on(apptRepo, 'listAppointmentsByDoctor', () => Promise.resolve([]));
+    const result = await AppointmentService.listAppointmentsByDoctor(1);
+    expect(listSpy).to.have.been.called.with(1);
+    expect(result).to.deep.equal([]);
+  });
+
+  it('deletes appointment via repo', async () => {
+    const delSpy = chai.spy.on(apptRepo, 'deleteAppointment', () =>
+      Promise.resolve({ id: 5 })
+    );
+    const result = await AppointmentService.deleteAppointment(5);
+    expect(delSpy).to.have.been.called.with(5);
+    expect(result).to.deep.equal({ id: 5 });
   });
 
   

@@ -34,6 +34,35 @@ class AuthController {
     const payload = await AuthService.verifyToken(req);
     return new OK({ metadata: payload }).send(res);
   }
+
+  static async forgotPassword(req, res) {
+    const result = await AuthService.forgotPassword(req.body);
+    return new OK({ metadata: result }).send(res);
+  }
+
+  static async getUser(req, res) {
+    const user = await AuthService.getUser(Number(req.params.id));
+    if (!user) {
+      return new ErrorResponse('user not found', 404).send(res);
+    }
+    return new OK({ metadata: user }).send(res);
+  }
+
+  static async updateUser(req, res) {
+    const updated = await AuthService.updateUser(Number(req.params.id), req.body);
+    if (!updated) {
+      return new ErrorResponse('user not found', 404).send(res);
+    }
+    return new OK({ metadata: updated }).send(res);
+  }
+
+  static async deleteUser(req, res) {
+    const deleted = await AuthService.deleteUser(Number(req.params.id));
+    if (!deleted) {
+      return new ErrorResponse('user not found', 404).send(res);
+    }
+    return new OK({ metadata: deleted }).send(res);
+  }
 }
 
 module.exports = AuthController;

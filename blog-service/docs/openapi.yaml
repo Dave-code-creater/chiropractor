@@ -43,3 +43,9 @@ paths:
       responses:
         '200':
           description: OK
+  /tags/{tag}/posts:
+    get:
+      summary: List posts by tag
+      responses:
+        '200':
+          description: OK

@@ -6,8 +6,10 @@ const helmet = require('helmet');
 const compression = require('compression');
 const { loadEnv } = require('./config/index.js');
 const { ErrorResponse } = require('./utils/httpResponses.js');
+const { subscribe } = require('./utils/messageBroker.js');
 
-const app = express(express.json());
+const app = express();
+app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan('dev'));
 app.use(helmet());
@@ -25,6 +27,9 @@ if (process.env.NODE_ENV !== 'test') {
   loadEnv();
   const PORT = process.env.PORT || 3003;
   app.listen(PORT, () => console.log('blog-service listening on ' + PORT));
+  subscribe('appointments.created', (msg) => {
+    console.log('blog-service received appointment event', msg);
+  });
 }
 
 app.use((error, req, res, next) => {

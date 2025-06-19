@@ -4,6 +4,7 @@ const app = require('../src/index.js');
 const { expect } = require('chai');
 const { loadEnv, getDb } = require('../src/config/index');
 const jwt = require('jsonwebtoken');
+const broker = require('../src/utils/messageBroker.js');
 
 before(() => {
   process.env.JWT_SECRET = 'testsecret';
@@ -15,7 +16,10 @@ beforeEach(async () => {
   const db = getDb();
   await db.deleteFrom('api_keys').execute();
   await db.deleteFrom('users').execute();
+  chai.spy.on(broker, 'publish', () => Promise.resolve());
 });
+
+afterEach(() => chai.spy.restore());
 
 describe('AuthService integration tests', () => {
   it('registers a new user', async () => {
@@ -157,4 +161,21 @@ it('logs out and invalidates refresh token', async () => {
 
   expect(res.status).to.equal(401);
   expect(res.body.message).to.match(/invalid refresh token/i);
+});
+
+it('fetches user details by id', async () => {
+  const reg = await request(app).post('/register').send({
+    email: 'details@example.com',
+    password: 'detpass',
+    first_name: 'Det',
+    last_name: 'Ails',
+    role: 'doctor'
+  });
+
+  const token = reg.body.metadata.token;
+  const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+  const res = await request(app).get(`/users/${decoded.sub}`);
+  expect(res.status).to.equal(200);
+  expect(res.body.metadata).to.include({ email: 'details@example.com', role: 'doctor' });
 });

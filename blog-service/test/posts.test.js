@@ -9,6 +9,7 @@ const chai = require('chai');
 const spies = require('chai-spies');
 const jwt = require('jsonwebtoken');
 const PostService = require('../src/services/post.service.js');
+const broker = require('../src/utils/messageBroker.js');
 const app = require('../src/index.js');
 
 chai.use(spies);
@@ -36,6 +37,7 @@ describe('📦 blog-service post endpoints (real JWT + RBAC)', () => {
   // ─── Make sure no spy lingers from prior tests ─────────────────────────────
   beforeEach(() => {
     chai.spy.restore();
+    chai.spy.on(broker, 'publish', () => Promise.resolve());
   });
 
   afterEach(() => {
@@ -120,5 +122,17 @@ describe('📦 blog-service post endpoints (real JWT + RBAC)', () => {
 
     // confirm our service.create was never invoked
     expect(createSpy).to.not.have.been.called();
+  });
+
+  it('✔️ GET /tags/:tag/posts — 200 returns posts by tag', async () => {
+    const fakePosts = [{ _id: 't1', title: 'one' }];
+    chai.spy.on(PostService, 'listByTag', () => Promise.resolve(fakePosts));
+
+    const res = await request(app)
+      .get('/tags/news/posts')
+      .set('authorization', `Bearer ${patientToken}`);
+
+    expect(res.status).to.equal(200);
+    expect(res.body).to.have.property('metadata').that.deep.equals(fakePosts);
   });
 });

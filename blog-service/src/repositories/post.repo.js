@@ -22,6 +22,11 @@ const listPostsByUser = async (userId) => {
   return db.collection('posts').find({ user_id: userId }).toArray();
 };
 
+const listPostsByTag = async (tag) => {
+  const db = getDb();
+  return db.collection('posts').find({ tags: tag }).toArray();
+};
+
 const updatePost = async (id, post) => {
   const db = getDb();
   await db.collection('posts').updateOne({ _id: new ObjectId(id) }, { $set: post });
@@ -38,6 +43,7 @@ module.exports = {
   getPostById,
   listPosts,
   listPostsByUser,
+  listPostsByTag,
   updatePost,
   deletePost,
 };

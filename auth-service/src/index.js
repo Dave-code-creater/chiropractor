@@ -7,6 +7,7 @@ const { ErrorResponse } = require('./utils/httpResponses.js');
 const morgan = require('morgan');
 const helmet = require('helmet');
 const compression = require('compression');
+const { subscribe } = require('./utils/messageBroker.js');
 
 if (process.env.NODE_ENV !== 'test') {
   loadEnv();
@@ -30,6 +31,9 @@ app.use('/', routes);
 if (process.env.NODE_ENV !== 'test') {
   const PORT = process.env.PORT || 3001;
   app.listen(PORT, () => console.log('auth-service listening on ' + PORT));
+  subscribe('appointments.created', (a) => {
+    console.log('auth-service received appointment event', a);
+  });
 }
 
 app.use((error, req, res, next) => {

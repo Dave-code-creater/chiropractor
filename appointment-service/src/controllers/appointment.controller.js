@@ -56,6 +56,31 @@ class AppointmentController {
       return new InternalServerError('error listing appointments').send(res);
     }
   }
+
+  static async delete(req, res) {
+    try {
+      const appt = await AppointmentService.deleteAppointment(
+        Number(req.params.id)
+      );
+      if (!appt) return new NotFoundError('not found').send(res);
+      return new OK({ metadata: appt }).send(res);
+    } catch (err) {
+      console.error(err);
+      return new InternalServerError('error deleting appointment').send(res);
+    }
+  }
+
+  static async listDoctorAppointments(req, res) {
+    try {
+      const appts = await AppointmentService.listAppointmentsByDoctor(
+        Number(req.params.doctorId)
+      );
+      return new OK({ metadata: appts }).send(res);
+    } catch (err) {
+      console.error(err);
+      return new InternalServerError('error listing appointments').send(res);
+    }
+  }
 }
 
 module.exports = AppointmentController;
