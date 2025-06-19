@@ -6,4 +6,5 @@ module.exports = {
   HealthConditionService: require('./health_condition.service.js'),
   RecoveryService: require('./recovery.service.js'),
   WorkImpactService: require('./work_impact.service.js'),
+  ReportGroupService: require('./report_group.service.js'),
 };

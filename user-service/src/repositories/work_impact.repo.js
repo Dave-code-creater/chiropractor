@@ -10,32 +10,35 @@ const createWorkImpact = async (record) => {
   return row;
 };
 
-const getWorkImpactById = async (userId) => {
+const getWorkImpactById = async (userId, reportId) => {
   const db = getDb();
   return db
     .selectFrom('work_impacts')
     .selectAll()
     .where('user_id', '=', userId)
+    .where('report_id', '=', reportId)
     .executeTakeFirst();
 };
 
-const updateWorkImpact = async (userId, record) => {
+const updateWorkImpact = async (userId, reportId, record) => {
   const db = getDb();
   const { updated_at, ...rest } = record;
   const [row] = await db
     .updateTable('work_impacts')
     .set(rest)
     .where('user_id', '=', userId)
+    .where('report_id', '=', reportId)
     .returningAll()
     .execute();
   return row;
 };
 
-const deleteWorkImpact = async (userId) => {
+const deleteWorkImpact = async (userId, reportId) => {
   const db = getDb();
   const [row] = await db
     .deleteFrom('work_impacts')
     .where('user_id', '=', userId)
+    .where('report_id', '=', reportId)
     .returningAll()
     .execute();
   return row;

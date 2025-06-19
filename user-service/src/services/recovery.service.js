@@ -9,12 +9,14 @@ const { BadRequestError, ForbiddenError } = require('../utils/httpResponses.js')
 class RecoveryService {
   static async create(data, req) {
     const userId = req.user.sub;
+    const reportId = parseInt(req.params.id, 10);
     if (!userId) {
       throw new BadRequestError('user-id header required', '4001');
     }
     const record = {
       ...data,
       user_id: userId,
+      report_id: reportId,
       created_at: new Date(),
       updated_at: new Date(),
     };
@@ -27,7 +29,8 @@ class RecoveryService {
 
   static async getById(req) {
     const userId = req.user.sub;
-    const result = await getRecoveryById(userId);
+    const reportId = parseInt(req.params.id, 10);
+    const result = await getRecoveryById(userId, reportId);
     if (!result) {
       throw new ForbiddenError('Recovery data not found', '4032');
     }
@@ -36,7 +39,8 @@ class RecoveryService {
 
   static async update(req, data) {
     const userId = req.user.sub;
-    const result = await updateRecovery(userId, data);
+    const reportId = parseInt(req.params.id, 10);
+    const result = await updateRecovery(userId, reportId, data);
     if (!result) {
       throw new ForbiddenError('Failed to update recovery data', '4033');
     }
@@ -45,7 +49,8 @@ class RecoveryService {
 
   static async delete(req) {
     const userId = req.user.sub;
-    const result = await deleteRecovery(userId);
+    const reportId = parseInt(req.params.id, 10);
+    const result = await deleteRecovery(userId, reportId);
     if (!result) {
       throw new ForbiddenError('Failed to delete recovery data', '4034');
     }

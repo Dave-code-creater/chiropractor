@@ -201,10 +201,22 @@ CREATE TABLE IF NOT EXISTS health_conditions (
 
 
 -- ========================================
--- 9) RECOVERY RESPONSES
+-- 9) REPORT GROUPS
+-- ========================================
+CREATE TABLE IF NOT EXISTS report_groups (
+  id          SERIAL PRIMARY KEY,
+  user_id     INT         NOT NULL,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- ========================================
+-- 10) RECOVERY RESPONSES
 -- ========================================
 CREATE TABLE IF NOT EXISTS recovery_responses (
-  user_id       INT        PRIMARY KEY,
+  id            SERIAL PRIMARY KEY,
+  user_id       INT         NOT NULL,
+  report_id     INT         NOT NULL REFERENCES report_groups(id),
   status        TEXT,
   notes         TEXT,
   created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -212,13 +224,15 @@ CREATE TABLE IF NOT EXISTS recovery_responses (
 );
 
 -- ========================================
--- 10) WORK IMPACT
+-- 11) WORK IMPACT
 -- ========================================
 CREATE TABLE IF NOT EXISTS work_impacts (
-  user_id       INT        PRIMARY KEY,
-  impact_description  TEXT,
-  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  id                 SERIAL PRIMARY KEY,
+  user_id            INT         NOT NULL,
+  report_id          INT         NOT NULL REFERENCES report_groups(id),
+  impact_description TEXT,
+  created_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at         TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 -- ========================================

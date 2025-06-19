@@ -7,6 +7,7 @@ const jwt = require('jsonwebtoken');
 const app = require('../src/index.js');
 const RecoveryService = require('../src/services/recovery.service.js');
 const WorkImpactService = require('../src/services/work_impact.service.js');
+const ReportGroupService = require('../src/services/report_group.service.js');
 const InsuranceService = require('../src/services/insurance.service.js');
 const PainService = require('../src/services/pain.service.js');
 const DetailsService = require('../src/services/details_description.service.js');
@@ -23,12 +24,24 @@ describe('user-service form submissions', () => {
   afterEach(() => chai.spy.restore());
 
 
+  it('creates a report group', async () => {
+    chai.spy.on(jwt, 'verify', () => ({ sub: 1 }));
+    const spy = chai.spy.on(ReportGroupService, 'create', () => Promise.resolve({ id: 1 }));
+    const res = await request(app)
+      .post('/report-groups')
+      .set('authorization', 'Bearer token')
+      .send({});
+    expect(res.status).to.equal(201);
+    expect(spy).to.have.been.called();
+  });
+
+
 
   it('creates empty recovery form', async () => {
     chai.spy.on(jwt, 'verify', () => ({ sub: 1 }));
     const spy = chai.spy.on(RecoveryService, 'create', () => Promise.resolve({ id: 1 }));
     const res = await request(app)
-      .post('/recovery')
+      .post('/report-groups/1/recovery')
       .set('authorization', 'Bearer token')
       .send({});
     expect(res.status).to.equal(201);
@@ -39,7 +52,7 @@ describe('user-service form submissions', () => {
     chai.spy.on(jwt, 'verify', () => ({ sub: 1 }));
     const spy = chai.spy.on(WorkImpactService, 'create', () => Promise.resolve({ id: 1 }));
     const res = await request(app)
-      .post('/work-impact')
+      .post('/report-groups/1/work-impact')
       .set('authorization', 'Bearer token')
       .send({});
     expect(res.status).to.equal(201);
