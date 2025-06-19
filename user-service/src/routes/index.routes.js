@@ -54,13 +54,15 @@ router.put('/details-descriptions', asyncHandler(DetailsDescriptionController.up
 router.delete('/details-descriptions', asyncHandler(DetailsDescriptionController.delete));
 
 router.post('/health-conditions', asyncHandler(HealthConditionController.create));
-router.get('/health-conditions', asyncHandler(HealthConditionController.getByID));
-router.put('/health-conditions', asyncHandler(HealthConditionController.update));
-router.delete('/health-conditions', asyncHandler(HealthConditionController.delete));
+router.get('/health-conditions', asyncHandler(HealthConditionController.list));
+router.get('/health-conditions/:id', asyncHandler(HealthConditionController.getByID));
+router.put('/health-conditions/:id', asyncHandler(HealthConditionController.update));
+router.delete('/health-conditions/:id', asyncHandler(HealthConditionController.delete));
 
 router.post('/patient-intake', asyncHandler(PreliminaryController.create));
-router.get('/patient-intake', asyncHandler(PreliminaryController.getByID));
-router.put('/patient-intake', asyncHandler(PreliminaryController.update));
-router.delete('/patient-intake', asyncHandler(PreliminaryController.delete));
+router.get('/patient-intake', asyncHandler(PreliminaryController.list));
+router.get('/patient-intake/:id', asyncHandler(PreliminaryController.getByID));
+router.put('/patient-intake/:id', asyncHandler(PreliminaryController.update));
+router.delete('/patient-intake/:id', asyncHandler(PreliminaryController.delete));
 
 module.exports = router;

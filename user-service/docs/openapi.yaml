@@ -129,3 +129,57 @@ paths:
       responses:
         '200':
           description: OK
+  /health-conditions:
+    post:
+      summary: Create health condition record
+      responses:
+        '201':
+          description: Created
+    get:
+      summary: List health condition records
+      responses:
+        '200':
+          description: OK
+  /health-conditions/{id}:
+    get:
+      summary: Get health condition record
+      responses:
+        '200':
+          description: OK
+    put:
+      summary: Update health condition record
+      responses:
+        '200':
+          description: OK
+    delete:
+      summary: Delete health condition record
+      responses:
+        '200':
+          description: OK
+  /patient-intake:
+    post:
+      summary: Create patient intake
+      responses:
+        '201':
+          description: Created
+    get:
+      summary: List patient intake records
+      responses:
+        '200':
+          description: OK
+  /patient-intake/{id}:
+    get:
+      summary: Get patient intake
+      responses:
+        '200':
+          description: OK
+    put:
+      summary: Update patient intake
+      responses:
+        '200':
+          description: OK
+    delete:
+      summary: Delete patient intake
+      responses:
+        '200':
+          description: OK

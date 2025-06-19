@@ -65,7 +65,8 @@ $$;
 -- 2) PATIENT INTAKE (REQUIRED fields NOT NULL)
 -- ========================================
 CREATE TABLE IF NOT EXISTS patient_intake_responses (
-  user_id               INT            PRIMARY KEY,
+  id                    SERIAL         PRIMARY KEY,
+  user_id               INT            NOT NULL,
 
   first_name            TEXT           NOT NULL,
   middle_name           TEXT,
@@ -158,7 +159,8 @@ CREATE TABLE IF NOT EXISTS details_descriptions (
 -- 8) EXTENDED HEALTH HISTORY
 -- ========================================
 CREATE TABLE IF NOT EXISTS health_conditions (
-  user_id                       INT        PRIMARY KEY,
+  id                            SERIAL      PRIMARY KEY,
+  user_id                       INT         NOT NULL,
 
   has_past_medical_history      BOOLEAN,
   medical_condition_details     TEXT,

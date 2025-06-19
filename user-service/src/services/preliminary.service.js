@@ -1,5 +1,6 @@
 const {
     createPreliminary,
+    listPreliminariesByUser,
     getPreliminaryById,
     updatePreliminary,
     deletePreliminary,
@@ -26,11 +27,17 @@ class Preliminary {
         return result;
     }
 
+    static async list(req) {
+        const userId = req.user.sub;
+        return listPreliminariesByUser(userId);
+    }
+
     static async getById(req) {
         const userId = req.user.sub;
+        const id = parseInt(req.params.id, 10);
 
-        const result = await getPreliminaryById(userId);
-        if (!result) {
+        const result = await getPreliminaryById(id);
+        if (!result || result.user_id !== userId) {
             throw new ForbiddenError('Preliminary data not found', '4032');
         }
         return result;
@@ -38,8 +45,9 @@ class Preliminary {
 
     static async update(req, data) {
         const userId = req.user.sub;
+        const id = parseInt(req.params.id, 10);
 
-        const result = await updatePreliminary(userId, data);
+        const result = await updatePreliminary(id, userId, data);
         if (!result) {
             throw new ForbiddenError('Failed to update preliminary data', '4033');
         }
@@ -48,7 +56,8 @@ class Preliminary {
 
     static async delete(req) {
         const userId = req.user.sub;
-        const result = await deletePreliminary(userId);
+        const id = parseInt(req.params.id, 10);
+        const result = await deletePreliminary(id, userId);
         if (!result) {
             throw new ForbiddenError('Failed to delete preliminary data', '4034');
         }

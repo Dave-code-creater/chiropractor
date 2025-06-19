@@ -1,5 +1,6 @@
 const {
     createHealthCondition,
+    listHealthConditionsByUser,
     getHealthConditionById,
     updateHealthCondition,
     deleteHealthCondition,
@@ -26,14 +27,25 @@ class HealthConditionService {
         return result;
     }
 
+    static async list(req) {
+        const userId = req.user.sub;
+        return listHealthConditionsByUser(userId);
+    }
+
     static async getById(req) {
         const userId = req.user.sub;
-        return await getHealthConditionById(userId);
+        const id = parseInt(req.params.id, 10);
+        const result = await getHealthConditionById(id);
+        if (!result || result.user_id !== userId) {
+            throw new ForbiddenError('Health condition not found', '4032');
+        }
+        return result;
     }
 
     static async update(req, data) {
         const userId = req.user.sub;
-        const result = await updateHealthCondition(userId, data);
+        const id = parseInt(req.params.id, 10);
+        const result = await updateHealthCondition(id, userId, data);
         if (!result) {
             throw new ForbiddenError('Failed to update health condition', '4032');
         }
@@ -42,7 +54,8 @@ class HealthConditionService {
 
     static async delete(req) {
         const userId = req.user.sub;
-        const result = await deleteHealthCondition(userId);
+        const id = parseInt(req.params.id, 10);
+        const result = await deleteHealthCondition(id, userId);
         if (!result) {
             throw new ForbiddenError('Failed to delete health condition', '4033');
         }
