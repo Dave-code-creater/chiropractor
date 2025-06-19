@@ -133,7 +133,8 @@ CREATE TABLE IF NOT EXISTS insurance_details (
 
 -- ========================================
 CREATE TABLE IF NOT EXISTS pain_descriptions (
-  user_id       INT        PRIMARY KEY,
+  id            SERIAL PRIMARY KEY,
+  user_id       INT NOT NULL,
   pain_chart    JSONB,
   created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()

@@ -1,4 +1,6 @@
-const { createPainDescription,
+const {
+  createPainDescription,
+  listPainDescriptionsByUser,
   getPainDescriptionById,
   updatePainDescription,
   deletePainDescription,
@@ -27,11 +29,16 @@ class PainService {
     return result;
   }
 
+  static async list(req) {
+    const userId = req.user.sub;
+    return listPainDescriptionsByUser(userId);
+  }
+
   static async getById(req) {
     const userId = req.user.sub;
-
-    const result = await getPainDescriptionById(userId);
-    if (!result) {
+    const id = parseInt(req.params.id, 10);
+    const result = await getPainDescriptionById(id);
+    if (!result || result.user_id !== userId) {
       throw new ForbiddenError('Pain description not found', '4032');
     }
     return result;
@@ -39,8 +46,9 @@ class PainService {
 
   static async update(req, data) {
     const userId = req.user.sub;
+    const id = parseInt(req.params.id, 10);
 
-    const result = await updatePainDescription(userId, data);
+    const result = await updatePainDescription(id, userId, data);
     if (!result) {
       throw new ForbiddenError('Failed to update pain description', '4033');
     }
@@ -49,7 +57,8 @@ class PainService {
 
   static async delete(req) {
     const userId = req.user.sub;
-    const result = await deletePainDescription(userId);
+    const id = parseInt(req.params.id, 10);
+    const result = await deletePainDescription(id, userId);
     if (!result) {
       throw new ForbiddenError('Failed to delete pain description', '4034');
     }

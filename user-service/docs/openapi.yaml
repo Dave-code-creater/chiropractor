@@ -90,3 +90,31 @@ paths:
       responses:
         '200':
           description: OK
+
+  /pain-descriptions:
+    post:
+      summary: Create pain description
+      responses:
+        '201':
+          description: Created
+    get:
+      summary: List pain descriptions
+      responses:
+        '200':
+          description: OK
+  /pain-descriptions/{id}:
+    get:
+      summary: Get pain description
+      responses:
+        '200':
+          description: OK
+    put:
+      summary: Update pain description
+      responses:
+        '200':
+          description: OK
+    delete:
+      summary: Delete pain description
+      responses:
+        '200':
+          description: OK
