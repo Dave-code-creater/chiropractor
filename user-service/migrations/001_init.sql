@@ -157,7 +157,7 @@ CREATE TABLE IF NOT EXISTS details_descriptions (
 -- 8) EXTENDED HEALTH HISTORY
 -- ========================================
 CREATE TABLE IF NOT EXISTS health_conditions (
-  user_id                       INT        PRIMARY KEY
+  user_id                       INT        PRIMARY KEY,
 
   has_past_medical_history      BOOLEAN,
   medical_condition_details     TEXT,
