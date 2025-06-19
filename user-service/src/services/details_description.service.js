@@ -8,7 +8,6 @@ const {
     BadRequestError,
     InternalServerError
 } = require('../utils/httpResponses');
-const { v4: uuidv4 } = require('uuid');
 class DetailsDescriptionService {
     static async create(data, req) {
         const userId = req.user.sub;
@@ -18,7 +17,6 @@ class DetailsDescriptionService {
         const description = {
             ...data,
             user_id: userId,
-            id: uuidv4(),
             created_at: new Date(),
             updated_at: new Date()
         };

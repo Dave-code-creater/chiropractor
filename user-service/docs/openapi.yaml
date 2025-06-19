@@ -26,34 +26,18 @@ paths:
       responses:
         '200':
           description: OK
-  /report-groups:
-    post:
-      summary: Create report group
-      responses:
-        '201':
-          description: Created
-  /report-groups/{id}:
-    get:
-      summary: Get report group
-      responses:
-        '200':
-          description: OK
-    put:
-      summary: Update report group
-      responses:
-        '200':
-          description: OK
-    delete:
-      summary: Delete report group
-      responses:
-        '200':
-          description: OK
-  /report-groups/{id}/recovery:
+  /recovery:
     post:
       summary: Create recovery record
       responses:
         '201':
           description: Created
+    get:
+      summary: List recovery records
+      responses:
+        '200':
+          description: OK
+  /recovery/{id}:
     get:
       summary: Get recovery record
       responses:
@@ -69,12 +53,18 @@ paths:
       responses:
         '200':
           description: OK
-  /report-groups/{id}/work-impact:
+  /work-impact:
     post:
       summary: Create work impact record
       responses:
         '201':
           description: Created
+    get:
+      summary: List work impact records
+      responses:
+        '200':
+          description: OK
+  /work-impact/{id}:
     get:
       summary: Get work impact record
       responses:
@@ -87,6 +77,27 @@ paths:
           description: OK
     delete:
       summary: Delete work impact record
+      responses:
+        '200':
+          description: OK
+  /details-descriptions:
+    post:
+      summary: Create details description
+      responses:
+        '201':
+          description: Created
+    get:
+      summary: Get details description
+      responses:
+        '200':
+          description: OK
+    put:
+      summary: Update details description
+      responses:
+        '200':
+          description: OK
+    delete:
+      summary: Delete details description
       responses:
         '200':
           description: OK

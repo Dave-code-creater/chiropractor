@@ -202,22 +202,11 @@ CREATE TABLE IF NOT EXISTS health_conditions (
 
 
 -- ========================================
--- 9) REPORT GROUPS
--- ========================================
-CREATE TABLE IF NOT EXISTS report_groups (
-  id          SERIAL PRIMARY KEY,
-  user_id     INT         NOT NULL,
-  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
--- ========================================
--- 10) RECOVERY RESPONSES
+-- 9) RECOVERY RESPONSES
 -- ========================================
 CREATE TABLE IF NOT EXISTS recovery_responses (
   id            SERIAL PRIMARY KEY,
   user_id       INT         NOT NULL,
-  report_id     INT         NOT NULL REFERENCES report_groups(id),
   status        TEXT,
   notes         TEXT,
   created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -225,19 +214,18 @@ CREATE TABLE IF NOT EXISTS recovery_responses (
 );
 
 -- ========================================
--- 11) WORK IMPACT
+-- 10) WORK IMPACT
 -- ========================================
 CREATE TABLE IF NOT EXISTS work_impacts (
   id                 SERIAL PRIMARY KEY,
   user_id            INT         NOT NULL,
-  report_id          INT         NOT NULL REFERENCES report_groups(id),
   impact_description TEXT,
   created_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at         TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 -- ========================================
--- 9) MIGRATION TRACKER
+-- 11) MIGRATION TRACKER
 -- ========================================
 CREATE TABLE IF NOT EXISTS pgmigrations (
   id     SERIAL       PRIMARY KEY,

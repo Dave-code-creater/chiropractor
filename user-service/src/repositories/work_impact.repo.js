@@ -10,35 +10,44 @@ const createWorkImpact = async (record) => {
   return row;
 };
 
-const getWorkImpactById = async (userId, reportId) => {
+const listWorkImpacts = async (userId) => {
   const db = getDb();
   return db
     .selectFrom('work_impacts')
     .selectAll()
     .where('user_id', '=', userId)
-    .where('report_id', '=', reportId)
+    .execute();
+};
+
+const getWorkImpactById = async (userId, id) => {
+  const db = getDb();
+  return db
+    .selectFrom('work_impacts')
+    .selectAll()
+    .where('user_id', '=', userId)
+    .where('id', '=', id)
     .executeTakeFirst();
 };
 
-const updateWorkImpact = async (userId, reportId, record) => {
+const updateWorkImpact = async (userId, id, record) => {
   const db = getDb();
   const { updated_at, ...rest } = record;
   const [row] = await db
     .updateTable('work_impacts')
     .set(rest)
     .where('user_id', '=', userId)
-    .where('report_id', '=', reportId)
+    .where('id', '=', id)
     .returningAll()
     .execute();
   return row;
 };
 
-const deleteWorkImpact = async (userId, reportId) => {
+const deleteWorkImpact = async (userId, id) => {
   const db = getDb();
   const [row] = await db
     .deleteFrom('work_impacts')
     .where('user_id', '=', userId)
-    .where('report_id', '=', reportId)
+    .where('id', '=', id)
     .returningAll()
     .execute();
   return row;
@@ -46,6 +55,7 @@ const deleteWorkImpact = async (userId, reportId) => {
 
 module.exports = {
   createWorkImpact,
+  listWorkImpacts,
   getWorkImpactById,
   updateWorkImpact,
   deleteWorkImpact,

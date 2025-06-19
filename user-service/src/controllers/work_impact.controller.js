@@ -17,6 +17,11 @@ class WorkImpactController {
     return new OK({ metadata: result }).send(res);
   }
 
+  static async list(req, res) {
+    const result = await WorkImpactService.list(req);
+    return new OK({ metadata: result }).send(res);
+  }
+
   static async delete(req, res) {
     const result = await WorkImpactService.delete(req);
     return new OK({ metadata: result }).send(res);

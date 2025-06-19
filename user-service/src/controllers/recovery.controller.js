@@ -17,6 +17,11 @@ class RecoveryController {
     return new OK({ metadata: result }).send(res);
   }
 
+  static async list(req, res) {
+    const result = await RecoveryService.list(req);
+    return new OK({ metadata: result }).send(res);
+  }
+
   static async delete(req, res) {
     const result = await RecoveryService.delete(req);
     return new OK({ metadata: result }).send(res);
