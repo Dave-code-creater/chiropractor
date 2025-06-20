@@ -5,12 +5,13 @@ chai.use(spies);
 const { expect } = chai;
 const jwt = require('jsonwebtoken');
 const app = require('../src/index.js');
-const emergencyRepo = require('../src/repositories/emergency.repo.js');
-const insuranceRepo = require('../src/repositories/insurance.repo.js');
-const painRepo = require('../src/repositories/pain.repo.js');
-const detailsRepo = require('../src/repositories/details_description.repo.js');
-const healthRepo = require('../src/repositories/health_condition.repo.js');
-const prelimRepo = require('../src/repositories/preliminary.repo.js');
+const RecoveryService = require('../src/services/recovery.service.js');
+const WorkImpactService = require('../src/services/work_impact.service.js');
+const InsuranceService = require('../src/services/insurance.service.js');
+const PainService = require('../src/services/pain.service.js');
+const DetailsService = require('../src/services/details_description.service.js');
+const HealthConditionService = require('../src/services/health_condition.service.js');
+const PreliminaryService = require('../src/services/preliminary.service.js');
 const { loadEnv } = require('../src/config/index.js');
 
 before(() => {
@@ -22,11 +23,25 @@ describe('user-service form submissions', () => {
   afterEach(() => chai.spy.restore());
 
 
-  it('creates empty emergency contact form', async () => {
+
+
+
+  it('creates empty recovery form', async () => {
     chai.spy.on(jwt, 'verify', () => ({ sub: 1 }));
-    const spy = chai.spy.on(emergencyRepo, 'createEmergencyContact', () => Promise.resolve({ id: 1 }));
+    const spy = chai.spy.on(RecoveryService, 'create', () => Promise.resolve({ id: 1 }));
     const res = await request(app)
-      .post('/emergency-contacts')
+      .post('/recovery')
+      .set('authorization', 'Bearer token')
+      .send({});
+    expect(res.status).to.equal(201);
+    expect(spy).to.have.been.called();
+  });
+
+  it('creates empty work impact form', async () => {
+    chai.spy.on(jwt, 'verify', () => ({ sub: 1 }));
+    const spy = chai.spy.on(WorkImpactService, 'create', () => Promise.resolve({ id: 1 }));
+    const res = await request(app)
+      .post('/work-impact')
       .set('authorization', 'Bearer token')
       .send({});
     expect(res.status).to.equal(201);
@@ -35,7 +50,7 @@ describe('user-service form submissions', () => {
 
   it('creates empty insurance detail form', async () => {
     chai.spy.on(jwt, 'verify', () => ({ sub: 1 }));
-    const spy = chai.spy.on(insuranceRepo, 'createInsuranceDetail', () => Promise.resolve({ id: 1 }));
+    const spy = chai.spy.on(InsuranceService, 'create', () => Promise.resolve({ id: 1 }));
     const res = await request(app)
       .post('/insurance-details')
       .set('authorization', 'Bearer token')
@@ -46,7 +61,7 @@ describe('user-service form submissions', () => {
 
   it('creates empty pain description form', async () => {
     chai.spy.on(jwt, 'verify', () => ({ sub: 1 }));
-    const spy = chai.spy.on(painRepo, 'createPainDescription', () => Promise.resolve({ id: 1 }));
+    const spy = chai.spy.on(PainService, 'create', () => Promise.resolve({ id: 1 }));
     const res = await request(app)
       .post('/pain-descriptions')
       .set('authorization', 'Bearer token')
@@ -57,7 +72,7 @@ describe('user-service form submissions', () => {
 
   it('creates empty details description form', async () => {
     chai.spy.on(jwt, 'verify', () => ({ sub: 1 }));
-    const spy = chai.spy.on(detailsRepo, 'createDetailsDescription', () => Promise.resolve({ id: 1 }));
+    const spy = chai.spy.on(DetailsService, 'create', () => Promise.resolve({ id: 1 }));
     const res = await request(app)
       .post('/details-descriptions')
       .set('authorization', 'Bearer token')
@@ -66,9 +81,50 @@ describe('user-service form submissions', () => {
     expect(spy).to.have.been.called();
   });
 
+  it('lists details descriptions', async () => {
+    chai.spy.on(jwt, 'verify', () => ({ sub: 1 }));
+    const spy = chai.spy.on(DetailsService, 'list', () => Promise.resolve([]));
+    const res = await request(app)
+      .get('/details-descriptions')
+      .set('authorization', 'Bearer token');
+    expect(res.status).to.equal(200);
+    expect(spy).to.have.been.called();
+  });
+
+  it('gets details description', async () => {
+    chai.spy.on(jwt, 'verify', () => ({ sub: 1 }));
+    const spy = chai.spy.on(DetailsService, 'getById', () => Promise.resolve({ id: 1 }));
+    const res = await request(app)
+      .get('/details-descriptions/1')
+      .set('authorization', 'Bearer token');
+    expect(res.status).to.equal(200);
+    expect(spy).to.have.been.called();
+  });
+
+  it('updates details description', async () => {
+    chai.spy.on(jwt, 'verify', () => ({ sub: 1 }));
+    const spy = chai.spy.on(DetailsService, 'update', () => Promise.resolve({ id: 1 }));
+    const res = await request(app)
+      .put('/details-descriptions/1')
+      .set('authorization', 'Bearer token')
+      .send({});
+    expect(res.status).to.equal(200);
+    expect(spy).to.have.been.called();
+  });
+
+  it('deletes details description', async () => {
+    chai.spy.on(jwt, 'verify', () => ({ sub: 1 }));
+    const spy = chai.spy.on(DetailsService, 'delete', () => Promise.resolve({ id: 1 }));
+    const res = await request(app)
+      .delete('/details-descriptions/1')
+      .set('authorization', 'Bearer token');
+    expect(res.status).to.equal(200);
+    expect(spy).to.have.been.called();
+  });
+
   it('creates empty health condition form', async () => {
     chai.spy.on(jwt, 'verify', () => ({ sub: 1 }));
-    const spy = chai.spy.on(healthRepo, 'createHealthCondition', () => Promise.resolve({ id: 1 }));
+    const spy = chai.spy.on(HealthConditionService, 'create', () => Promise.resolve({ id: 1 }));
     const res = await request(app)
       .post('/health-conditions')
       .set('authorization', 'Bearer token')
@@ -79,23 +135,23 @@ describe('user-service form submissions', () => {
 
   it('creates preliminary form with required fields', async () => {
     chai.spy.on(jwt, 'verify', () => ({ sub: 1 }));
-    const spy = chai.spy.on(prelimRepo, 'createPreliminary', () => Promise.resolve({ id: 1 }));
+    const spy = chai.spy.on(PreliminaryService, 'create', () => Promise.resolve({ id: 1 }));
     const intake = {
       first_name: 'Alice',
       last_name: 'Smith',
       middle_name: 'Marie',
-      day_of_birth: '15',
-      month_of_birth: 'June',
-      year_of_birth: '1990',
+      dob: '2005/01/11',
       gender: 'Female',
-      street_address: '123 Maple Street',
+      street: '123 Maple Street',
       city: 'Springfield',
       state: 'IL',
-      zip_code: '62704',
-      country: 'United States',
+      zip: '62704',
       emergency_contact_name: 'Bob Smith',
       emergency_contact_phone: '+13175551234',
       emergency_contact_relationship: 'Sibling',
+      marriage_status: 'Single',
+      race: 'Asian',
+      home_phone: '13175551234'
     };
     const res = await request(app)
       .post('/patient-intake')

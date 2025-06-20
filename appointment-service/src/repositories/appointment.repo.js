@@ -44,10 +44,31 @@ const listAppointmentsByPatient = async (patientId) => {
     .execute();
 };
 
+const listAppointmentsByDoctor = async (doctorId) => {
+  const db = getDb();
+  return db
+    .selectFrom('appointments')
+    .selectAll()
+    .where('doctor_id', '=', doctorId)
+    .execute();
+};
+
+const deleteAppointment = async (id) => {
+  const db = getDb();
+  const [row] = await db
+    .deleteFrom('appointments')
+    .where('id', '=', id)
+    .returningAll()
+    .execute();
+  return row;
+};
+
 module.exports = {
   createAppointment,
   getAppointmentById,
   updateAppointment,
   listAppointments,
   listAppointmentsByPatient,
+  listAppointmentsByDoctor,
+  deleteAppointment,
 };

@@ -10,30 +10,42 @@ const createPainDescription = async (desc) => {
   return row;
 };
 
-const getPainDescriptionById = async (userId) => {
+const listPainDescriptionsByUser = async (userId) => {
   const db = getDb();
   return db
     .selectFrom('pain_descriptions')
     .selectAll()
     .where('user_id', '=', userId)
+    .execute();
+};
+
+const getPainDescriptionById = async (id) => {
+  const db = getDb();
+  return db
+    .selectFrom('pain_descriptions')
+    .selectAll()
+    .where('id', '=', id)
     .executeTakeFirst();
 };
-const updatePainDescription = async (userId, desc) => {
+
+const updatePainDescription = async (id, userId, desc) => {
   const db = getDb();
   const { updated_at, ...rest } = desc;
   const [row] = await db
     .updateTable('pain_descriptions')
     .set(rest)
+    .where('id', '=', id)
     .where('user_id', '=', userId)
     .returningAll()
     .execute();
   return row;
 };
 
-const deletePainDescription = async (userId) => {
+const deletePainDescription = async (id, userId) => {
   const db = getDb();
   const [row] = await db
     .deleteFrom('pain_descriptions')
+    .where('id', '=', id)
     .where('user_id', '=', userId)
     .returningAll()
     .execute();
@@ -43,6 +55,7 @@ const deletePainDescription = async (userId) => {
 
 module.exports = {
   createPainDescription,
+  listPainDescriptionsByUser,
   getPainDescriptionById,
   updatePainDescription,
   deletePainDescription,

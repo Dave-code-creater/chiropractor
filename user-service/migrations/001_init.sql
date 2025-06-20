@@ -65,18 +65,15 @@ $$;
 -- 2) PATIENT INTAKE (REQUIRED fields NOT NULL)
 -- ========================================
 CREATE TABLE IF NOT EXISTS patient_intake_responses (
-  user_id               INT            PRIMARY KEY,
+  id                    SERIAL         PRIMARY KEY,
+  user_id               INT            NOT NULL,
 
   first_name            TEXT           NOT NULL,
   middle_name           TEXT,
   last_name             TEXT           NOT NULL,
   ssn                   VARCHAR(11),
 
-  day_of_birth          INT            NOT NULL
-                                 CHECK (day_of_birth BETWEEN 1 AND 31),
-  month_of_birth        month_name     NOT NULL,
-  year_of_birth         CHAR(4)        NOT NULL
-                                 CHECK (year_of_birth ~ '^[0-9]{4}$'),
+  dob                   DATE           NOT NULL,
   age                   INT,
 
   gender                gender         NOT NULL,
@@ -133,7 +130,8 @@ CREATE TABLE IF NOT EXISTS insurance_details (
 
 -- ========================================
 CREATE TABLE IF NOT EXISTS pain_descriptions (
-  user_id       INT        PRIMARY KEY,
+  id            SERIAL PRIMARY KEY,
+  user_id       INT NOT NULL,
   pain_chart    JSONB,
   created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -144,7 +142,8 @@ CREATE TABLE IF NOT EXISTS pain_descriptions (
 -- 6) DETAILED SYMPTOM DESCRIPTION
 -- ========================================
 CREATE TABLE IF NOT EXISTS details_descriptions (
-  user_id               INT        PRIMARY KEY,
+  id                    SERIAL      PRIMARY KEY,
+  user_id               INT         NOT NULL,
   symptom_details       TEXT,
   main_complaints       TEXT,
   previous_healthcare   TEXT,
@@ -157,7 +156,8 @@ CREATE TABLE IF NOT EXISTS details_descriptions (
 -- 8) EXTENDED HEALTH HISTORY
 -- ========================================
 CREATE TABLE IF NOT EXISTS health_conditions (
-  user_id                       INT        PRIMARY KEY
+  id                            SERIAL      PRIMARY KEY,
+  user_id                       INT         NOT NULL,
 
   has_past_medical_history      BOOLEAN,
   medical_condition_details     TEXT,
@@ -201,7 +201,30 @@ CREATE TABLE IF NOT EXISTS health_conditions (
 
 
 -- ========================================
--- 9) MIGRATION TRACKER
+-- 9) RECOVERY RESPONSES
+-- ========================================
+CREATE TABLE IF NOT EXISTS recovery_responses (
+  id            SERIAL PRIMARY KEY,
+  user_id       INT         NOT NULL,
+  status        TEXT,
+  notes         TEXT,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- ========================================
+-- 10) WORK IMPACT
+-- ========================================
+CREATE TABLE IF NOT EXISTS work_impacts (
+  id                 SERIAL PRIMARY KEY,
+  user_id            INT         NOT NULL,
+  impact_description TEXT,
+  created_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at         TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- ========================================
+-- 11) MIGRATION TRACKER
 -- ========================================
 CREATE TABLE IF NOT EXISTS pgmigrations (
   id     SERIAL       PRIMARY KEY,

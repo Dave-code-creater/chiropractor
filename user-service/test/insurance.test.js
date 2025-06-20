@@ -2,13 +2,14 @@
 require('dotenv').config();
 const request = require('supertest');
 const { expect } = require('chai');
-const { loadEnv, getDb } = require('../src/config/index');
+const config = require('../src/config/index.js');
+const { loadEnv } = config;
 const repo = require('../src/repositories/insurance.repo.js');
 const service = require('../src/services/insurance.service.js');
 const app = require('../src/index.js');
 const jwt = require('jsonwebtoken');
 
-let _origVerify, _origCreate, _origGetById, _origUpdate;
+let _origVerify, _origCreate, _origGetById, _origUpdate, _origGetDb;
 
 before(() => {
   process.env.JWT_SECRET = 'testsecret';
@@ -17,34 +18,33 @@ before(() => {
 
   // save originals
   _origVerify = jwt.verify;
-  _origCreate = repo.createInsuranceDetail;
-  _origGetById = repo.getInsuranceDetailById;
-  _origUpdate = service.updateInsuranceDetail;
+  _origCreate = service.create;
+  _origGetById = service.getByID;
+  _origUpdate = service.update;
+  _origGetDb = config.getDb;
 });
 
-beforeEach(async () => {
-  // wipe all tables
-  const db = getDb();
-  await Promise.all([
-    'treatment_goals', 'pain_descriptions', 'home_exercises', 'history_accident',
-    'pain_chart', 'complaint_locations', 'chief_complaint', 'insurance_details',
-    'preliminary_info', 'emergency_contacts', 'profiles'
-  ].map(tbl => db.deleteFrom(tbl).execute()));
+beforeEach(() => {
+  // stub DB deletion since no database is available
+  config.getDb = () => ({
+    deleteFrom: () => ({ execute: () => Promise.resolve() })
+  });
 });
 
 afterEach(() => {
   // restore originals
   jwt.verify = _origVerify;
-  repo.createInsuranceDetail = _origCreate;
-  repo.getInsuranceDetailById = _origGetById;
-  service.updateInsuranceDetail = _origUpdate;
+  service.create = _origCreate;
+  service.getByID = _origGetById;
+  service.update = _origUpdate;
+  config.getDb = _origGetDb;
 });
 
 describe('user-service insurance details', () => {
   it('creates insurance detail', async () => {
     // stub
     jwt.verify = () => ({ sub: 1 });
-    repo.createInsuranceDetail = () => Promise.resolve({ id: 1 });
+    service.create = () => Promise.resolve({ id: 1 });
 
     const res = await request(app)
       .post('/insurance-details')
@@ -56,7 +56,7 @@ describe('user-service insurance details', () => {
 
   it('gets insurance detail', async () => {
     jwt.verify = () => ({ sub: 1 });
-    repo.getInsuranceDetailById = () => Promise.resolve({ id: 1 });
+    service.getByID = () => Promise.resolve({ id: 1 });
 
     const res = await request(app)
       .get('/insurance-details/1')
@@ -67,7 +67,7 @@ describe('user-service insurance details', () => {
 
   it('updates insurance detail', async () => {
     jwt.verify = () => ({ sub: 1, role: 'doctor' });
-    service.updateInsuranceDetail = () => Promise.resolve({ id: 1 });
+    service.update = () => Promise.resolve({ id: 1 });
 
     const res = await request(app)
       .put('/insurance-details/1')
