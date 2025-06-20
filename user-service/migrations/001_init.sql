@@ -73,11 +73,7 @@ CREATE TABLE IF NOT EXISTS patient_intake_responses (
   last_name             TEXT           NOT NULL,
   ssn                   VARCHAR(11),
 
-  day_of_birth          INT            NOT NULL
-                                 CHECK (day_of_birth BETWEEN 1 AND 31),
-  month_of_birth        month_name     NOT NULL,
-  year_of_birth         CHAR(4)        NOT NULL
-                                 CHECK (year_of_birth ~ '^[0-9]{4}$'),
+  dob                   DATE           NOT NULL,
   age                   INT,
 
   gender                gender         NOT NULL,

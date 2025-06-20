@@ -165,6 +165,26 @@ paths:
   /patient-intake:
     post:
       summary: Create patient intake
+      description: |
+        Accepts a JSON payload with patient demographics and emergency
+        contact information. Example:
+        {
+          "first_name": "Alice",
+          "last_name": "Smith",
+          "middle_name": "Marie",
+          "dob": "2005/01/11",
+          "gender": "Female",
+          "street": "123 Maple Street",
+          "city": "Springfield",
+          "state": "IL",
+          "zip": "62704",
+          "emergency_contact_name": "Bob Smith",
+          "emergency_contact_phone": "+13175551234",
+          "emergency_contact_relationship": "Sibling",
+          "marriage_status": "Single",
+          "race": "Asian",
+          "home_phone": "13175551234"
+        }
       responses:
         '201':
           description: Created
@@ -181,6 +201,7 @@ paths:
           description: OK
     put:
       summary: Update patient intake
+      description: Submit the same fields as the create endpoint to modify an existing record.
       responses:
         '200':
           description: OK

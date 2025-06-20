@@ -140,18 +140,18 @@ describe('user-service form submissions', () => {
       first_name: 'Alice',
       last_name: 'Smith',
       middle_name: 'Marie',
-      day_of_birth: '15',
-      month_of_birth: 'June',
-      year_of_birth: '1990',
+      dob: '2005/01/11',
       gender: 'Female',
-      street_address: '123 Maple Street',
+      street: '123 Maple Street',
       city: 'Springfield',
       state: 'IL',
-      zip_code: '62704',
-      country: 'United States',
+      zip: '62704',
       emergency_contact_name: 'Bob Smith',
       emergency_contact_phone: '+13175551234',
       emergency_contact_relationship: 'Sibling',
+      marriage_status: 'Single',
+      race: 'Asian',
+      home_phone: '13175551234'
     };
     const res = await request(app)
       .post('/patient-intake')
