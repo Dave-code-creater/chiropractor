@@ -34,6 +34,17 @@ CREATE TABLE IF NOT EXISTS api_keys (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS password_resets (
+  id SERIAL PRIMARY KEY,
+  user_id INT REFERENCES users(id) ON DELETE CASCADE,
+  token VARCHAR(255) UNIQUE NOT NULL,
+  expires_at TIMESTAMPTZ NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_password_resets_token ON password_resets(token);
+CREATE INDEX IF NOT EXISTS idx_password_resets_expires_at ON password_resets(expires_at);
+
 CREATE TABLE IF NOT EXISTS pgmigrations (
   id SERIAL PRIMARY KEY,
   name VARCHAR(255) NOT NULL,

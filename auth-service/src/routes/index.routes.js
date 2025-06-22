@@ -1,6 +1,7 @@
 const { Router } = require('express');
 const HealthController = require('../controllers/health.controller.js');
 const AuthController = require('../controllers/auth.controller.js');
+const PasswordResetController = require('../controllers/password-reset.controller.js');
 const asyncHandler = require('../helper/asyncHandler.js');
 const router = Router();
 
@@ -95,5 +96,64 @@ router.post('/logout', asyncHandler(AuthController.logout));
  *         description: OK
  */
 router.post('/verify', asyncHandler(AuthController.verify));
+
+/**
+ * @swagger
+ * /forgot-password:
+ *   post:
+ *     summary: Request password reset
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: OK
+ */
+router.post('/forgot-password', asyncHandler(PasswordResetController.requestPasswordReset));
+
+/**
+ * @swagger
+ * /verify-reset-token:
+ *   get:
+ *     summary: Verify password reset token
+ *     parameters:
+ *       - in: query
+ *         name: token
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: OK
+ */
+router.get('/verify-reset-token', asyncHandler(PasswordResetController.verifyResetToken));
+
+/**
+ * @swagger
+ * /reset-password:
+ *   post:
+ *     summary: Reset password with token
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               token:
+ *                 type: string
+ *               newPassword:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: OK
+ */
+router.post('/reset-password', asyncHandler(PasswordResetController.resetPassword));
 
 module.exports = router;
