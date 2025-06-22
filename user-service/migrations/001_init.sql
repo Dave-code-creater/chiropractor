@@ -226,6 +226,35 @@ CREATE TABLE IF NOT EXISTS work_impacts (
 -- ========================================
 -- 11) MIGRATION TRACKER
 -- ========================================
+-- ========================================
+-- PATIENTS TABLE (Main patient management)
+-- ========================================
+CREATE TABLE IF NOT EXISTS patients (
+  id                    TEXT           PRIMARY KEY,
+  first_name            TEXT           NOT NULL,
+  last_name             TEXT           NOT NULL,
+  email                 TEXT           UNIQUE,
+  phone                 TEXT,
+  date_of_birth         DATE,
+  age                   INT,
+  gender                gender,
+  address               JSONB,
+  emergency_contact     JSONB,
+  insurance             JSONB,
+  medical_info          JSONB,
+  assigned_doctor_id    TEXT,
+  status                TEXT           DEFAULT 'active',
+  total_visits          INT            DEFAULT 0,
+  created_at            TIMESTAMPTZ    DEFAULT NOW(),
+  updated_at            TIMESTAMPTZ    DEFAULT NOW()
+);
+
+-- Create index for better search performance
+CREATE INDEX IF NOT EXISTS idx_patients_name ON patients(first_name, last_name);
+CREATE INDEX IF NOT EXISTS idx_patients_email ON patients(email);
+CREATE INDEX IF NOT EXISTS idx_patients_status ON patients(status);
+CREATE INDEX IF NOT EXISTS idx_patients_created_at ON patients(created_at);
+
 CREATE TABLE IF NOT EXISTS pgmigrations (
   id     SERIAL       PRIMARY KEY,
   name   VARCHAR(255) NOT NULL,

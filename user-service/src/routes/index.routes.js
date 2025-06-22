@@ -1,13 +1,14 @@
 const { Router } = require('express');
 const HealthController = require('../controllers/health.controller.js');
-const InsuranceDetailController = require('../controllers/insurance.controller.js');
-const PainController = require('../controllers/pain.controller.js');
-const DetailsDescriptionController = require('../controllers/details_description.controller.js');
-const HealthConditionController = require('../controllers/health_condition.controller.js');
-const PreliminaryController = require('../controllers/preliminary.controller.js');
-const RecoveryController = require('../controllers/recovery.controller.js');
-const WorkImpactController = require('../controllers/work_impact.controller.js');
+const PatientController = require('../controllers/patient.controller.js');
+const DashboardController = require('../controllers/dashboard.controller.js');
+const TemplateController = require('../controllers/template.controller.js');
+const ReportController = require('../controllers/report.controller.js');
+const NotesController = require('../controllers/notes.controller.js');
+const VitalsController = require('../controllers/vitals.controller.js');
 const jwtMiddleware = require('../middlewares/jwt.middleware.js');
+const { validateRequest } = require('../validators/vitals.validator.js');
+const { createVitalsSchema, notesSchema } = require('../validators/vitals.validator.js');
 const asyncHandler = require('../helper/asyncHandler.js');
 const router = Router();
 
@@ -23,47 +24,112 @@ const router = Router();
 router.get('/', HealthController.healthCheck);
 router.use(jwtMiddleware);
 
+// ========================================
+// TEMPLATE-BASED FORMS API v1
+// ========================================
 
+// Template Management Endpoints
+router.get('/v1/templates', asyncHandler(TemplateController.getTemplates));
+router.get('/v1/templates/:templateId', asyncHandler(TemplateController.getTemplateById));
 
-router.post('/recovery', asyncHandler(RecoveryController.create));
-router.get('/recovery', asyncHandler(RecoveryController.list));
-router.get('/recovery/:id', asyncHandler(RecoveryController.getByID));
-router.put('/recovery/:id', asyncHandler(RecoveryController.update));
-router.delete('/recovery/:id', asyncHandler(RecoveryController.delete));
+// Report Management Endpoints
+router.post('/v1/reports', asyncHandler(ReportController.createReport));
+router.get('/v1/reports', asyncHandler(ReportController.getReports));
+router.get('/v1/reports/:reportId', asyncHandler(ReportController.getReportById));
+router.put('/v1/reports/:reportId', asyncHandler(ReportController.updateReport));
+router.delete('/v1/reports/:reportId', asyncHandler(ReportController.deleteReport));
 
-router.post('/work-impact', asyncHandler(WorkImpactController.create));
-router.get('/work-impact', asyncHandler(WorkImpactController.list));
-router.get('/work-impact/:id', asyncHandler(WorkImpactController.getByID));
-router.put('/work-impact/:id', asyncHandler(WorkImpactController.update));
-router.delete('/work-impact/:id', asyncHandler(WorkImpactController.delete));
+// Form Section Endpoints
+router.post('/v1/reports/:reportId/patient-intake', asyncHandler(ReportController.submitPatientIntake));
+router.put('/v1/reports/:reportId/patient-intake/:intakeId', asyncHandler(ReportController.updatePatientIntake));
+router.get('/v1/reports/:reportId/patient-intake', asyncHandler(ReportController.getPatientIntake));
 
-router.post('/insurance-details', asyncHandler(InsuranceDetailController.create));
-router.get('/insurance-details/:id', asyncHandler(InsuranceDetailController.getByID));
-router.put('/insurance-details/:id', asyncHandler(InsuranceDetailController.update));
-router.delete('/insurance-details/:id', asyncHandler(InsuranceDetailController.delete));
+router.post('/v1/reports/:reportId/insurance-details', asyncHandler(ReportController.submitInsuranceDetails));
+router.post('/v1/reports/:reportId/pain-evaluation', asyncHandler(ReportController.submitPainEvaluation));
+router.post('/v1/reports/:reportId/detailed-description', asyncHandler(ReportController.submitDetailedDescription));
+router.post('/v1/reports/:reportId/work-impact', asyncHandler(ReportController.submitWorkImpact));
+router.post('/v1/reports/:reportId/health-conditions', asyncHandler(ReportController.submitHealthConditions));
 
-router.post('/pain-descriptions', asyncHandler(PainController.create));
-router.get('/pain-descriptions', asyncHandler(PainController.list));
-router.get('/pain-descriptions/:id', asyncHandler(PainController.getById));
-router.put('/pain-descriptions/:id', asyncHandler(PainController.update));
-router.delete('/pain-descriptions/:id', asyncHandler(PainController.delete));
+// ========================================
+// LEGACY ENDPOINTS REMOVED
+// All form functionality now handled by the template-based system above
+// ========================================
 
-router.post('/details-descriptions', asyncHandler(DetailsDescriptionController.create));
-router.get('/details-descriptions', asyncHandler(DetailsDescriptionController.list));
-router.get('/details-descriptions/:id', asyncHandler(DetailsDescriptionController.getById));
-router.put('/details-descriptions/:id', asyncHandler(DetailsDescriptionController.update));
-router.delete('/details-descriptions/:id', asyncHandler(DetailsDescriptionController.delete));
+// Patient Management Routes
+router.get('/patients', asyncHandler(PatientController.getAllPatients));
+router.get('/patients/stats', asyncHandler(PatientController.getPatientStats));
+router.get('/patients/:id', asyncHandler(PatientController.getPatientById));
+router.post('/patients', asyncHandler(PatientController.createPatient));
+router.put('/patients/:id', asyncHandler(PatientController.updatePatient));
+router.get('/patients/:id/medical-history', asyncHandler(PatientController.getPatientMedicalHistory));
 
-router.post('/health-conditions', asyncHandler(HealthConditionController.create));
-router.get('/health-conditions', asyncHandler(HealthConditionController.list));
-router.get('/health-conditions/:id', asyncHandler(HealthConditionController.getByID));
-router.put('/health-conditions/:id', asyncHandler(HealthConditionController.update));
-router.delete('/health-conditions/:id', asyncHandler(HealthConditionController.delete));
+// Initial Report (combines all user report sections)
+router.get('/initial-report', asyncHandler(PatientController.getInitialReport));
 
-router.post('/patient-intake', asyncHandler(PreliminaryController.create));
-router.get('/patient-intake', asyncHandler(PreliminaryController.list));
-router.get('/patient-intake/:id', asyncHandler(PreliminaryController.getByID));
-router.put('/patient-intake/:id', asyncHandler(PreliminaryController.update));
-router.delete('/patient-intake/:id', asyncHandler(PreliminaryController.delete));
+// Dashboard Analytics Routes
+router.get('/dashboard/stats', asyncHandler(DashboardController.getDashboardStats));
+router.get('/appointments/stats', asyncHandler(DashboardController.getAppointmentStats));
+router.get('/reports/appointments', asyncHandler(DashboardController.getAppointmentReports));
+router.get('/reports/patients', asyncHandler(DashboardController.getPatientReports));
+
+// =============================================================================
+// v1/api/2025 ROUTES (NEW CONSISTENT VERSIONING)
+// =============================================================================
+
+// Clinical Notes Management
+router.post('/v1/api/2025/notes', validateRequest(notesSchema), asyncHandler(NotesController.createNote));
+router.get('/v1/api/2025/notes', asyncHandler(NotesController.getNotes));
+router.get('/v1/api/2025/notes/:noteId', asyncHandler(NotesController.getNoteById));
+router.put('/v1/api/2025/notes/:noteId', asyncHandler(NotesController.updateNote));
+router.delete('/v1/api/2025/notes/:noteId', asyncHandler(NotesController.deleteNote));
+
+// Patient-specific notes
+router.get('/v1/api/2025/patients/:patientId/notes', asyncHandler(NotesController.getNotesByPatient));
+
+// Vitals Management
+router.get('/v1/api/2025/patients/:patientId/vitals', asyncHandler(VitalsController.getPatientVitals));
+router.post('/v1/api/2025/patients/:patientId/vitals', validateRequest(createVitalsSchema), asyncHandler(VitalsController.recordVitals));
+router.get('/v1/api/2025/patients/:patientId/vitals/summary', asyncHandler(VitalsController.getVitalsSummary));
+router.get('/v1/api/2025/patients/:patientId/vitals/trends', asyncHandler(VitalsController.getVitalsTrends));
+
+// Individual vitals records
+router.get('/v1/api/2025/vitals/:vitalId', asyncHandler(VitalsController.getVitalById));
+router.put('/v1/api/2025/vitals/:vitalId', asyncHandler(VitalsController.updateVital));
+router.delete('/v1/api/2025/vitals/:vitalId', asyncHandler(VitalsController.deleteVital));
+
+// Enhanced Patient Management (v1/api/2025)
+router.get('/v1/api/2025/patients', asyncHandler(PatientController.getAllPatients));
+router.get('/v1/api/2025/patients/stats', asyncHandler(PatientController.getPatientStats));
+router.get('/v1/api/2025/patients/:id', asyncHandler(PatientController.getPatientById));
+router.post('/v1/api/2025/patients', asyncHandler(PatientController.createPatient));
+router.put('/v1/api/2025/patients/:id', asyncHandler(PatientController.updatePatient));
+router.get('/v1/api/2025/patients/:id/medical-history', asyncHandler(PatientController.getPatientMedicalHistory));
+
+// Enhanced Template System (v1/api/2025)
+router.get('/v1/api/2025/templates', asyncHandler(TemplateController.getTemplates));
+router.get('/v1/api/2025/templates/:templateId', asyncHandler(TemplateController.getTemplateById));
+
+// Enhanced Report Management (v1/api/2025)
+router.post('/v1/api/2025/reports', asyncHandler(ReportController.createReport));
+router.get('/v1/api/2025/reports', asyncHandler(ReportController.getReports));
+router.get('/v1/api/2025/reports/:reportId', asyncHandler(ReportController.getReportById));
+router.put('/v1/api/2025/reports/:reportId', asyncHandler(ReportController.updateReport));
+router.delete('/v1/api/2025/reports/:reportId', asyncHandler(ReportController.deleteReport));
+
+// Enhanced Form Submissions (v1/api/2025)
+router.post('/v1/api/2025/reports/:reportId/patient-intake', asyncHandler(ReportController.submitPatientIntake));
+router.put('/v1/api/2025/reports/:reportId/patient-intake/:intakeId', asyncHandler(ReportController.updatePatientIntake));
+router.get('/v1/api/2025/reports/:reportId/patient-intake', asyncHandler(ReportController.getPatientIntake));
+router.post('/v1/api/2025/reports/:reportId/insurance-details', asyncHandler(ReportController.submitInsuranceDetails));
+router.post('/v1/api/2025/reports/:reportId/pain-evaluation', asyncHandler(ReportController.submitPainEvaluation));
+router.post('/v1/api/2025/reports/:reportId/detailed-description', asyncHandler(ReportController.submitDetailedDescription));
+router.post('/v1/api/2025/reports/:reportId/work-impact', asyncHandler(ReportController.submitWorkImpact));
+router.post('/v1/api/2025/reports/:reportId/health-conditions', asyncHandler(ReportController.submitHealthConditions));
+
+// Enhanced Dashboard (v1/api/2025)
+router.get('/v1/api/2025/dashboard/stats', asyncHandler(DashboardController.getDashboardStats));
+router.get('/v1/api/2025/dashboard/appointments/stats', asyncHandler(DashboardController.getAppointmentStats));
+router.get('/v1/api/2025/dashboard/reports/appointments', asyncHandler(DashboardController.getAppointmentReports));
+router.get('/v1/api/2025/dashboard/reports/patients', asyncHandler(DashboardController.getPatientReports));
 
 module.exports = router;
