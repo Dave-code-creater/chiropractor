@@ -30,7 +30,7 @@ function setupServiceProxy(path, target, authRequired = true) {
       if (req.body && Object.keys(req.body).length) {
         const bodyData = JSON.stringify(req.body);
 
-        // remove old Content-Length so we don’t hang
+        // remove old Content-Length so we don't hang
         proxyReq.removeHeader('Content-Length');
 
         proxyReq.setHeader('Content-Type', 'application/json');
@@ -59,13 +59,20 @@ function setupServiceProxy(path, target, authRequired = true) {
   return stack;
 }
 
-// … your router.use(…) calls remain the same …
+// Service proxy routes
 router.use('/v1/api/2025/auth', ...setupServiceProxy('/v1/api/2025/auth', 'http://auth-service:3001', false));
 router.use('/v1/api/2025/users', ...setupServiceProxy('/v1/api/2025/users', 'http://user-service:3002'));
+router.use('/v1/api/2025/reports', ...setupServiceProxy('/v1/api/2025/reports', 'http://user-service:3002'));
 router.use('/v1/api/2025/blog', ...setupServiceProxy('/v1/api/2025/blog', 'http://blog-service:3003'));
 router.use('/v1/api/2025/chat', ...setupServiceProxy('/v1/api/2025/chat', 'http://chat-service:3004'));
 router.use('/v1/api/2025/appointments', ...setupServiceProxy('/v1/api/2025/appointments', 'http://appointment-service:3005'));
+router.use('/v1/api/2025/doctors', ...setupServiceProxy('/v1/api/2025/doctors', 'http://appointment-service:3005'));
+
+// Health check routes
 router.get('/', HealthController.healthCheck);
+router.get('/health', HealthController.healthCheck);
+router.get('/health/detailed', HealthController.detailedHealthCheck);
+
 router.use((req, res) => res.status(404).json({ error: 'Not found' }));
 
 module.exports = router;

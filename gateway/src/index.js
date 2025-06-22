@@ -23,10 +23,15 @@ app.use(cors({
 }));
 
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
+  windowMs: 15 * 60 * 1000,  // 15 minutes
+  max: 1000,                 // Increased from 100 to 1000 requests per window
   standardHeaders: true,
   legacyHeaders: false,
+  message: {
+    success: false,
+    message: 'Too many requests, please try again later',
+    retryAfter: '15 minutes'
+  }
 });
 app.use(limiter);
 

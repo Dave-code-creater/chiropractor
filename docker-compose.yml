@@ -110,6 +110,8 @@ services:
 
   blog-service:
     build: ./blog-service
+    depends_on:
+      - blog-db
     ports:
       - '3003:3003'
     environment:
@@ -119,7 +121,7 @@ services:
       JWT_EXPIRES_IN: 1h
       PRO_MONGODB_HOST: blog-db
       PRO_MONGODB_PORT: 27017
-      PRO_MONGODB_NAME: blog-db
+      PRO_MONGODB_NAME: blog_db
   
   blog-db:
     image: mongo:latest
@@ -132,6 +134,8 @@ services:
   
   chat-service:
     build: ./chat-service
+    depends_on:
+      - chat-db
     ports:
       - '3004:3004'
     environment:
@@ -139,9 +143,9 @@ services:
       PORT: 3004
       JWT_SECRET: supersecretkey
       JWT_EXPIRES_IN: 1h
-      PRO_MONGODB_HOST: blog-db
-      PRO_MONGODB_PORT: 27018
-      PRO_MONGODB_NAME: blog-db
+      PRO_MONGODB_HOST: chat-db
+      PRO_MONGODB_PORT: 27017
+      PRO_MONGODB_NAME: chat_db
     
   chat-db:
     image: mongo:latest

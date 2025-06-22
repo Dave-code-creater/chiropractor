@@ -1,6 +1,6 @@
 const { Router } = require('express');
 const AppointmentController = require('../controllers/appointment.controller.js');
-const jwtMiddleware = require('../middlewares/jwt.middleware.js');
+const { jwtMiddleware } = require('../middlewares/jwt.middleware.js');
 const { rbac } = require('../middlewares/rbac.middleware.js');
 
 const router = Router();

@@ -4,7 +4,8 @@ const createUser = async (user) => {
   const db = getDb();
   const [row] = await db
     .insertInto('users')
-    .values(user).returning(['id'])
+    .values(user)
+    .returningAll()
     .execute();
   return row;
 };
@@ -46,5 +47,15 @@ const findUserByRole = async (role) => {
     .execute();
 };
 
+const updateUser = async (id, updateData) => {
+  const db = getDb();
+  const [user] = await db
+    .updateTable('users')
+    .set(updateData)
+    .where('id', '=', id)
+    .returningAll()
+    .execute();
+  return user;
+};
 
-module.exports = { createUser, findUserByEmail, findUserByUsername, findUserById, findUserByRole };
+module.exports = { createUser, findUserByEmail, findUserByUsername, findUserById, findUserByRole, updateUser };
