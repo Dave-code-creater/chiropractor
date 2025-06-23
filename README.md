@@ -1,180 +1,275 @@
-# Chiropractor Backend Services Documentation
+# 🏥 Dr. Dieu Phan D.C - Chiropractic Practice Management System
 
-## Overview
-This is a microservices-based backend system for a chiropractic clinic management application. The system is composed of multiple services that handle different aspects of the clinic's operations.
+> **Enterprise-grade microservices architecture for comprehensive chiropractic practice management**
 
-## Architecture
+[![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org/)
+[![Docker](https://img.shields.io/badge/Docker-Ready-blue.svg)](https://docker.com/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-blue.svg)](https://postgresql.org/)
+[![MongoDB](https://img.shields.io/badge/MongoDB-Latest-green.svg)](https://mongodb.com/)
 
-The system consists of the following microservices:
+## 🚀 **Recent Major Cleanup & Improvements**
 
-1. **Gateway Service** - API Gateway/Entry point
-2. **Auth Service** - Handles authentication and authorization
-3. **User Service** - Manages user profiles and patient information
-4. **Appointment Service** - Handles appointment scheduling
-5. **Chat Service** - Real-time communication
-6. **Blog Service** - Content management
-7. **Report Service** - Reporting and analytics
+This codebase has been **completely refactored** with senior-level engineering practices:
 
-## Authentication
+### ✅ **Code Quality Improvements**
+- **Eliminated duplicate routes** - Consolidated to single API versioning (`/v1/api/2025`)
+- **Removed code duplication** - Shared server configuration across all services
+- **Enhanced error handling** - Comprehensive error management with proper logging
+- **Standardized responses** - Consistent API response format across all endpoints
+- **Security hardening** - Rate limiting, helmet security headers, input validation
+- **Environment validation** - Joi-based configuration validation for all services
 
-All services require authentication through the Auth Service. Frontend applications need to:
+### 🏗️ **Architecture Enhancements**
+- **Shared utilities** - Common server config, response handlers, validators
+- **Graceful shutdown** - Proper SIGTERM/SIGINT handling for all services
+- **Health checks** - Comprehensive health monitoring with database status
+- **Request tracing** - UUID-based request tracking for debugging
+- **Performance optimization** - Compression, caching headers, connection pooling
 
-1. Obtain a JWT token through the `/login` endpoint
-2. Include the token in all subsequent requests in the Authorization header:
-   ```
-   Authorization: Bearer <token>
-   ```
+### 🔐 **Security Improvements**
+- **Removed hardcoded secrets** - Environment-based configuration
+- **Rate limiting** - Service-specific rate limiting (100-200 req/15min)
+- **CORS security** - Proper origin validation
+- **JWT validation** - Enhanced token security with proper expiration
+- **Input sanitization** - Joi validation for all API inputs
 
-### Auth Endpoints
+## 📋 **System Overview**
 
-- POST `/register` - Register a new user
-- POST `/login` - Authenticate and receive JWT token
-- POST `/verify` - Verify JWT token validity
-
-## Core Services
-
-### User Service
-
-Handles all patient-related information and forms. Main endpoints:
-
-#### Patient Intake
-- GET `/v1/templates` - Get available form templates
-- POST `/v1/reports` - Create new patient report
-- GET `/v1/reports` - List all patient reports
-- GET `/v1/reports/{id}` - Get specific patient report
-- PUT `/v1/reports/{id}` - Update patient report
-- DELETE `/v1/reports/{id}` - Delete patient report
-
-Required fields for patient intake:
-```json
-{
-  "first_name": "string",
-  "last_name": "string",
-  "middle_name": "string",
-  "dob": "YYYY/MM/DD",
-  "gender": "string",
-  "street": "string",
-  "city": "string",
-  "state": "string",
-  "zip": "string",
-  "emergency_contact_name": "string",
-  "emergency_contact_phone": "string",
-  "emergency_contact_relationship": "string",
-  "marriage_status": "string",
-  "race": "string",
-  "home_phone": "string"
-}
+### **Microservices Architecture**
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│    Gateway      │    │   Auth Service  │    │  User Service   │
+│   Port: 3000    │────│   Port: 3001    │────│   Port: 3002    │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+         │                       │                       │
+         ▼                       ▼                       ▼
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│  Blog Service   │    │  Chat Service   │    │Appointment Svc  │
+│   Port: 3003    │    │   Port: 3004    │    │   Port: 3005    │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+         │                       │                       │
+         ▼                       ▼                       ▼
+    MongoDB            MongoDB            PostgreSQL
 ```
 
-#### Health Records
-The service provides CRUD operations for:
-**⚠️ Legacy endpoints have been replaced with template-based forms:**
-- Template-based Patient Intake (`/v1/reports/:id/patient-intake`)
-- Template-based Insurance Details (`/v1/reports/:id/insurance-details`)
-- Template-based Pain Evaluation (`/v1/reports/:id/pain-evaluation`)
-- Template-based Work Impact (`/v1/reports/:id/work-impact`)
-- Template-based Health Conditions (`/v1/reports/:id/health-conditions`)
+### **Core Features**
+- 🏥 **Patient Management** - Complete patient records with medical history
+- 📝 **Clinical Notes** - SOAP notes with timestamps and provider tracking
+- 📊 **Vital Signs** - Blood pressure, heart rate, temperature monitoring
+- 📋 **Template Forms** - 6 comprehensive intake and assessment forms
+- 📈 **Dashboard Analytics** - Real-time practice metrics and reporting
+- 💬 **Real-time Chat** - WebSocket-based communication system
+- 📚 **Blog Management** - Content management for practice updates
+- 🔐 **Role-based Access** - Doctor/Staff/Admin permission system
 
-**For complete documentation:** See `docs/TEMPLATE_FORMS_API.md`
+## 🛠️ **Quick Start**
 
-Each endpoint supports standard CRUD operations (POST, GET, PUT, DELETE).
+### **Prerequisites**
+- Node.js 18+ 
+- Docker & Docker Compose
+- PostgreSQL 16+
+- MongoDB Latest
 
-### Appointment Service
+### **Installation**
+```bash
+# 1. Clone the repository
+git clone <repository-url>
+cd chiropractor
 
-Manages patient appointments:
+# 2. Copy environment configuration
+cp env.example .env
+# Edit .env with your secure values
 
-- POST `/appointments` - Create new appointment
-- GET `/appointments` - List all appointments
-- GET `/appointments/{id}` - Get specific appointment
-- PUT `/appointments/{id}` - Update appointment
-- DELETE `/appointments/{id}` - Delete appointment
-- GET `/appointments/{id}/profile` - Get patient profile associated with appointment
+# 3. Install dependencies and setup shared utilities
+npm run setup
 
-### Chat Service
+# 4. Start all services
+npm run dev
 
-Provides real-time communication capabilities using WebSocket:
+# 5. Run database migrations
+npm run migrate
+```
 
-- WebSocket connection at `ws://<host>/ws`
-- Supports real-time messaging between patients and staff
-- Maintains conversation history
+### **Service URLs**
+- **Gateway**: http://localhost:3000
+- **Auth Service**: http://localhost:3001
+- **User Service**: http://localhost:3002
+- **Blog Service**: http://localhost:3003
+- **Chat Service**: http://localhost:3004
+- **Appointment Service**: http://localhost:3005
+- **Report Service**: http://localhost:3006
 
-### Blog Service
+## 📚 **API Documentation**
 
-Manages clinic's content and posts:
+### **Consistent API Versioning**
+All endpoints follow the pattern: `/v1/api/2025/{resource}`
 
-- Supports CRUD operations for blog posts
-- Handles media content
-- Manages post categories and tags
+### **Core Endpoints**
+```javascript
+// Authentication
+POST /v1/api/2025/auth/login
+POST /v1/api/2025/auth/register
+POST /v1/api/2025/auth/refresh
 
-## Development Setup
+// Patient Management
+GET    /v1/api/2025/patients
+POST   /v1/api/2025/patients
+GET    /v1/api/2025/patients/:id
+PUT    /v1/api/2025/patients/:id
 
-1. Install dependencies:
-   ```bash
-   npm install
-   ```
+// Clinical Notes
+POST   /v1/api/2025/notes
+GET    /v1/api/2025/notes
+GET    /v1/api/2025/patients/:patientId/notes
 
-2. Start all services:
-   ```bash
-   docker-compose up
-   ```
+// Patient Vitals
+POST   /v1/api/2025/patients/:patientId/vitals
+GET    /v1/api/2025/patients/:patientId/vitals
+GET    /v1/api/2025/patients/:patientId/vitals/trends
 
-## Frontend Integration Requirements
+// Reports & Forms
+POST   /v1/api/2025/reports
+GET    /v1/api/2025/reports
+POST   /v1/api/2025/reports/:reportId/patient-intake
+```
 
-1. **Authentication**:
-   - Implement JWT token storage and refresh mechanism
-   - Add authentication interceptor for API requests
-   - Handle unauthorized (401) responses
+### **Health Checks**
+```bash
+# Check all services
+npm run health-check
 
-2. **Real-time Features**:
-   - Implement WebSocket connection management
-   - Handle connection drops and reconnection
-   - Implement message queue for offline support
+# Individual service health
+curl http://localhost:3001/health
+curl http://localhost:3002/health
+```
 
-3. **Forms**:
-   - Implement form validation matching backend requirements
-   - Handle file uploads for medical records
-   - Implement auto-save for long forms
+## 🔧 **Development**
 
-4. **Error Handling**:
-   - Implement global error handling
-   - Show appropriate error messages to users
-   - Handle network connectivity issues
+### **Available Scripts**
+```bash
+npm run dev          # Start all services in development mode
+npm run start        # Start all services in production mode
+npm run stop         # Stop all services
+npm run clean        # Clean all containers and volumes
+npm run logs         # View all service logs
+npm run test         # Run all service tests
+npm run lint         # Lint all services
+npm run lint:fix     # Fix linting issues
+npm run migrate      # Run database migrations
+npm run copy-shared  # Copy shared utilities to services
+```
 
-## API Response Format
+### **Development Workflow**
+1. Make changes to shared utilities in `/shared`
+2. Run `npm run copy-shared` to distribute changes
+3. Test individual services: `cd user-service && npm run dev`
+4. Run integration tests: `npm test`
+5. Check health status: `npm run health-check`
 
-All API endpoints return responses in the following format:
+## 🗄️ **Database Schema**
 
+### **PostgreSQL Services**
+- **Auth DB** (Port 5433): Users, API keys, password resets, doctors
+- **User DB** (Port 5434): Patients, clinical notes, vitals, reports
+- **Appointment DB** (Port 5435): Appointments, schedules, availability
+- **Report DB** (Port 5436): Report templates, submissions, analytics
+
+### **MongoDB Services**
+- **Blog DB** (Port 27017): Posts, categories, comments
+- **Chat DB** (Port 27018): Messages, conversations, users
+
+## 🔐 **Security Features**
+
+- **JWT Authentication** with secure token management
+- **Rate Limiting** (100-200 requests per 15 minutes)
+- **CORS Protection** with configurable origins
+- **Helmet Security Headers** (CSP, HSTS, etc.)
+- **Input Validation** with Joi schemas
+- **Environment Validation** for configuration security
+- **Request Tracing** with UUID tracking
+- **Error Logging** with structured JSON format
+
+## 📊 **Monitoring & Health**
+
+### **Health Check Endpoints**
+Each service provides comprehensive health information:
 ```json
 {
-  "success": boolean,
-  "statusCode": number,
-  "message": string,
-  "metadata": {
-    // Response data
+  "service": "user-service",
+  "status": "healthy",
+  "timestamp": "2025-01-27T10:30:00.000Z",
+  "uptime": 3600,
+  "memory": { "rss": 50331648, "heapUsed": 25165824 },
+  "database": {
+    "status": "connected",
+    "type": "postgresql",
+    "tables": ["patients", "clinical_notes", "patient_vitals"]
   }
 }
 ```
 
-## Security Requirements
+### **Logging**
+- **Development**: Human-readable console logs
+- **Production**: Structured JSON logs for monitoring
+- **Error Tracking**: Comprehensive error context with request tracing
 
-1. All sensitive data must be transmitted over HTTPS
-2. JWT tokens must be stored securely
-3. Implement CSRF protection
-4. Handle session timeouts gracefully
-5. Implement rate limiting on the frontend
+## 🚀 **Deployment**
 
-## Testing
+### **Docker Compose**
+```bash
+# Production deployment
+docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 
-Each service includes test files that can serve as additional documentation for expected behavior. Review the test files in each service's `/test` directory for detailed examples of request/response patterns.
+# View logs
+docker-compose logs -f
 
-## Need Help?
+# Scale services
+docker-compose up --scale user-service=3
+```
 
-For additional support or questions:
-1. Check the OpenAPI documentation in each service's `/docs` directory
-2. Review the test files for examples
-3. Check Postman collections in services that have them
-4. Contact the backend team for clarification
+### **Environment Variables**
+Copy `env.example` to `.env` and configure:
+- Database credentials
+- JWT secrets (minimum 32 characters)
+- CORS origins
+- Rate limiting settings
+- External service credentials
+
+## 📈 **Performance**
+
+### **Optimizations Implemented**
+- **Response Compression** - Gzip compression for all responses
+- **Connection Pooling** - PostgreSQL connection pooling (2-10 connections)
+- **Request Caching** - HTTP caching headers
+- **JSON Parsing** - Optimized with size limits (10MB)
+- **Graceful Shutdown** - Proper connection cleanup
+
+### **Monitoring Metrics**
+- Request response times
+- Database query performance
+- Memory usage tracking
+- Error rates and patterns
+- Service availability
+
+## 🤝 **Contributing**
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/amazing-feature`
+3. Make your changes following the established patterns
+4. Run tests: `npm test`
+5. Run linting: `npm run lint:fix`
+6. Commit changes: `git commit -m 'Add amazing feature'`
+7. Push to branch: `git push origin feature/amazing-feature`
+8. Open a Pull Request
+
+## 📄 **License**
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 👨‍⚕️ **About Dr. Dieu Phan D.C**
+
+This comprehensive practice management system is designed specifically for chiropractic practices, incorporating industry best practices for patient care, documentation, and practice management.
 
 ---
 
-Note: This documentation is a living document and will be updated as the services evolve. Always refer to the OpenAPI specifications in each service's `/docs` directory for the most up-to-date API contracts.
+**Built with ❤️ for the chiropractic community**

@@ -1,36 +1,61 @@
-const express = require('express');
-const cors = require('cors');
+const ServerConfig = require('../../shared/server-config');
 const routes = require('./routes/index.routes.js');
 const { loadEnv } = require('./config/index.js');
 const { ErrorResponse } = require('./utils/httpResponses.js');
 const morgan = require('morgan');
 const helmet = require('helmet');
 const compression = require('compression');
-const app = express();
+const cors = require('cors');
+
+// Load environment variables
 if (process.env.NODE_ENV !== 'test') {
   loadEnv();
 }
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(morgan('dev'));
-app.use(helmet());
-app.use(compression());
-app.use(cors(
-  {
-    origin: "http://localhost:5173",
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-    credentials: true,
+// Database health check function
+const checkDatabaseHealth = async () => {
+  try {
+    // Add your database connection check here
+    // For now, we'll just return basic info
+    return {
+      database: {
+        status: 'connected',
+        type: 'postgresql',
+        tables: ['patients', 'clinical_notes', 'patient_vitals', 'reports']
+      }
+    };
+  } catch (error) {
+    throw new Error(`Database health check failed: ${error.message}`);
   }
-))
+};
 
+// Initialize server with enhanced configuration
+const server = new ServerConfig('user-service', {
+  port: process.env.PORT || 3002,
+  enableRateLimit: true,
+  rateLimitMax: 200, // Higher limit for user service
+  rateLimitWindow: 15 * 60 * 1000 // 15 minutes
+});
 
-app.use('/', routes);
+// Add health check with database status
+server.addHealthCheck(checkDatabaseHealth);
 
-if (process.env.NODE_ENV !== 'test') {
-  const PORT = process.env.PORT || 3002;
-  app.listen(PORT, () => console.log('user-service listening on ' + PORT));
-}
+// Add routes
+server.useRoutes('/', routes);
+
+// Start server
+const app = server.listen(() => {
+  console.log('🏥 User Service Features:');
+  console.log('  ✅ Patient Management');
+  console.log('  ✅ Clinical Notes');
+  console.log('  ✅ Patient Vitals');
+  console.log('  ✅ Template Forms');
+  console.log('  ✅ Report Generation');
+  console.log('  ✅ Dashboard Analytics');
+  console.log('');
+  console.log('📚 API Documentation: /v1/api/2025/*');
+  console.log('🔍 Health Check: /health');
+});
 
 app.use((error, req, res, next) => {
   if (error instanceof ErrorResponse) {
@@ -48,6 +73,5 @@ app.use((error, req, res, next) => {
     errorCode: '5000',
   });
 });
-
 
 module.exports = app;

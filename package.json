@@ -1,17 +1,53 @@
 {
   "name": "chiropractor",
   "version": "1.0.0",
-  "description": "Chiropractor Platform",
+  "description": "Dr. Dieu Phan D.C - Chiropractic Practice Management System",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "migrate": "npm --prefix auth-service run migrate && npm --prefix user-service run migrate && npm --prefix report-service run migrate && npm --prefix appointment-service run migrate"
+    "start": "docker-compose up",
+    "dev": "docker-compose up --build",
+    "stop": "docker-compose down",
+    "clean": "docker-compose down -v --remove-orphans",
+    "logs": "docker-compose logs -f",
+    "test": "npm run test:services",
+    "test:services": "npm --prefix auth-service run test && npm --prefix user-service run test && npm --prefix appointment-service run test && npm --prefix report-service run test",
+    "migrate": "npm --prefix auth-service run migrate && npm --prefix user-service run migrate && npm --prefix report-service run migrate && npm --prefix appointment-service run migrate",
+    "copy-shared": "chmod +x copy-shared.sh && ./copy-shared.sh",
+    "setup": "npm run copy-shared && npm run install:services",
+    "install:services": "npm --prefix auth-service install && npm --prefix user-service install && npm --prefix appointment-service install && npm --prefix report-service install && npm --prefix blog-service install && npm --prefix chat-service install && npm --prefix gateway install",
+    "lint": "npm run lint:services",
+    "lint:services": "npm --prefix auth-service run lint && npm --prefix user-service run lint && npm --prefix appointment-service run lint && npm --prefix report-service run lint",
+    "lint:fix": "npm run lint:fix:services",
+    "lint:fix:services": "npm --prefix auth-service run lint:fix && npm --prefix user-service run lint:fix && npm --prefix appointment-service run lint:fix && npm --prefix report-service run lint:fix",
+    "health-check": "curl -f http://localhost:3000/health && curl -f http://localhost:3001/health && curl -f http://localhost:3002/health"
   },
   "dependencies": {
     "axios": "^1.6.7",
+    "express-rate-limit": "^7.1.5",
+    "joi": "^17.13.3",
     "opossum": "^8.5.0"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC"
+  "devDependencies": {
+    "eslint": "^8.55.0",
+    "nodemon": "^3.0.2"
+  },
+  "keywords": [
+    "chiropractic",
+    "practice-management",
+    "healthcare",
+    "microservices",
+    "nodejs",
+    "postgresql",
+    "mongodb"
+  ],
+  "author": "Dr. Dieu Phan D.C",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/your-username/chiropractor.git"
+  }
 }

@@ -9,8 +9,12 @@ const VitalsController = require('../controllers/vitals.controller.js');
 const jwtMiddleware = require('../middlewares/jwt.middleware.js');
 const { validateRequest } = require('../validators/vitals.validator.js');
 const { createVitalsSchema, notesSchema } = require('../validators/vitals.validator.js');
-const asyncHandler = require('../helper/asyncHandler.js');
+const { asyncHandler, responseHandler } = require('../../../shared/utils/httpResponses.js');
+
 const router = Router();
+
+// Add response handler middleware
+router.use(responseHandler);
 
 /**
  * @swagger
@@ -22,59 +26,21 @@ const router = Router();
  *         description: OK
  */
 router.get('/', HealthController.healthCheck);
+
+// Apply JWT middleware to all routes except health check
 router.use(jwtMiddleware);
 
-// ========================================
-// TEMPLATE-BASED FORMS API v1
-// ========================================
-
-// Template Management Endpoints
-router.get('/v1/templates', asyncHandler(TemplateController.getTemplates));
-router.get('/v1/templates/:templateId', asyncHandler(TemplateController.getTemplateById));
-
-// Report Management Endpoints
-router.post('/v1/reports', asyncHandler(ReportController.createReport));
-router.get('/v1/reports', asyncHandler(ReportController.getReports));
-router.get('/v1/reports/:reportId', asyncHandler(ReportController.getReportById));
-router.put('/v1/reports/:reportId', asyncHandler(ReportController.updateReport));
-router.delete('/v1/reports/:reportId', asyncHandler(ReportController.deleteReport));
-
-// Form Section Endpoints
-router.post('/v1/reports/:reportId/patient-intake', asyncHandler(ReportController.submitPatientIntake));
-router.put('/v1/reports/:reportId/patient-intake/:intakeId', asyncHandler(ReportController.updatePatientIntake));
-router.get('/v1/reports/:reportId/patient-intake', asyncHandler(ReportController.getPatientIntake));
-
-router.post('/v1/reports/:reportId/insurance-details', asyncHandler(ReportController.submitInsuranceDetails));
-router.post('/v1/reports/:reportId/pain-evaluation', asyncHandler(ReportController.submitPainEvaluation));
-router.post('/v1/reports/:reportId/detailed-description', asyncHandler(ReportController.submitDetailedDescription));
-router.post('/v1/reports/:reportId/work-impact', asyncHandler(ReportController.submitWorkImpact));
-router.post('/v1/reports/:reportId/health-conditions', asyncHandler(ReportController.submitHealthConditions));
-
-// ========================================
-// LEGACY ENDPOINTS REMOVED
-// All form functionality now handled by the template-based system above
-// ========================================
-
-// Patient Management Routes
-router.get('/patients', asyncHandler(PatientController.getAllPatients));
-router.get('/patients/stats', asyncHandler(PatientController.getPatientStats));
-router.get('/patients/:id', asyncHandler(PatientController.getPatientById));
-router.post('/patients', asyncHandler(PatientController.createPatient));
-router.put('/patients/:id', asyncHandler(PatientController.updatePatient));
-router.get('/patients/:id/medical-history', asyncHandler(PatientController.getPatientMedicalHistory));
-
-// Initial Report (combines all user report sections)
-router.get('/initial-report', asyncHandler(PatientController.getInitialReport));
-
-// Dashboard Analytics Routes
-router.get('/dashboard/stats', asyncHandler(DashboardController.getDashboardStats));
-router.get('/appointments/stats', asyncHandler(DashboardController.getAppointmentStats));
-router.get('/reports/appointments', asyncHandler(DashboardController.getAppointmentReports));
-router.get('/reports/patients', asyncHandler(DashboardController.getPatientReports));
-
 // =============================================================================
-// v1/api/2025 ROUTES (NEW CONSISTENT VERSIONING)
+// API v1/api/2025 ROUTES (CONSISTENT VERSIONING)
 // =============================================================================
+
+// Enhanced Patient Management
+router.get('/v1/api/2025/patients', asyncHandler(PatientController.getAllPatients));
+router.get('/v1/api/2025/patients/stats', asyncHandler(PatientController.getPatientStats));
+router.get('/v1/api/2025/patients/:id', asyncHandler(PatientController.getPatientById));
+router.post('/v1/api/2025/patients', asyncHandler(PatientController.createPatient));
+router.put('/v1/api/2025/patients/:id', asyncHandler(PatientController.updatePatient));
+router.get('/v1/api/2025/patients/:id/medical-history', asyncHandler(PatientController.getPatientMedicalHistory));
 
 // Clinical Notes Management
 router.post('/v1/api/2025/notes', validateRequest(notesSchema), asyncHandler(NotesController.createNote));
@@ -97,26 +63,18 @@ router.get('/v1/api/2025/vitals/:vitalId', asyncHandler(VitalsController.getVita
 router.put('/v1/api/2025/vitals/:vitalId', asyncHandler(VitalsController.updateVital));
 router.delete('/v1/api/2025/vitals/:vitalId', asyncHandler(VitalsController.deleteVital));
 
-// Enhanced Patient Management (v1/api/2025)
-router.get('/v1/api/2025/patients', asyncHandler(PatientController.getAllPatients));
-router.get('/v1/api/2025/patients/stats', asyncHandler(PatientController.getPatientStats));
-router.get('/v1/api/2025/patients/:id', asyncHandler(PatientController.getPatientById));
-router.post('/v1/api/2025/patients', asyncHandler(PatientController.createPatient));
-router.put('/v1/api/2025/patients/:id', asyncHandler(PatientController.updatePatient));
-router.get('/v1/api/2025/patients/:id/medical-history', asyncHandler(PatientController.getPatientMedicalHistory));
-
-// Enhanced Template System (v1/api/2025)
+// Template System
 router.get('/v1/api/2025/templates', asyncHandler(TemplateController.getTemplates));
 router.get('/v1/api/2025/templates/:templateId', asyncHandler(TemplateController.getTemplateById));
 
-// Enhanced Report Management (v1/api/2025)
+// Report Management
 router.post('/v1/api/2025/reports', asyncHandler(ReportController.createReport));
 router.get('/v1/api/2025/reports', asyncHandler(ReportController.getReports));
 router.get('/v1/api/2025/reports/:reportId', asyncHandler(ReportController.getReportById));
 router.put('/v1/api/2025/reports/:reportId', asyncHandler(ReportController.updateReport));
 router.delete('/v1/api/2025/reports/:reportId', asyncHandler(ReportController.deleteReport));
 
-// Enhanced Form Submissions (v1/api/2025)
+// Form Submissions
 router.post('/v1/api/2025/reports/:reportId/patient-intake', asyncHandler(ReportController.submitPatientIntake));
 router.put('/v1/api/2025/reports/:reportId/patient-intake/:intakeId', asyncHandler(ReportController.updatePatientIntake));
 router.get('/v1/api/2025/reports/:reportId/patient-intake', asyncHandler(ReportController.getPatientIntake));
@@ -126,10 +84,64 @@ router.post('/v1/api/2025/reports/:reportId/detailed-description', asyncHandler(
 router.post('/v1/api/2025/reports/:reportId/work-impact', asyncHandler(ReportController.submitWorkImpact));
 router.post('/v1/api/2025/reports/:reportId/health-conditions', asyncHandler(ReportController.submitHealthConditions));
 
-// Enhanced Dashboard (v1/api/2025)
+// Dashboard Analytics
 router.get('/v1/api/2025/dashboard/stats', asyncHandler(DashboardController.getDashboardStats));
 router.get('/v1/api/2025/dashboard/appointments/stats', asyncHandler(DashboardController.getAppointmentStats));
 router.get('/v1/api/2025/dashboard/reports/appointments', asyncHandler(DashboardController.getAppointmentReports));
 router.get('/v1/api/2025/dashboard/reports/patients', asyncHandler(DashboardController.getPatientReports));
+
+// =============================================================================
+// LEGACY ROUTES (DEPRECATED - Redirect to new API)
+// These routes are maintained for backward compatibility but will be removed in future versions
+// =============================================================================
+
+// Legacy patient routes - redirect to new API
+router.get('/patients', (req, res) => {
+  res.status(301).json({
+    success: false,
+    message: 'This endpoint has been moved. Please use /v1/api/2025/patients',
+    newEndpoint: '/v1/api/2025/patients',
+    deprecated: true
+  });
+});
+
+router.get('/patients/stats', (req, res) => {
+  res.status(301).json({
+    success: false,
+    message: 'This endpoint has been moved. Please use /v1/api/2025/patients/stats',
+    newEndpoint: '/v1/api/2025/patients/stats',
+    deprecated: true
+  });
+});
+
+// Legacy template routes - redirect to new API
+router.get('/v1/templates', (req, res) => {
+  res.status(301).json({
+    success: false,
+    message: 'This endpoint has been moved. Please use /v1/api/2025/templates',
+    newEndpoint: '/v1/api/2025/templates',
+    deprecated: true
+  });
+});
+
+// Legacy report routes - redirect to new API
+router.get('/v1/reports', (req, res) => {
+  res.status(301).json({
+    success: false,
+    message: 'This endpoint has been moved. Please use /v1/api/2025/reports',
+    newEndpoint: '/v1/api/2025/reports',
+    deprecated: true
+  });
+});
+
+// Legacy dashboard routes - redirect to new API
+router.get('/dashboard/stats', (req, res) => {
+  res.status(301).json({
+    success: false,
+    message: 'This endpoint has been moved. Please use /v1/api/2025/dashboard/stats',
+    newEndpoint: '/v1/api/2025/dashboard/stats',
+    deprecated: true
+  });
+});
 
 module.exports = router;

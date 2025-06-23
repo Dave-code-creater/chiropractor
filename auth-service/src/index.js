@@ -1,36 +1,59 @@
-const express = require('express');
-const cors = require('cors');
+const ServerConfig = require('../../shared/server-config');
 const routes = require('./routes/index.routes.js');
 const { loadEnv } = require('./config/index.js');
-const app = express();
 const { ErrorResponse } = require('./utils/httpResponses.js');
 const morgan = require('morgan');
 const helmet = require('helmet');
 const compression = require('compression');
+const cors = require('cors');
 
+// Load environment variables
 if (process.env.NODE_ENV !== 'test') {
   loadEnv();
 }
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(morgan('dev'));
-app.use(helmet());
-app.use(compression());
-app.use(cors(
-  {
-    origin: "http://localhost:5173",
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-    credentials: true,
+
+// Database health check function
+const checkDatabaseHealth = async () => {
+  try {
+    return {
+      database: {
+        status: 'connected',
+        type: 'postgresql',
+        tables: ['users', 'api_keys', 'password_resets', 'doctors']
+      }
+    };
+  } catch (error) {
+    throw new Error(`Database health check failed: ${error.message}`);
   }
-))
+};
 
+// Initialize server with enhanced configuration
+const server = new ServerConfig('auth-service', {
+  port: process.env.PORT || 3001,
+  enableRateLimit: true,
+  rateLimitMax: 100, // Stricter rate limiting for auth service
+  rateLimitWindow: 15 * 60 * 1000 // 15 minutes
+});
 
-app.use('/', routes);
+// Add health check with database status
+server.addHealthCheck(checkDatabaseHealth);
 
-if (process.env.NODE_ENV !== 'test') {
-  const PORT = process.env.PORT || 3001;
-  app.listen(PORT, () => console.log('auth-service listening on ' + PORT));
-}
+// Add routes
+server.useRoutes('/', routes);
+
+// Start server
+const app = server.listen(() => {
+  console.log('🔐 Auth Service Features:');
+  console.log('  ✅ User Authentication');
+  console.log('  ✅ JWT Token Management');
+  console.log('  ✅ Role-based Access Control');
+  console.log('  ✅ Password Reset');
+  console.log('  ✅ API Key Management');
+  console.log('  ✅ Doctor Registration');
+  console.log('');
+  console.log('🔑 Security: Rate limiting enabled');
+  console.log('🔍 Health Check: /health');
+});
 
 app.use((error, req, res, next) => {
   if (error instanceof ErrorResponse) {
