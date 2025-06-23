@@ -2,6 +2,7 @@ const { Router } = require('express');
 const HealthController = require('../controllers/health.controller.js');
 const ReportController = require('../controllers/report.controller.js');
 const jwtMiddleware = require('../middlewares/jwt.middleware.js');
+const { rbac } = require('../middlewares/rbac.middleware.js');
 
 const router = Router();
 
@@ -72,5 +73,16 @@ router.put('/reports/:id', ReportController.update);
  *         description: OK
  */
 router.get('/reports', ReportController.list);
+
+/**
+ * @swagger
+ * /reports/health-conditions:
+ *   get:
+ *     summary: Get health conditions
+ *     responses:
+ *       200:
+ *         description: OK
+ */
+router.get('/reports/health-conditions', rbac('doctor', 'patient', 'staff'), ReportController.getHealthConditions);
 
 module.exports = router;

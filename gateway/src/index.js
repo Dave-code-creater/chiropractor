@@ -12,7 +12,8 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.use(morgan('dev'));
+app.use(morgan("combined")); // Log HTTP requests
+app.disable("x-powered-by"); // Hide Express server information
 app.use(helmet());
 app.use(compress());
 
@@ -39,7 +40,7 @@ app.use('/', routes);
 
 if (process.env.NODE_ENV !== 'test') {
   const PORT = process.env.PORT || 3000;
-  app.listen(PORT, () => console.log(`Gateway listening on ${PORT}`));
+  app.listen(PORT, () => console.log(`🚪 Gateway ready on port ${PORT}`));
 }
 
 module.exports = app;

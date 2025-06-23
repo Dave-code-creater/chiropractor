@@ -23,9 +23,27 @@ class PostController {
     }
   }
 
-  static async list(_req, res) {
+  static async list(req, res) {
     try {
-      const posts = await PostService.list();
+      const { 
+        page = 1, 
+        limit = 10, 
+        sortBy = 'created_at', 
+        sortOrder = 'desc',
+        search = '',
+        status = 'published'
+      } = req.query;
+      
+      const options = {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        sortBy,
+        sortOrder: sortOrder.toLowerCase(),
+        search,
+        status
+      };
+      
+      const posts = await PostService.list(options);
       return new OK({ metadata: posts }).send(res);
     } catch (err) {
       console.error(err);
@@ -68,8 +86,6 @@ class PostController {
       return new InternalServerError('error listing user posts').send(res);
     }
   }
-
-
 }
 
 module.exports = PostController;

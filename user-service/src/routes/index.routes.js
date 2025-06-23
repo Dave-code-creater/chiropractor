@@ -9,7 +9,7 @@ const VitalsController = require('../controllers/vitals.controller.js');
 const jwtMiddleware = require('../middlewares/jwt.middleware.js');
 const { validateRequest } = require('../validators/vitals.validator.js');
 const { createVitalsSchema, notesSchema } = require('../validators/vitals.validator.js');
-const { asyncHandler, responseHandler } = require('../../../shared/utils/httpResponses.js');
+const { asyncHandler, responseHandler } = require('../../shared/utils/httpResponses.js');
 
 const router = Router();
 

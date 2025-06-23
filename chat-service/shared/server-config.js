@@ -25,7 +25,7 @@ class ServerConfig {
     
     this.app = express();
     this.setupMiddleware();
-    this.setupErrorHandling();
+    // Don't setup error handling in constructor - it should be done after routes are added
   }
 
   /**
@@ -204,9 +204,8 @@ class ServerConfig {
       // In production, use structured logging
       console.error(JSON.stringify(errorLog));
     } else {
-      // In development, use readable format
-      console.error(`[${timestamp}] ${this.serviceName} ERROR:`, error.message);
-      if (error.stack) console.error(error.stack);
+      // In development, use concise format
+      console.error(`[${this.serviceName}] ERROR:`, error.message);
     }
   }
 
@@ -257,35 +256,29 @@ class ServerConfig {
    * Start the server with graceful shutdown handling
    */
   listen(callback = null) {
+    // Setup error handling after all routes have been added
+    this.setupErrorHandling();
+    
     if (this.options.nodeEnv === 'test') {
       return this.app;
     }
 
     const server = this.app.listen(this.options.port, () => {
-      console.log(`🚀 ${this.serviceName} listening on port ${this.options.port}`);
-      console.log(`📊 Environment: ${this.options.nodeEnv}`);
-      console.log(`🔗 Health check: http://localhost:${this.options.port}/health`);
-      
       if (callback) callback();
     });
 
     // Graceful shutdown
     const gracefulShutdown = (signal) => {
-      console.log(`\n📡 Received ${signal}. Starting graceful shutdown...`);
-      
       server.close((err) => {
         if (err) {
-          console.error('❌ Error during server shutdown:', err);
+          console.error('Error during shutdown:', err);
           process.exit(1);
         }
-        
-        console.log('✅ Server closed successfully');
         process.exit(0);
       });
 
       // Force shutdown after 10 seconds
       setTimeout(() => {
-        console.error('⚠️  Forcing shutdown after timeout');
         process.exit(1);
       }, 10000);
     };

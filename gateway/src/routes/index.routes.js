@@ -40,7 +40,7 @@ function setupServiceProxy(path, target, authRequired = true) {
     },
 
     onProxyRes(proxyRes, req) {
-      console.log(`✅ [PROXY_RES] ${req.method} ${req.originalUrl} ← ${proxyRes.statusCode}`);
+      // Silent proxy response logging
     },
 
     onError(err, req, res) {
@@ -52,7 +52,7 @@ function setupServiceProxy(path, target, authRequired = true) {
   });
 
   const stack = [
-    (req, res, next) => { console.log(`[GATEWAY] → ${req.method} ${req.originalUrl}`); next(); }
+    (req, res, next) => { next(); }
   ];
   if (authRequired) stack.push(authMiddleware);
   stack.push(proxy);
@@ -61,6 +61,8 @@ function setupServiceProxy(path, target, authRequired = true) {
 
 // Service proxy routes
 router.use('/v1/api/2025/auth', ...setupServiceProxy('/v1/api/2025/auth', 'http://auth-service:3001', false));
+// Backward compatibility - simple auth routes
+router.use('/auth', ...setupServiceProxy('/auth', 'http://auth-service:3001', false));
 router.use('/v1/api/2025/users', ...setupServiceProxy('/v1/api/2025/users', 'http://user-service:3002'));
 router.use('/v1/api/2025/reports', ...setupServiceProxy('/v1/api/2025/reports', 'http://user-service:3002'));
 router.use('/v1/api/2025/blog', ...setupServiceProxy('/v1/api/2025/blog', 'http://blog-service:3003'));
@@ -68,10 +70,6 @@ router.use('/v1/api/2025/chat', ...setupServiceProxy('/v1/api/2025/chat', 'http:
 router.use('/v1/api/2025/appointments', ...setupServiceProxy('/v1/api/2025/appointments', 'http://appointment-service:3005'));
 router.use('/v1/api/2025/doctors', ...setupServiceProxy('/v1/api/2025/doctors', 'http://appointment-service:3005'));
 
-// Health check routes
-router.get('/', HealthController.healthCheck);
-router.get('/health', HealthController.healthCheck);
-router.get('/health/detailed', HealthController.detailedHealthCheck);
 
 router.use((req, res) => res.status(404).json({ error: 'Not found' }));
 

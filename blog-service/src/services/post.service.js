@@ -24,8 +24,56 @@ class PostService {
     return getPostById(id);
   }
 
-  static async list() {
-    return listPosts();
+  static async list(options = {}) {
+    const {
+      page = 1,
+      limit = 10,
+      sortBy = 'created_at',
+      sortOrder = 'desc',
+      search = '',
+      status = 'published'
+    } = options;
+
+    // For now, return basic list with mock pagination
+    // In a real implementation, you'd pass these to the repository
+    const posts = await listPosts();
+    
+    // Mock pagination and sorting
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + limit;
+    
+    let filteredPosts = posts;
+    
+    // Mock search filter
+    if (search) {
+      filteredPosts = posts.filter(post => 
+        post.title?.toLowerCase().includes(search.toLowerCase()) ||
+        post.body?.toLowerCase().includes(search.toLowerCase())
+      );
+    }
+    
+    // Mock sorting
+    filteredPosts.sort((a, b) => {
+      const aValue = a[sortBy] || a.created_at;
+      const bValue = b[sortBy] || b.created_at;
+      
+      if (sortOrder === 'desc') {
+        return new Date(bValue) - new Date(aValue);
+      }
+      return new Date(aValue) - new Date(bValue);
+    });
+    
+    const paginatedPosts = filteredPosts.slice(startIndex, endIndex);
+    
+    return {
+      posts: paginatedPosts,
+      pagination: {
+        page,
+        limit,
+        total: filteredPosts.length,
+        totalPages: Math.ceil(filteredPosts.length / limit)
+      }
+    };
   }
 
   static async listByUser(userId) {

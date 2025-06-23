@@ -1,4 +1,4 @@
-const ServerConfig = require('../../shared/server-config');
+const ServerConfig = require('../shared/server-config');
 const routes = require('./routes/index.routes.js');
 const { loadEnv } = require('./config/index.js');
 const { ErrorResponse } = require('./utils/httpResponses.js');
@@ -43,27 +43,17 @@ server.addHealthCheck(checkDatabaseHealth);
 // Add routes
 server.useRoutes('/', routes);
 
-// Start server
-const app = server.listen(() => {
-  console.log('🏥 User Service Features:');
-  console.log('  ✅ Patient Management');
-  console.log('  ✅ Clinical Notes');
-  console.log('  ✅ Patient Vitals');
-  console.log('  ✅ Template Forms');
-  console.log('  ✅ Report Generation');
-  console.log('  ✅ Dashboard Analytics');
-  console.log('');
-  console.log('📚 API Documentation: /v1/api/2025/*');
-  console.log('🔍 Health Check: /health');
-});
+// Get the Express app instance
+const app = server.getApp();
 
+// Add custom error handling
 app.use((error, req, res, next) => {
   if (error instanceof ErrorResponse) {
     return error.send(res); // Use the custom `send()` method
   }
 
   if (process.env.NODE_ENV !== 'production') {
-    console.error(error); // only log full stack in dev
+    console.error(error);
   }
 
   return res.status(500).json({
@@ -72,6 +62,11 @@ app.use((error, req, res, next) => {
     message: error.message || 'Internal Server Error',
     errorCode: '5000',
   });
+});
+
+// Start server
+server.listen(() => {
+  console.log('🏥 User Service ready - Patient management & clinical notes');
 });
 
 module.exports = app;
