@@ -23,13 +23,21 @@ const getAllDoctors = async (req, res) => {
 
 // Get doctor by ID
 const getDoctorById = async (req, res) => {
+  console.log('getDoctorById called with id:', req.params.id);
   const { id } = req.params;
-  const doctor = await DoctorService.getDoctorById(parseInt(id));
   
-  return new OK({ 
-    metadata: doctor,
-    message: 'Doctor retrieved successfully'
-  }).send(res);
+  try {
+    const doctor = await DoctorService.getDoctorById(parseInt(id));
+    console.log('Doctor found:', doctor ? 'Yes' : 'No');
+    
+    return new OK({ 
+      metadata: doctor,
+      message: 'Doctor retrieved successfully'
+    }).send(res);
+  } catch (error) {
+    console.error('Error in getDoctorById:', error);
+    throw error;
+  }
 };
 
 // Get doctor by user ID (for authenticated doctor users)

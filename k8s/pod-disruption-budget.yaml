@@ -1,0 +1,76 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: gateway-pdb
+  namespace: chiropractor
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: gateway
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: auth-service-pdb
+  namespace: chiropractor
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: auth-service
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: user-service-pdb
+  namespace: chiropractor
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: user-service
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: blog-service-pdb
+  namespace: chiropractor
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: blog-service
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: chat-service-pdb
+  namespace: chiropractor
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: chat-service
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: appointment-service-pdb
+  namespace: chiropractor
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: appointment-service
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: report-service-pdb
+  namespace: chiropractor
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: report-service 

@@ -70,6 +70,23 @@ router.put('/:id', AppointmentController.update);
 
 /**
  * @swagger
+ * /appointments/{id}/reschedule:
+ *   put:
+ *     summary: Reschedule appointment
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Appointment rescheduled successfully
+ */
+router.put('/:id/reschedule', AppointmentController.reschedule);
+
+/**
+ * @swagger
  * /appointments/{id}/profile:
  *   get:
  *     summary: Get patient profile
@@ -94,6 +111,6 @@ router.delete('/:id', AppointmentController.delete);
  *       200:
  *         description: OK
  */
-router.get('/', rbac('doctor', 'user'), AppointmentController.list);
+router.get('/', rbac('doctor', 'user', 'patient'), AppointmentController.list);
 
 module.exports = router;

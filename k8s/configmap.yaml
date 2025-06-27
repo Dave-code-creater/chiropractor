@@ -1,0 +1,45 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: chiropractor-config
+  namespace: chiropractor
+data:
+  NODE_ENV: "production"
+  CORS_ORIGIN: "https://your-domain.com"
+  LOG_LEVEL: "info"
+  JWT_EXPIRES_IN: "1h"
+  RATE_LIMIT_WINDOW_MS: "900000"
+  RATE_LIMIT_MAX_REQUESTS: "100"
+  BCRYPT_ROUNDS: "12"
+  
+  # Database configuration
+  AUTH_DB_USER: "auth_user"
+  AUTH_DB_NAME: "auth_db"
+  AUTH_DB_PORT: "5432"
+  
+  USER_DB_USER: "user_user"
+  USER_DB_NAME: "user_db"
+  USER_DB_PORT: "5432"
+  
+  APPOINTMENT_DB_USER: "appointment_user"
+  APPOINTMENT_DB_NAME: "appointment_db"
+  APPOINTMENT_DB_PORT: "5432"
+  
+  REPORT_DB_USER: "report_user"
+  REPORT_DB_NAME: "report_db"
+  REPORT_DB_PORT: "5432"
+  
+  # MongoDB configuration
+  BLOG_MONGO_PORT: "27017"
+  CHAT_MONGO_PORT: "27017"
+  BLOG_MONGO_NAME: "blog_db"
+  CHAT_MONGO_NAME: "chat_db"
+  
+  # Service ports
+  GATEWAY_PORT: "3000"
+  AUTH_SERVICE_PORT: "3001"
+  USER_SERVICE_PORT: "3002"
+  BLOG_SERVICE_PORT: "3003"
+  CHAT_SERVICE_PORT: "3004"
+  APPOINTMENT_SERVICE_PORT: "3005"
+  REPORT_SERVICE_PORT: "3006" 

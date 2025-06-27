@@ -1,7 +1,8 @@
-const { db } = require('../config/index.js');
+const { getDb } = require('../config/index.js');
 
 // Create a new doctor
 const createDoctor = async (doctorData) => {
+  const db = getDb();
   return await db
     .insertInto('doctors')
     .values(doctorData)
@@ -11,6 +12,7 @@ const createDoctor = async (doctorData) => {
 
 // Get all doctors with optional filters
 const getAllDoctors = async (filters = {}) => {
+  const db = getDb();
   let query = db.selectFrom('doctors').selectAll();
   
   if (filters.specialization) {
@@ -30,6 +32,7 @@ const getAllDoctors = async (filters = {}) => {
 
 // Get doctor by ID
 const getDoctorById = async (id) => {
+  const db = getDb();
   return await db
     .selectFrom('doctors')
     .selectAll()
@@ -39,6 +42,7 @@ const getDoctorById = async (id) => {
 
 // Get doctor by user ID (from auth service)
 const getDoctorByUserId = async (userId) => {
+  const db = getDb();
   return await db
     .selectFrom('doctors')
     .selectAll()
@@ -48,6 +52,7 @@ const getDoctorByUserId = async (userId) => {
 
 // Update doctor
 const updateDoctor = async (id, updateData) => {
+  const db = getDb();
   return await db
     .updateTable('doctors')
     .set({ ...updateData, updated_at: new Date() })
@@ -58,6 +63,7 @@ const updateDoctor = async (id, updateData) => {
 
 // Delete doctor
 const deleteDoctor = async (id) => {
+  const db = getDb();
   return await db
     .deleteFrom('doctors')
     .where('id', '=', id)
@@ -67,6 +73,7 @@ const deleteDoctor = async (id) => {
 
 // Get doctor availability
 const getDoctorAvailability = async (doctorId) => {
+  const db = getDb();
   return await db
     .selectFrom('doctor_availability')
     .selectAll()
@@ -79,6 +86,7 @@ const getDoctorAvailability = async (doctorId) => {
 
 // Set doctor availability
 const setDoctorAvailability = async (doctorId, availabilityData) => {
+  const db = getDb();
   // First, delete existing availability for this doctor
   await db
     .deleteFrom('doctor_availability')
@@ -104,6 +112,7 @@ const setDoctorAvailability = async (doctorId, availabilityData) => {
 
 // Get all specializations
 const getAllSpecializations = async () => {
+  const db = getDb();
   return await db
     .selectFrom('specializations')
     .selectAll()
@@ -113,6 +122,7 @@ const getAllSpecializations = async () => {
 
 // Search doctors
 const searchDoctors = async (searchTerm) => {
+  const db = getDb();
   return await db
     .selectFrom('doctors')
     .selectAll()

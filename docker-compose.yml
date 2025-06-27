@@ -29,11 +29,17 @@ services:
       - "5433:5432"
     volumes:
       - auth_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U auth_user -d auth_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   migrate-auth:
     image: postgres:16-alpine
     depends_on:
-      - auth-db
+      auth-db:
+        condition: service_healthy
     volumes:
       - ./auth-service/migrations:/migrations
     entrypoint: >
@@ -49,8 +55,10 @@ services:
   auth-service:
     build: ./auth-service
     depends_on:
-      - auth-db
-      - migrate-auth
+      auth-db:
+        condition: service_healthy
+      migrate-auth:
+        condition: service_completed_successfully
     ports:
       - "3001:3001"
     environment:
@@ -63,6 +71,7 @@ services:
       PRO_POSTGRESQL_NAME: auth_db
       JWT_SECRET: supersecretkey
       JWT_EXPIRES_IN: 1h
+    restart: unless-stopped
 
   # USER SERVICE STACK
   user-db:
@@ -77,12 +86,18 @@ services:
       - "5434:5432"
     volumes:
       - user_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user_user -d user_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   migrate-user:
     image: postgres:16-alpine
     working_dir: /app
     depends_on:
-      - user-db
+      user-db:
+        condition: service_healthy
     volumes:
       - ./user-service/migrations:/migrations
     entrypoint: >
@@ -99,8 +114,10 @@ services:
   user-service:
     build: ./user-service
     depends_on:
-      - user-db
-      - migrate-user
+      user-db:
+        condition: service_healthy
+      migrate-user:
+        condition: service_completed_successfully
     ports:
       - '3002:3002'
     environment:
@@ -113,6 +130,7 @@ services:
       PRO_POSTGRESQL_NAME: user_db
       JWT_SECRET: supersecretkey
       JWT_EXPIRES_IN: 1h
+    restart: unless-stopped
 
   blog-service:
     build: ./blog-service
@@ -175,11 +193,17 @@ services:
       - "5435:5432"
     volumes:
       - appointment_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U appointment_user -d appointment_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   migrate-appointment:
     image: postgres:16-alpine
     depends_on:
-      - appointment-db
+      appointment-db:
+        condition: service_healthy
     volumes:
       - ./appointment-service/migrations:/migrations
     entrypoint: >
@@ -194,8 +218,10 @@ services:
   appointment-service:
     build: ./appointment-service
     depends_on:
-      - appointment-db
-      - migrate-appointment
+      appointment-db:
+        condition: service_healthy
+      migrate-appointment:
+        condition: service_completed_successfully
     ports:
       - '3005:3005'
     environment:
@@ -208,6 +234,12 @@ services:
       PRO_POSTGRESQL_NAME: appointment_db
       JWT_SECRET: supersecretkey
       JWT_EXPIRES_IN: 1h
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3005/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   # REPORT SERVICE STACK
   report-db:
@@ -222,11 +254,17 @@ services:
       - "5436:5432"
     volumes:
       - report_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U report_user -d report_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   migrate-report:
     image: postgres:16-alpine
     depends_on:
-      - report-db
+      report-db:
+        condition: service_healthy
     volumes:
       - ./report-service/migrations:/migrations
     entrypoint: >
@@ -241,8 +279,10 @@ services:
   report-service:
     build: ./report-service
     depends_on:
-      - report-db
-      - migrate-report
+      report-db:
+        condition: service_healthy
+      migrate-report:
+        condition: service_completed_successfully
     ports:
       - '3006:3006'
     environment:
@@ -255,6 +295,7 @@ services:
       PRO_POSTGRESQL_NAME: report_db
       JWT_SECRET: supersecretkey
       JWT_EXPIRES_IN: 1h
+    restart: unless-stopped
 
 volumes:
   auth_pgdata:

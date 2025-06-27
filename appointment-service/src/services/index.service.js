@@ -6,6 +6,7 @@ const {
   listAppointmentsByPatient,
   listAppointmentsByDoctor,
   deleteAppointment,
+  rescheduleAppointment,
 } = require('../repositories/appointment.repo.js');
 
 // Temporarily comment out inter-service communication to avoid import issues
@@ -122,8 +123,8 @@ class AppointmentService {
     return listAppointments();
   }
 
-  static async listAppointmentsByPatient(patientId) {
-    return listAppointmentsByPatient(patientId);
+  static async listAppointmentsByPatient(userId) {
+    return listAppointmentsByPatient(userId);
   }
 
   static async listAppointmentsByDoctor(doctorId) {
@@ -134,6 +135,14 @@ class AppointmentService {
     return deleteAppointment(id);
   }
 
+  static async createAppointment(data) {
+    return createAppointment(data);
+  }
+
+  static async rescheduleAppointment(id, rescheduleData) {
+    return rescheduleAppointment(id, rescheduleData);
+  }
+
   static async getUserProfile(userId) {
     const res = await fetch(`http://user-service:3002/profiles/${userId}`);
     if (!res.ok) throw new Error('failed to fetch profile');
@@ -141,4 +150,4 @@ class AppointmentService {
   }
 }
 
-module.exports = new AppointmentService();
+module.exports = AppointmentService;

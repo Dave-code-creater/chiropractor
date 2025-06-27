@@ -1,23 +1,18 @@
 const ServerConfig = require('../shared/server-config');
 const routes = require('./routes/index.routes.js');
-const { loadEnv } = require('./config/index.js');
+const { loadEnv, getDb } = require('./config/index.js');
 const { ErrorResponse } = require('./utils/httpResponses.js');
-
-// Load environment variables
-if (process.env.NODE_ENV !== 'test') {
-  loadEnv();
-}
 
 // Database health check function
 const checkDatabaseHealth = async () => {
   try {
-    // Add your database connection check here
-    // For now, we'll just return basic info
+    const db = getDb();
+    await db.selectFrom('doctors').select('id').limit(1).execute();
     return {
       database: {
         status: 'connected',
         type: 'postgresql',
-        tables: ['appointments', 'schedules', 'availability']
+        tables: ['doctors', 'appointments', 'doctor_availability']
       }
     };
   } catch (error) {
@@ -60,9 +55,25 @@ app.use((error, req, res, next) => {
   });
 });
 
-// Start server
-server.listen(() => {
-  console.log('📅 Appointment Service ready - Scheduling & patient management');
-});
+// Initialize database and start server
+const startServer = async () => {
+  try {
+    // Initialize database connection
+    if (process.env.NODE_ENV !== 'test') {
+      await loadEnv();
+    }
+    
+    // Start server
+    server.listen(() => {
+      console.log('📅 Appointment Service ready - Scheduling & patient management');
+    });
+  } catch (error) {
+    console.error('❌ Failed to start Appointment Service:', error.message);
+    process.exit(1);
+  }
+};
+
+// Start the server
+startServer();
 
 module.exports = app;

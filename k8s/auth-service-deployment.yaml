@@ -1,0 +1,121 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth-service
+  namespace: chiropractor
+  labels:
+    app: auth-service
+    tier: backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: auth-service
+  template:
+    metadata:
+      labels:
+        app: auth-service
+        tier: backend
+    spec:
+      containers:
+      - name: auth-service
+        image: your-ecr-repo/chiropractor-auth-service:latest
+        ports:
+        - containerPort: 3001
+          name: http
+        env:
+        - name: PORT
+          valueFrom:
+            configMapKeyRef:
+              name: chiropractor-config
+              key: AUTH_SERVICE_PORT
+        - name: NODE_ENV
+          valueFrom:
+            configMapKeyRef:
+              name: chiropractor-config
+              key: NODE_ENV
+        - name: PRO_POSTGRESQL_USER
+          valueFrom:
+            configMapKeyRef:
+              name: chiropractor-config
+              key: AUTH_DB_USER
+        - name: PRO_POSTGRESQL_PASS
+          valueFrom:
+            secretKeyRef:
+              name: chiropractor-secrets
+              key: AUTH_DB_PASS
+        - name: PRO_POSTGRESQL_HOST
+          valueFrom:
+            secretKeyRef:
+              name: database-secrets
+              key: AUTH_DB_HOST
+        - name: PRO_POSTGRESQL_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: chiropractor-config
+              key: AUTH_DB_PORT
+        - name: PRO_POSTGRESQL_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: chiropractor-config
+              key: AUTH_DB_NAME
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: chiropractor-secrets
+              key: JWT_SECRET
+        - name: JWT_EXPIRES_IN
+          valueFrom:
+            configMapKeyRef:
+              name: chiropractor-config
+              key: JWT_EXPIRES_IN
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: chiropractor-config
+              key: LOG_LEVEL
+        - name: BCRYPT_ROUNDS
+          valueFrom:
+            configMapKeyRef:
+              name: chiropractor-config
+              key: BCRYPT_ROUNDS
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3001
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 3001
+          initialDelaySeconds: 15
+          periodSeconds: 15
+          timeoutSeconds: 5
+          failureThreshold: 3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: auth-service
+  namespace: chiropractor
+  labels:
+    app: auth-service
+spec:
+  selector:
+    app: auth-service
+  ports:
+  - protocol: TCP
+    port: 3001
+    targetPort: 3001
+    name: http
+  type: ClusterIP 
