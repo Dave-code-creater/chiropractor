@@ -1,316 +1,215 @@
-version: '3.9'
-
 services:
-  # Gateway
-  gateway:
-    build: ./gateway
+  # Main Clinic Management Application
+  chiropractor-app:
+    build: .
+    container_name: chiropractor-clinic-app
     ports:
-      - '3000:3000'
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASS=password
+      - DB_NAME=chiropractor_clinic
+      - DATABASE_SSL=false
+      - DATABASE_POOL_MIN=2
+      - DATABASE_POOL_MAX=20
+      - MONGO_URI=mongodb://mongo:27017/chiropractor_clinic
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - JWT_SECRET=clinic-super-secure-jwt-secret-key-for-patient-management-2024
+      - JWT_EXPIRES_IN=24h
+      - CORS_ORIGIN=http://localhost:5173
+      - RATE_LIMIT_MAX_REQUESTS=1000
+      - RATE_LIMIT_WINDOW_MS=900000
+      - BCRYPT_ROUNDS=12
+      - LOG_LEVEL=info
     depends_on:
-      - auth-service
-      - user-service
-      - blog-service
-    environment:
-      JWT_SECRET: supersecretkey
-      JWT_EXPIRES_IN: 1h
-
-
-
-  # AUTH SERVICE STACK
-  auth-db:
-    image: postgres:16-alpine
-    container_name: auth_db
-    restart: always
-    environment:
-      POSTGRES_DB: auth_db
-      POSTGRES_USER: auth_user
-      POSTGRES_PASSWORD: auth_pass
-    ports:
-      - "5433:5432"
+      postgres:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     volumes:
-      - auth_pgdata:/var/lib/postgresql/data
+      - ./logs:/app/logs
+      - ./uploads:/app/uploads
+    networks:
+      - clinic-network
+    restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U auth_user -d auth_db"]
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+
+  # PostgreSQL Database - Patient & Clinic Data
+  postgres:
+    image: postgres:15-alpine
+    container_name: chiropractor-postgres-db
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=chiropractor_clinic
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --lc-collate=C --lc-ctype=C
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d:ro
+    networks:
+      - clinic-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d chiropractor_clinic"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 30s
 
-  migrate-auth:
-    image: postgres:16-alpine
-    depends_on:
-      auth-db:
-        condition: service_healthy
-    volumes:
-      - ./auth-service/migrations:/migrations
-    entrypoint: >
-      sh -c "
-        echo '⏳ Waiting for auth-db...' &&
-        sleep 10 &&
-        echo '🔄 Running auth migrations...' &&
-        psql postgresql://auth_user:auth_pass@auth-db:5432/auth_db -f /migrations/001_init.sql &&
-        psql postgresql://auth_user:auth_pass@auth-db:5432/auth_db -f /migrations/002_create_doctor.sql &&
-        echo '✅ Auth migrations completed'
-      "
-
-  auth-service:
-    build: ./auth-service
-    depends_on:
-      auth-db:
-        condition: service_healthy
-      migrate-auth:
-        condition: service_completed_successfully
-    ports:
-      - "3001:3001"
+  # MongoDB Database - Blog, Chat & File Storage
+  mongo:
+    image: mongo:7-jammy
+    container_name: chiropractor-mongo-db
     environment:
-      NODE_ENV: development
-      PORT: 3001
-      PRO_POSTGRESQL_USER: auth_user
-      PRO_POSTGRESQL_PASS: auth_pass
-      PRO_POSTGRESQL_HOST: auth-db
-      PRO_POSTGRESQL_PORT: 5432
-      PRO_POSTGRESQL_NAME: auth_db
-      JWT_SECRET: supersecretkey
-      JWT_EXPIRES_IN: 1h
-    restart: unless-stopped
-
-  # USER SERVICE STACK
-  user-db:
-    image: postgres:16-alpine
-    container_name: user_db
-    restart: always
-    environment:
-      POSTGRES_DB: user_db
-      POSTGRES_USER: user_user
-      POSTGRES_PASSWORD: user_pass
-    ports:
-      - "5434:5432"
-    volumes:
-      - user_pgdata:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U user_user -d user_db"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  migrate-user:
-    image: postgres:16-alpine
-    working_dir: /app
-    depends_on:
-      user-db:
-        condition: service_healthy
-    volumes:
-      - ./user-service/migrations:/migrations
-    entrypoint: >
-      sh -c "
-        echo '⏳ Waiting for user-db...' &&
-        sleep 10 &&
-        echo '🔄 Running user migrations...' &&
-        psql postgresql://user_user:user_pass@user-db:5432/user_db -f /migrations/001_init.sql &&
-        psql postgresql://user_user:user_pass@user-db:5432/user_db -f /migrations/002_template_forms.sql &&
-        psql postgresql://user_user:user_pass@user-db:5432/user_db -f /migrations/003_clinical_notes_vitals.sql &&
-        echo '✅ User migrations completed'
-      "
-
-  user-service:
-    build: ./user-service
-    depends_on:
-      user-db:
-        condition: service_healthy
-      migrate-user:
-        condition: service_completed_successfully
-    ports:
-      - '3002:3002'
-    environment:
-      NODE_ENV: development
-      PORT: 3002
-      PRO_POSTGRESQL_USER: user_user
-      PRO_POSTGRESQL_PASS: user_pass
-      PRO_POSTGRESQL_HOST: user-db
-      PRO_POSTGRESQL_PORT: 5432
-      PRO_POSTGRESQL_NAME: user_db
-      JWT_SECRET: supersecretkey
-      JWT_EXPIRES_IN: 1h
-    restart: unless-stopped
-
-  blog-service:
-    build: ./blog-service
-    depends_on:
-      - blog-db
-    ports:
-      - '3003:3003'
-    environment:
-      NODE_ENV: development
-      PORT: 3003
-      JWT_SECRET: supersecretkey
-      JWT_EXPIRES_IN: 1h
-      PRO_MONGODB_HOST: blog-db
-      PRO_MONGODB_PORT: 27017
-      PRO_MONGODB_NAME: blog_db
-  
-  blog-db:
-    image: mongo:latest
-    container_name: blog-db
-    restart: always
+      - MONGO_INITDB_DATABASE=chiropractor_clinic
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=password
     ports:
       - "27017:27017"
     volumes:
-      - blog_mongo_data:/data/db
-  
-  chat-service:
-    build: ./chat-service
-    depends_on:
-      - chat-db
-    ports:
-      - '3004:3004'
-    environment:
-      NODE_ENV: development
-      PORT: 3004
-      JWT_SECRET: supersecretkey
-      JWT_EXPIRES_IN: 1h
-      PRO_MONGODB_HOST: chat-db
-      PRO_MONGODB_PORT: 27017
-      PRO_MONGODB_NAME: chat_db
-    
-  chat-db:
-    image: mongo:latest
-    container_name: chat-db
-    restart: always
-    ports:
-      - "27018:27017"
-    volumes:
-      - chat_mongo_data:/data/db
-
-  # APPOINTMENT SERVICE STACK
-  appointment-db:
-    image: postgres:16-alpine
-    container_name: appointment_db
-    restart: always
-    environment:
-      POSTGRES_DB: appointment_db
-      POSTGRES_USER: appointment_user
-      POSTGRES_PASSWORD: appointment_pass
-    ports:
-      - "5435:5432"
-    volumes:
-      - appointment_pgdata:/var/lib/postgresql/data
+      - mongo_data:/data/db
+    networks:
+      - clinic-network
+    restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U appointment_user -d appointment_db"]
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 30s
 
-  migrate-appointment:
-    image: postgres:16-alpine
-    depends_on:
-      appointment-db:
-        condition: service_healthy
-    volumes:
-      - ./appointment-service/migrations:/migrations
-    entrypoint: >
-      sh -c "
-        echo '⏳ Waiting for appointment-db...' &&
-        sleep 10 &&
-        echo '🔄 Running appointment migrations...' &&
-        psql postgresql://appointment_user:appointment_pass@appointment-db:5432/appointment_db -f /migrations/001_init.sql &&
-        echo '✅ Appointment migrations completed'
-      "
-
-  appointment-service:
-    build: ./appointment-service
-    depends_on:
-      appointment-db:
-        condition: service_healthy
-      migrate-appointment:
-        condition: service_completed_successfully
+  # Redis - Sessions, Caching & Real-time Features
+  redis:
+    image: redis:7-alpine
+    container_name: chiropractor-redis-cache
     ports:
-      - '3005:3005'
-    environment:
-      NODE_ENV: development
-      PORT: 3005
-      PRO_POSTGRESQL_USER: appointment_user
-      PRO_POSTGRESQL_PASS: appointment_pass
-      PRO_POSTGRESQL_HOST: appointment-db
-      PRO_POSTGRESQL_PORT: 5432
-      PRO_POSTGRESQL_NAME: appointment_db
-      JWT_SECRET: supersecretkey
-      JWT_EXPIRES_IN: 1h
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - clinic-network
     restart: unless-stopped
+    command: redis-server --appendonly yes
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3005/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  # REPORT SERVICE STACK
-  report-db:
-    image: postgres:16-alpine
-    container_name: report_db
-    restart: always
-    environment:
-      POSTGRES_DB: report_db
-      POSTGRES_USER: report_user
-      POSTGRES_PASSWORD: report_pass
-    ports:
-      - "5436:5432"
-    volumes:
-      - report_pgdata:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U report_user -d report_db"]
+      test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 20s
 
-  migrate-report:
-    image: postgres:16-alpine
+  # Database Administration Tools
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: chiropractor-pgadmin
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@clinic.com
+      - PGADMIN_DEFAULT_PASSWORD=admin123
+      - PGADMIN_CONFIG_SERVER_MODE=False
+    ports:
+      - "5050:80"
     depends_on:
-      report-db:
+      postgres:
         condition: service_healthy
     volumes:
-      - ./report-service/migrations:/migrations
-    entrypoint: >
-      sh -c "
-        echo '⏳ Waiting for report-db...' &&
-        sleep 10 &&
-        echo '🔄 Running report migrations...' &&
-        psql postgresql://report_user:report_pass@report-db:5432/report_db -f /migrations/001_init.sql &&
-        echo '✅ Report migrations completed'
-      "
-
-  report-service:
-    build: ./report-service
-    depends_on:
-      report-db:
-        condition: service_healthy
-      migrate-report:
-        condition: service_completed_successfully
-    ports:
-      - '3006:3006'
-    environment:
-      NODE_ENV: development
-      PORT: 3006
-      PRO_POSTGRESQL_USER: report_user
-      PRO_POSTGRESQL_PASS: report_pass
-      PRO_POSTGRESQL_HOST: report-db
-      PRO_POSTGRESQL_PORT: 5432
-      PRO_POSTGRESQL_NAME: report_db
-      JWT_SECRET: supersecretkey
-      JWT_EXPIRES_IN: 1h
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - clinic-network
     restart: unless-stopped
+    profiles:
+      - admin
+
+  mongo-express:
+    image: mongo-express:latest
+    container_name: chiropractor-mongo-express
+    environment:
+      - ME_CONFIG_MONGODB_URL=mongodb://admin:password@mongo:27017/chiropractor_clinic?authSource=admin
+      - ME_CONFIG_BASICAUTH_USERNAME=admin
+      - ME_CONFIG_BASICAUTH_PASSWORD=admin123
+      - ME_CONFIG_MONGODB_ADMINUSERNAME=admin
+      - ME_CONFIG_MONGODB_ADMINPASSWORD=password
+    ports:
+      - "8081:8081"
+    depends_on:
+      mongo:
+        condition: service_healthy
+    networks:
+      - clinic-network
+    restart: unless-stopped
+    profiles:
+      - admin
+
+  # Redis Commander (Redis Admin UI)
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: chiropractor-redis-commander
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+    ports:
+      - "8082:8081"
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - clinic-network
+    restart: unless-stopped
+    profiles:
+      - admin
+
+  # Test Runner Service
+  test-runner:
+    build: .
+    container_name: chiropractor-test-runner
+    environment:
+      - NODE_ENV=test
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASS=password
+      - DB_NAME=chiropractor_clinic_test
+      - MONGO_URI=mongodb://admin:password@mongo:27017/chiropractor_clinic_test?authSource=admin
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - JWT_SECRET=test-jwt-secret-key
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - .:/app
+      - /app/node_modules
+    networks:
+      - clinic-network
+    command: npm test
+    profiles:
+      - test
 
 volumes:
-  auth_pgdata:
+  postgres_data:
     driver: local
-  user_pgdata:
+  mongo_data:
     driver: local
-  blog_mongo_data:
+  redis_data:
     driver: local
-  chat_mongo_data:
+  pgadmin_data:
     driver: local
-  appointment_pgdata:
-    driver: local
-  report_pgdata:
-    driver: local
-  
+
 networks:
-  default:
+  clinic-network:
     driver: bridge
