@@ -1,23 +1,190 @@
 const express = require('express');
+const asyncHandler = require('../utils/asyncHandler');
 const AuthController = require('../controllers/auth.controller');
 const PasswordResetController = require('../controllers/password-reset.controller');
-const asyncHandler = require('../utils/asyncHandler');
+const { authenticate, authorize, authenticateForLogout } = require('../middleware/auth.middleware');
+const { 
+  signUpValidator, 
+  signInValidator, 
+  patientRegisterValidator,
+  refreshTokenValidator 
+} = require('../validators');
 
 const router = express.Router();
 
-// Authentication routes
-router.post('/register', asyncHandler(AuthController.register));
-router.post('/login', asyncHandler(AuthController.login));
-router.post('/refresh', asyncHandler(AuthController.refresh));
-router.post('/logout', asyncHandler(AuthController.logout));
-router.post('/verify', asyncHandler(AuthController.verify));
+/**
+ * ===============================================
+ * STANDARDIZED AUTHENTICATION API ROUTES
+ * ===============================================
+ * 
+ * REST Conventions:
+ * - Public routes (no auth) first
+ * - Authentication routes before protected routes
+ * - Clear separation by access level
+ * - Consistent validation and middleware patterns
+ */
 
-// Test endpoint (remove in production)
-router.get('/test-registration', asyncHandler(AuthController.testRegistration));
+// ===============================================
+// PUBLIC ROUTES (No Authentication Required)
+// ===============================================
 
-// Password reset routes
-router.post('/forgot-password', asyncHandler(PasswordResetController.requestPasswordReset));
-router.get('/verify-reset-token', asyncHandler(PasswordResetController.verifyResetToken));
-router.post('/reset-password', asyncHandler(PasswordResetController.resetPassword));
+/**
+ * Register new doctor/staff/admin user
+ * POST /auth/register
+ * Body: { email, password, first_name, last_name, role, ... }
+ */
+router.post('/register', 
+  signUpValidator,
+  asyncHandler(AuthController.register)
+);
+
+/**
+ * Register new patient
+ * POST /auth/register-patient
+ * Body: { email, password, first_name, last_name, phone, ... }
+ */
+router.post('/register-patient', 
+  patientRegisterValidator,
+  asyncHandler(AuthController.registerPatient)
+);
+
+/**
+ * User login
+ * POST /auth/login
+ * Body: { email, password }
+ * Returns: JWT access token and refresh token in HTTP-only cookies
+ */
+router.post('/login', 
+  signInValidator,
+  asyncHandler(AuthController.login)
+);
+
+/**
+ * Refresh access token
+ * POST /auth/refresh-token
+ * Body: { refresh_token } (optional - also checks cookies)
+ * Returns: New access token
+ */
+router.post('/refresh-token',
+  refreshTokenValidator,
+  asyncHandler(AuthController.refreshToken)
+);
+
+// ===============================================
+// PASSWORD RESET ROUTES (Public)
+// ===============================================
+
+/**
+ * Request password reset
+ * POST /auth/forgot-password
+ * Body: { email }
+ */
+router.post('/forgot-password',
+  asyncHandler(PasswordResetController.requestPasswordReset)
+);
+
+/**
+ * Verify password reset token
+ * GET /auth/verify-reset-token?token=...
+ */
+router.get('/verify-reset-token',
+  asyncHandler(PasswordResetController.verifyResetToken)
+);
+
+/**
+ * Reset password with token
+ * POST /auth/reset-password
+ * Body: { token, new_password }
+ */
+router.post('/reset-password',
+  asyncHandler(PasswordResetController.resetPassword)
+);
+
+// ===============================================
+// AUTHENTICATED ROUTES
+// ===============================================
+
+/**
+ * Logout user (lenient auth for expired tokens)
+ * POST /auth/logout
+ * Auth: Any valid or recently expired token
+ */
+router.post('/logout',
+  authenticateForLogout,
+  asyncHandler(AuthController.logout)
+);
+
+/**
+ * Logout from all devices
+ * POST /auth/logout-all
+ * Auth: Any valid or recently expired token
+ */
+router.post('/logout-all',
+  authenticateForLogout,
+  asyncHandler(AuthController.logoutFromAllDevices)
+);
+
+/**
+ * Verify user account
+ * POST /auth/verify-account
+ * Body: { verification_code }
+ * Auth: Authenticated user
+ */
+router.post('/verify-account',
+  authenticate,
+  asyncHandler(AuthController.verifyAccount)
+);
+
+// ===============================================
+// USER PROFILE ROUTES
+// ===============================================
+
+/**
+ * Get current user profile
+ * GET /auth/profile
+ * Auth: Any authenticated user
+ */
+router.get('/profile',
+  authenticate,
+  asyncHandler(AuthController.getProfile)
+);
+
+/**
+ * Get current user profile (alias)
+ * GET /auth/me
+ * Auth: Any authenticated user
+ */
+router.get('/me',
+  authenticate,
+  asyncHandler(AuthController.getProfile)
+);
+
+// ===============================================
+// ADMIN-ONLY ROUTES
+// ===============================================
+
+/**
+ * Get all users
+ * GET /auth/users
+ * Auth: Admin only
+ */
+router.get('/users',
+  authenticate,
+  authorize(['admin']),
+  asyncHandler(AuthController.getAllUsers)
+);
+
+/**
+ * Get authentication statistics
+ * GET /auth/stats
+ * Auth: Admin only
+ */
+router.get('/stats',
+  authenticate,
+  authorize(['admin']),
+  asyncHandler(AuthController.getAuthStats)
+);
+
+
 
 module.exports = router; 

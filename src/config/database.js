@@ -1,6 +1,7 @@
 const { Pool } = require('pg');
-const mongoose = require('mongoose');
+// MongoDB removed - using PostgreSQL only
 const config = require('./index');
+const { info, error: logError, debug, warn } = require('../utils/logger');
 
 // PostgreSQL connection
 let pgPool;
@@ -22,29 +23,17 @@ async function connectPostgreSQL() {
 
     // Test connection
     const client = await pgPool.connect();
-    console.log('✅ PostgreSQL connected successfully');
+    info(' PostgreSQL connected successfully');
     client.release();
     
     return pgPool;
   } catch (error) {
-    console.error('❌ PostgreSQL connection failed:', error);
+    logError(' PostgreSQL connection failed:', error);
     throw error;
   }
 }
 
-// MongoDB connection
-async function connectMongoDB() {
-  try {
-    await mongoose.connect(config.databases.mongodb.uri, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
-    console.log('✅ MongoDB connected successfully');
-  } catch (error) {
-    console.error('❌ MongoDB connection failed:', error);
-    throw error;
-  }
-}
+// MongoDB connection removed - using PostgreSQL only
 
 function getPostgreSQLPool() {
   if (!pgPool) {
@@ -53,13 +42,9 @@ function getPostgreSQLPool() {
   return pgPool;
 }
 
-function getMongooseConnection() {
-  return mongoose.connection;
-}
+// MongoDB connection getter removed - using PostgreSQL only
 
 module.exports = {
   connectPostgreSQL,
-  connectMongoDB,
-  getPostgreSQLPool,
-  getMongooseConnection
+  getPostgreSQLPool
 }; 

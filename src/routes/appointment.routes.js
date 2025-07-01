@@ -1,30 +1,214 @@
 const express = require('express');
 const AppointmentController = require('../controllers/appointment.controller');
 const asyncHandler = require('../utils/asyncHandler');
-const { SuccessResponse } = require('../utils/httpResponses');
+const { 
+  authenticate, 
+  authorize, 
+  authorizeAppointmentAccess, 
+  authorizePatientAppointments 
+} = require('../middleware/auth.middleware');
 
 const router = express.Router();
 
-// Placeholder routes - to be implemented with actual controllers
-router.get('/', asyncHandler(async (req, res) => {
-  const response = new SuccessResponse('Appointments retrieved successfully', 200, []);
-  response.send(res);
-}));
+/**
+ * ===============================================
+ * STANDARDIZED APPOINTMENT BOOKING API ROUTES
+ * ===============================================
+ * 
+ * Authorization Rules:
+ * - Patients: Can only see their own appointments
+ * - Doctors/Staff/Admin: Can see all appointments
+ * - Public: Can view doctor availability only
+ */
 
-router.post('/', asyncHandler(AppointmentController.createAppointment));
+// ===============================================
+// PUBLIC ROUTES (No Authentication Required)
+// ===============================================
 
-router.get('/:id', asyncHandler(AppointmentController.getAppointmentById));
+/**
+ * Get available doctors
+ * GET /appointments/doctors?is_available=true&specialization=chiropractic&date=2025-06-29
+ */
+router.get('/doctors', 
+  asyncHandler(AppointmentController.getAllDoctors)
+);
 
-router.put('/:id', asyncHandler(AppointmentController.updateAppointment));
+/**
+ * Get doctor availability  
+ * GET /appointments/doctors/:doctorId/availability?date=2025-06-29&days_ahead=30
+ */
+router.get('/doctors/:doctorId/availability', 
+  asyncHandler(AppointmentController.getDoctorAvailability)
+);
 
-router.delete('/:id', asyncHandler(AppointmentController.cancelAppointment));
+// ===============================================
+// APPOINTMENT BOOKING ROUTES (Doctor/Staff Only)
+// ===============================================
 
-// Doctor routes
-router.get('/doctors', asyncHandler(async (req, res) => {
-  const response = new SuccessResponse('Doctors retrieved successfully', 200, []);
-  response.send(res);
-}));
+/**
+ * Create new appointment (Doctor/Staff only)
+ * POST /appointments
+ * Body: { doctor_id, patient_name, appointment_date, appointment_time, ... }
+ * Auth: doctor, admin, staff
+ */
+router.post('/', 
+  authenticate, 
+  authorize('doctor', 'admin', 'staff'), 
+  asyncHandler(AppointmentController.createAppointment)
+);
 
-router.post('/quick-schedule', asyncHandler(AppointmentController.quickSchedule));
+/**
+ * Quick appointment booking (Doctor/Staff only)
+ * POST /appointments/quick-book
+ * Body: { patient_name, patient_phone, doctor_id, appointment_date, appointment_time }
+ * Auth: doctor, admin, staff
+ */
+router.post('/quick-book', 
+  authenticate, 
+  authorize('doctor', 'admin', 'staff'), 
+  asyncHandler(AppointmentController.quickBookAppointment)
+);
+
+// ===============================================
+// UTILITY ROUTES (All Authenticated Users)
+// ===============================================
+
+/**
+ * Check appointment availability
+ * POST /appointments/check-availability
+ * Body: { doctor_id, date, time, duration_minutes }
+ * Auth: Any authenticated user
+ */
+router.post('/check-availability', 
+  authenticate, 
+  asyncHandler(AppointmentController.checkAvailability)
+);
+
+/**
+ * Book appointment for current user (Patient self-booking)
+ * POST /appointments/book
+ * Body: { doctor_id, date, time, reason_for_visit, additional_notes, duration }
+ * Auth: patient only
+ */
+router.post('/book', 
+  authenticate, 
+  authorize('patient'), 
+  asyncHandler(AppointmentController.bookAppointmentForSelf)
+);
+
+// ===============================================
+// PATIENT-SPECIFIC ROUTES (Patients Only)
+// ===============================================
+
+/**
+ * Get current user's appointments (Patients only - can only see their own)
+ * GET /appointments/me?status=scheduled&upcoming_only=true&page=1&limit=10
+ * Auth: patient only
+ */
+router.get('/me', 
+  authenticate, 
+  authorize('patient'),
+  asyncHandler(AppointmentController.getMyAppointments)
+);
+
+// ===============================================
+// STAFF/DOCTOR MANAGEMENT ROUTES
+// ===============================================
+
+/**
+ * Get appointments by patient ID (Doctor/Staff only)
+ * GET /appointments/patient/:patientId?status=scheduled&date_from=2025-01-01
+ * Auth: doctor, admin, staff only
+ */
+router.get('/patient/:patientId', 
+  authenticate, 
+  authorize('doctor', 'admin', 'staff'),
+  asyncHandler(AppointmentController.getPatientAppointments)
+);
+
+/**
+ * Get appointment statistics (Doctor/Staff only)
+ * GET /appointments/stats?date_from=2025-01-01&date_to=2025-12-31
+ * Auth: doctor, admin, staff
+ */
+router.get('/stats', 
+  authenticate, 
+  authorize('doctor', 'admin', 'staff'),
+  asyncHandler(AppointmentController.getAppointmentStats)
+);
+
+/**
+ * Get appointments (Role-based filtering)
+ * GET /appointments?status=scheduled&doctor_id=1&page=1&limit=10
+ * Auth: All authenticated users
+ * - Patients: Only see their own appointments
+ * - Doctors: Only see appointments assigned to them
+ * - Staff/Admin: See all appointments
+ */
+router.get('/', 
+  authenticate, 
+  authorize('doctor', 'admin', 'staff', 'patient'), 
+  asyncHandler(AppointmentController.getAllAppointments)
+);
+
+// ===============================================
+// INDIVIDUAL APPOINTMENT ROUTES
+// ===============================================
+
+/**
+ * Get specific appointment by ID
+ * Auth: All roles (with ownership verification)
+ * - Patients: Only their own appointments
+ * - Doctors/Staff: Any appointment
+ */
+router.get('/:id', 
+  authenticate, 
+  authorize('doctor', 'admin', 'staff', 'patient'),
+  authorizeAppointmentAccess,
+  asyncHandler(AppointmentController.getAppointmentById)
+);
+
+/**
+ * Update appointment (Doctor/Staff only)
+ * PUT /appointments/:id
+ * Body: { appointment_date, appointment_time, status, notes, ... }
+ * Auth: doctor, admin, staff only
+ */
+router.put('/:id', 
+  authenticate, 
+  authorize('doctor', 'admin', 'staff'),
+  authorizeAppointmentAccess,
+  asyncHandler(AppointmentController.updateAppointment)
+);
+
+/**
+ * Reschedule appointment
+ * PUT /appointments/:id/reschedule
+ * Body: { new_date, new_time, reason }
+ * Auth: All roles (with ownership verification)
+ * - Patients: Only their own appointments
+ * - Doctors/Staff: Any appointment
+ */
+router.put('/:id/reschedule', 
+  authenticate, 
+  authorize('doctor', 'admin', 'staff', 'patient'),
+  authorizeAppointmentAccess,
+  asyncHandler(AppointmentController.rescheduleAppointment)
+);
+
+/**
+ * Cancel/Delete appointment
+ * DELETE /appointments/:id
+ * Body: { reason, notify_patient }
+ * Auth: All roles (with ownership verification)
+ * - Patients: Only their own appointments
+ * - Doctors/Staff: Any appointment
+ */
+router.delete('/:id', 
+  authenticate, 
+  authorize('doctor', 'admin', 'staff', 'patient'),
+  authorizeAppointmentAccess,
+  asyncHandler(AppointmentController.cancelAppointment)
+);
 
 module.exports = router; 

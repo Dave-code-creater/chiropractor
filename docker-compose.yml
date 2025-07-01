@@ -1,10 +1,10 @@
+
+
 services:
-  # Main Clinic Management Application
-  chiropractor-app:
+  # Main Application - Chiropractor Clinic Management System
+  app:
     build: .
     container_name: chiropractor-clinic-app
-    ports:
-      - "3000:3000"
     environment:
       - NODE_ENV=development
       - PORT=3000
@@ -13,23 +13,22 @@ services:
       - DB_USER=postgres
       - DB_PASS=password
       - DB_NAME=chiropractor_clinic
-      - DATABASE_SSL=false
-      - DATABASE_POOL_MIN=2
-      - DATABASE_POOL_MAX=20
-      - MONGO_URI=mongodb://mongo:27017/chiropractor_clinic
+
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - JWT_SECRET=clinic-super-secure-jwt-secret-key-for-patient-management-2024
-      - JWT_EXPIRES_IN=24h
-      - CORS_ORIGIN=http://localhost:5173
-      - RATE_LIMIT_MAX_REQUESTS=1000
-      - RATE_LIMIT_WINDOW_MS=900000
+      - REDIS_PASSWORD=
+      - JWT_SECRET=chiropractor-jwt-secret-key-dev-only
+      - JWT_REFRESH_SECRET=chiropractor-jwt-refresh-secret-key-dev-only
+      - JWT_EXPIRES_IN=15m
+      - JWT_REFRESH_EXPIRES_IN=7d
       - BCRYPT_ROUNDS=12
-      - LOG_LEVEL=info
+      - CORS_ORIGIN=http://localhost:5173
+      - RATE_LIMIT_WINDOW_MS=900000
+      - RATE_LIMIT_MAX_REQUESTS=1000
+    ports:
+      - "3000:3000"
     depends_on:
       postgres:
-        condition: service_healthy
-      mongo:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -70,27 +69,7 @@ services:
       retries: 5
       start_period: 30s
 
-  # MongoDB Database - Blog, Chat & File Storage
-  mongo:
-    image: mongo:7-jammy
-    container_name: chiropractor-mongo-db
-    environment:
-      - MONGO_INITDB_DATABASE=chiropractor_clinic
-      - MONGO_INITDB_ROOT_USERNAME=admin
-      - MONGO_INITDB_ROOT_PASSWORD=password
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongo_data:/data/db
-    networks:
-      - clinic-network
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
+  # MongoDB removed - using PostgreSQL only for simplified architecture
 
   # Redis - Sessions, Caching & Real-time Features
   redis:
@@ -111,63 +90,7 @@ services:
       retries: 5
       start_period: 20s
 
-  # Database Administration Tools
-  pgadmin:
-    image: dpage/pgadmin4:latest
-    container_name: chiropractor-pgadmin
-    environment:
-      - PGADMIN_DEFAULT_EMAIL=admin@clinic.com
-      - PGADMIN_DEFAULT_PASSWORD=admin123
-      - PGADMIN_CONFIG_SERVER_MODE=False
-    ports:
-      - "5050:80"
-    depends_on:
-      postgres:
-        condition: service_healthy
-    volumes:
-      - pgadmin_data:/var/lib/pgadmin
-    networks:
-      - clinic-network
-    restart: unless-stopped
-    profiles:
-      - admin
-
-  mongo-express:
-    image: mongo-express:latest
-    container_name: chiropractor-mongo-express
-    environment:
-      - ME_CONFIG_MONGODB_URL=mongodb://admin:password@mongo:27017/chiropractor_clinic?authSource=admin
-      - ME_CONFIG_BASICAUTH_USERNAME=admin
-      - ME_CONFIG_BASICAUTH_PASSWORD=admin123
-      - ME_CONFIG_MONGODB_ADMINUSERNAME=admin
-      - ME_CONFIG_MONGODB_ADMINPASSWORD=password
-    ports:
-      - "8081:8081"
-    depends_on:
-      mongo:
-        condition: service_healthy
-    networks:
-      - clinic-network
-    restart: unless-stopped
-    profiles:
-      - admin
-
-  # Redis Commander (Redis Admin UI)
-  redis-commander:
-    image: rediscommander/redis-commander:latest
-    container_name: chiropractor-redis-commander
-    environment:
-      - REDIS_HOSTS=local:redis:6379
-    ports:
-      - "8082:8081"
-    depends_on:
-      redis:
-        condition: service_healthy
-    networks:
-      - clinic-network
-    restart: unless-stopped
-    profiles:
-      - admin
+  # mongo-express removed - using PostgreSQL only
 
   # Test Runner Service
   test-runner:
@@ -180,14 +103,12 @@ services:
       - DB_USER=postgres
       - DB_PASS=password
       - DB_NAME=chiropractor_clinic_test
-      - MONGO_URI=mongodb://admin:password@mongo:27017/chiropractor_clinic_test?authSource=admin
+
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - JWT_SECRET=test-jwt-secret-key
     depends_on:
       postgres:
-        condition: service_healthy
-      mongo:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -203,11 +124,8 @@ services:
 volumes:
   postgres_data:
     driver: local
-  mongo_data:
-    driver: local
+
   redis_data:
-    driver: local
-  pgadmin_data:
     driver: local
 
 networks:

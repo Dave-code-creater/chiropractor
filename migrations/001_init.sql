@@ -4,7 +4,7 @@
 
 -- Create enums first
 CREATE TYPE gender_enum AS ENUM ('male','female','other');
-CREATE TYPE role_enum AS ENUM ('patient','doctor','staff');
+CREATE TYPE role_enum AS ENUM ('patient','doctor','staff','admin');
 CREATE TYPE marriage_status AS ENUM ('Single','Married','Divorced','Widowed','Other');
 CREATE TYPE race AS ENUM ('White','Black','Asian','Hispanic','Other');
 CREATE TYPE insurance_type AS ENUM ('Private','Medicare','Medicaid','Self-pay','Other');
@@ -213,13 +213,25 @@ CREATE TABLE appointments (
   id SERIAL PRIMARY KEY,
   patient_id INT REFERENCES patients(id) ON DELETE CASCADE,
   doctor_id INT REFERENCES doctors(id) ON DELETE CASCADE,
+  patient_user_id INT REFERENCES users(id),
+  patient_name TEXT,
+  patient_phone TEXT,
+  patient_email TEXT,
   appointment_date DATE NOT NULL,
   appointment_time TIME NOT NULL,
+  appointment_datetime TIMESTAMPTZ,
+  appointment_type TEXT DEFAULT 'consultation',
+  location TEXT DEFAULT 'Clinic',
+  reason_for_visit TEXT,
+  additional_notes TEXT,
   duration_minutes INT DEFAULT 30,
   status TEXT DEFAULT 'scheduled',
   notes TEXT,
+  created_by INT REFERENCES users(id),
   created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  CONSTRAINT check_patient_reference 
+    CHECK (patient_id IS NOT NULL OR patient_user_id IS NOT NULL OR patient_email IS NOT NULL)
 );
 
 -- ========================================
@@ -292,6 +304,36 @@ CREATE TABLE emergency_contacts (
 );
 
 -- ========================================
+-- CHAT SYSTEM TABLES
+-- ========================================
+CREATE TABLE conversations (
+  id SERIAL PRIMARY KEY,
+  patient_id INT REFERENCES patients(id) ON DELETE CASCADE,
+  doctor_id INT REFERENCES doctors(id) ON DELETE CASCADE,
+  conversation_type TEXT DEFAULT 'general',
+  subject TEXT,
+  priority TEXT DEFAULT 'normal',
+  status TEXT DEFAULT 'active',
+  last_message_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE messages (
+  id SERIAL PRIMARY KEY,
+  conversation_id INT REFERENCES conversations(id) ON DELETE CASCADE,
+  sender_id INT REFERENCES users(id) ON DELETE CASCADE,
+  sender_type TEXT NOT NULL,
+  message_content TEXT NOT NULL,
+  message_type TEXT DEFAULT 'text',
+  attachment_url TEXT,
+  attachment_type TEXT,
+  is_read BOOLEAN DEFAULT FALSE,
+  sent_at TIMESTAMPTZ DEFAULT NOW(),
+  read_at TIMESTAMPTZ
+);
+
+-- ========================================
 -- INDEXES FOR PERFORMANCE
 -- ========================================
 CREATE INDEX idx_users_email ON users(email);
@@ -310,8 +352,14 @@ CREATE INDEX idx_doctors_status ON doctors(status);
 
 CREATE INDEX idx_appointments_patient_id ON appointments(patient_id);
 CREATE INDEX idx_appointments_doctor_id ON appointments(doctor_id);
+CREATE INDEX idx_appointments_patient_user_id ON appointments(patient_user_id);
+CREATE INDEX idx_appointments_patient_email ON appointments(patient_email);
 CREATE INDEX idx_appointments_date ON appointments(appointment_date);
+CREATE INDEX idx_appointments_datetime ON appointments(appointment_datetime);
+CREATE INDEX idx_appointments_appointment_type ON appointments(appointment_type);
+CREATE INDEX idx_appointments_location ON appointments(location);
 CREATE INDEX idx_appointments_status ON appointments(status);
+CREATE INDEX idx_appointments_created_by ON appointments(created_by);
 
 CREATE INDEX idx_reports_patient_id ON reports(patient_id);
 CREATE INDEX idx_reports_doctor_id ON reports(doctor_id);
@@ -332,6 +380,43 @@ CREATE INDEX idx_api_keys_key ON api_keys(key);
 CREATE INDEX idx_health_conditions_user_id ON health_conditions(user_id);
 CREATE INDEX idx_insurance_details_user_id ON insurance_details(user_id);
 CREATE INDEX idx_patient_intake_responses_user_id ON patient_intake_responses(user_id);
+
+CREATE INDEX idx_conversations_patient_id ON conversations(patient_id);
+CREATE INDEX idx_conversations_doctor_id ON conversations(doctor_id);
+CREATE INDEX idx_conversations_status ON conversations(status);
+CREATE INDEX idx_conversations_last_message_at ON conversations(last_message_at);
+
+CREATE INDEX idx_messages_conversation_id ON messages(conversation_id);
+CREATE INDEX idx_messages_sender_id ON messages(sender_id);
+CREATE INDEX idx_messages_sent_at ON messages(sent_at);
+CREATE INDEX idx_messages_is_read ON messages(is_read);
+
+-- ========================================
+-- DATA FIXES AND MAINTENANCE
+-- ========================================
+
+-- Fix existing appointments by populating patient_user_id
+-- This ensures appointments are properly linked to user accounts
+UPDATE appointments 
+SET patient_user_id = u.id
+FROM users u 
+WHERE appointments.patient_email = u.email 
+  AND appointments.patient_user_id IS NULL
+  AND u.email IS NOT NULL;
+
+-- Update patient_id for appointments where we have a patient record
+-- This creates proper foreign key relationships
+UPDATE appointments 
+SET patient_id = p.id
+FROM patients p, users u 
+WHERE appointments.patient_user_id = u.id 
+  AND p.user_id = u.id
+  AND appointments.patient_id IS NULL;
+
+-- Set default location for existing appointments
+UPDATE appointments 
+SET location = 'Clinic'
+WHERE location IS NULL;
 
 -- ========================================
 -- MIGRATION TRACKING

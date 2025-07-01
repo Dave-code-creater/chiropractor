@@ -1,8 +1,8 @@
-const express = require('express');
+const { Router } = require('express');
 const { getPostgreSQLPool, getMongooseConnection } = require('../config/database');
 const { SuccessResponse } = require('../utils/httpResponses');
 
-const router = express.Router();
+const router = Router();
 
 router.get('/', async (req, res) => {
   try {

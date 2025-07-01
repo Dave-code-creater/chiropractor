@@ -6,13 +6,14 @@ const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 const http = require('http');
 const socketIo = require('socket.io');
+const cookieParser = require('cookie-parser');
 
 // Load environment variables
 require('dotenv').config();
 
 // Import configurations
 const config = require('./config');
-const { connectPostgreSQL, connectMongoDB } = require('./config/database');
+const { connectPostgreSQL } = require('./config/database');
 
 // Import routes
 const authRoutes = require('./routes/auth.routes');
@@ -25,7 +26,14 @@ const healthRoutes = require('./routes/health.routes');
 
 // Import middleware
 const errorMiddleware = require('./middleware/error.middleware');
-const authMiddleware = require('./middleware/auth.middleware');
+const { authenticate } = require('./middleware/auth.middleware');
+const asyncHandler = require('./utils/asyncHandler');
+
+// Import logger
+const { info, warn, error: logError } = require('./utils/logger');
+
+// Import controllers for direct routes
+const AppointmentController = require('./controllers/appointment.controller');
 
 // Import socket handlers
 const socketHandler = require('./socket/socket.handler');
@@ -51,6 +59,7 @@ app.use(morgan('combined'));
 app.disable('x-powered-by');
 app.use(helmet());
 app.use(compression());
+app.use(cookieParser());
 
 // CORS configuration
 app.use(cors({
@@ -73,35 +82,14 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
-// Database connections
+// Database connections - PostgreSQL only
 async function initializeDatabases() {
-  let postgresConnected = false;
-  let mongoConnected = false;
-
-  // Try PostgreSQL connection
   try {
     await connectPostgreSQL();
-    postgresConnected = true;
+    info('PostgreSQL connected successfully');
   } catch (error) {
-    console.warn('⚠️ PostgreSQL connection failed:', error.message);
-    console.warn('⚠️ Running without PostgreSQL - some features may not work');
-  }
-
-  // Try MongoDB connection
-  try {
-    await connectMongoDB();
-    mongoConnected = true;
-  } catch (error) {
-    console.warn('⚠️ MongoDB connection failed:', error.message);
-    console.warn('⚠️ Running without MongoDB - blog and chat features may not work');
-  }
-
-  if (postgresConnected && mongoConnected) {
-    console.log('✅ All databases connected successfully');
-  } else if (postgresConnected || mongoConnected) {
-    console.log('⚠️ Partial database connectivity - some features may be limited');
-  } else {
-    console.warn('⚠️ No database connections - running in limited mode');
+    logError('PostgreSQL connection failed:', { message: error.message });
+    throw error; // Exit if PostgreSQL fails since it's our only database
   }
 }
 
@@ -115,11 +103,11 @@ const apiV1 = express.Router();
 apiV1.use('/auth', authRoutes);
 
 // Protected routes (auth required)
-apiV1.use('/users', authMiddleware, userRoutes);
-apiV1.use('/appointments', authMiddleware, appointmentRoutes);
-apiV1.use('/blog', authMiddleware, blogRoutes);
-apiV1.use('/chat', authMiddleware, chatRoutes);
-apiV1.use('/reports', authMiddleware, reportRoutes);
+apiV1.use('/users', userRoutes);
+apiV1.use('/appointments', appointmentRoutes);
+apiV1.use('/blog', blogRoutes);
+apiV1.use('/chat', chatRoutes);
+apiV1.use('/reports', reportRoutes);
 
 // Mount API routes
 app.use('/v1/api/2025', apiV1);
@@ -149,28 +137,28 @@ async function startServer() {
     
     const PORT = process.env.PORT || 3000;
     server.listen(PORT, () => {
-      console.log(`🚀 Chiropractor Monolith Server running on port ${PORT}`);
-      console.log(`🌐 CORS origin: ${process.env.CORS_ORIGIN || 'http://localhost:5173'}`);
-      console.log(`📊 Health check: http://localhost:${PORT}/health`);
+      info(`Chiropractor Monolith Server running on port ${PORT}`);
+      info(`CORS origin: ${process.env.CORS_ORIGIN || 'http://localhost:5173'}`);
+      info(`Health check: http://localhost:${PORT}/health`);
     });
   } catch (error) {
-    console.error('❌ Failed to start server:', error);
+    logError('Failed to start server:', error);
     process.exit(1);
   }
 }
 
 // Graceful shutdown
 process.on('SIGTERM', () => {
-  console.log('SIGTERM received, shutting down gracefully');
+  info('SIGTERM received, shutting down gracefully');
   server.close(() => {
-    console.log('Process terminated');
+    info('Process terminated');
   });
 });
 
 process.on('SIGINT', () => {
-  console.log('SIGINT received, shutting down gracefully');
+  info('SIGINT received, shutting down gracefully');
   server.close(() => {
-    console.log('Process terminated');
+    info('Process terminated');
   });
 });
 

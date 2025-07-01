@@ -1,4 +1,9 @@
-const { SuccessResponse, ErrorResponse } = require('../utils/httpResponses');
+const { 
+  ReportCreatedSuccess, 
+  ReportsRetrievedSuccess, 
+  SuccessResponse, 
+  ErrorResponse 
+} = require('../utils/httpResponses');
 const { getPostgreSQLPool } = require('../config/database');
 const { 
   patientIntakeSchema, 
@@ -9,97 +14,91 @@ const {
   healthConditionSchema, 
   doctorInitialReportSchema 
 } = require('../validators');
+const ReportService = require('../services/ReportService');
+const { api, error: logError, info, debug } = require('../utils/logger');
 
+/**
+ * Report Controller
+ * Static methods that handle HTTP concerns and delegate business logic to ReportService
+ * 
+ * Flow: [Routing] -> [Controller] -> [Service] -> [Repository] -> [Database]
+ */
 class ReportController {
-  static async createPatientIntake(req, res) {
-    try {
-      console.log('Creating patient intake report:', { name: req.body?.name });
+  /**
+   * Create a patient intake report
+   * POST /api/reports/patient-intake
+   */
+  static async createPatientIntakeReport(req, res) {
+    const report = await ReportService.createPatientIntakeReport(req.body, req);
+    return new ReportCreatedSuccess({ metadata: report }).send(res);
+  }
 
-      // Validate request body
-      const { error, value } = patientIntakeSchema.validate(req.body);
-      if (error) {
-        throw new ErrorResponse(`Validation error: ${error.details[0].message}`, 400, '4001');
-      }
+  /**
+   * Create a doctor's initial report
+   * POST /api/reports/doctor-initial
+   */
+  static async createDoctorInitialReport(req, res) {
+    const report = await ReportService.createDoctorInitialReport(req.body, req);
+    return new ReportCreatedSuccess({ metadata: report }).send(res);
+  }
 
-      const {
-        name, first_name, middle_name, last_name, date_of_birth, address, city, state, zip_code,
-        home_phone, work_phone, cell_phone, email, ssn, emergency_contact_name,
-        emergency_contact_phone, emergency_contact_relationship
-      } = value;
+  /**
+   * Get all reports
+   * GET /api/reports
+   */
+  static async getAllReports(req, res) {
+    const reports = await ReportService.getAllReports(req.query);
+    return new ReportsRetrievedSuccess({ metadata: reports }).send(res);
+  }
 
-      const pool = getPostgreSQLPool();
-      if (!pool) {
-        throw new ErrorResponse('Database connection not available', 503, '5030');
-      }
+  /**
+   * Get report by ID
+   * GET /api/reports/:id
+   */
+  static async getReportById(req, res) {
+    const report = await ReportService.getReportById(req.params.id);
+    return new SuccessResponse('Report retrieved successfully', 200, report).send(res);
+  }
 
-      const client = await pool.connect();
+  /**
+   * Update report
+   * PUT /api/reports/:id
+   */
+  static async updateReport(req, res) {
+    const report = await ReportService.updateReport(req.params.id, req.body);
+    return new SuccessResponse('Report updated successfully', 200, report).send(res);
+  }
 
-      try {
-        // Insert patient intake report
-        const reportResult = await client.query(
-          `INSERT INTO patient_intake_reports (
-            name, first_name, middle_name, last_name, date_of_birth, address, city, state, zip_code,
-            home_phone, work_phone, cell_phone, email, ssn, emergency_contact_name,
-            emergency_contact_phone, emergency_contact_relationship, status, created_at, updated_at
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, 'active', NOW(), NOW())
-          RETURNING *`,
-          [
-            name, first_name, middle_name, last_name, date_of_birth, address, city, state, zip_code,
-            home_phone, work_phone, cell_phone, email, ssn, emergency_contact_name,
-            emergency_contact_phone, emergency_contact_relationship
-          ]
-        );
+  /**
+   * Get patient reports
+   * GET /api/reports/patients/:patientId
+   */
+  static async getPatientReports(req, res) {
+    const reports = await ReportService.getPatientReports(req.params.patientId, req.query);
+    return new SuccessResponse('Patient reports retrieved successfully', 200, reports).send(res);
+  }
 
-        const report = reportResult.rows[0];
+  /**
+   * Get doctor reports
+   * GET /api/reports/doctors/:doctorId
+   */
+  static async getDoctorReports(req, res) {
+    const reports = await ReportService.getDoctorReports(req.params.doctorId, req.query);
+    return new SuccessResponse('Doctor reports retrieved successfully', 200, reports).send(res);
+  }
 
-        console.log('Patient intake report created successfully:', { id: report.id });
-
-        const response = new SuccessResponse('Patient intake report created successfully', 201, {
-          report: {
-            id: report.id,
-            name: report.name,
-            first_name: report.first_name,
-            middle_name: report.middle_name,
-            last_name: report.last_name,
-            date_of_birth: report.date_of_birth,
-            address: report.address,
-            city: report.city,
-            state: report.state,
-            zip_code: report.zip_code,
-            home_phone: report.home_phone,
-            work_phone: report.work_phone,
-            cell_phone: report.cell_phone,
-            email: report.email,
-            ssn: report.ssn,
-            emergency_contact_name: report.emergency_contact_name,
-            emergency_contact_phone: report.emergency_contact_phone,
-            emergency_contact_relationship: report.emergency_contact_relationship,
-            status: report.status,
-            created_at: report.created_at,
-            updated_at: report.updated_at
-          }
-        });
-
-        response.send(res);
-
-      } finally {
-        client.release();
-      }
-
-    } catch (error) {
-      console.error('Patient intake report creation error:', error);
-      if (error instanceof ErrorResponse) {
-        error.send(res);
-      } else {
-        const errorResponse = new ErrorResponse('Internal server error during patient intake report creation', 500, '5000');
-        errorResponse.send(res);
-      }
-    }
+  /**
+   * Generate report summary
+   * GET /api/reports/:id/summary
+   */
+  static async generateReportSummary(req, res) {
+    const summary = await ReportService.generateReportSummary(req.params.id);
+    return new SuccessResponse('Report summary generated successfully', 200, summary).send(res);
   }
 
   static async createInsuranceDetails(req, res) {
     try {
-      console.log('Creating insurance details report:', { name: req.body?.name });
+      info('Creating insurance details report:', { name: req.body?.name });
 
       // Validate request body
       const { error, value } = insuranceDetailsSchema.validate(req.body);
@@ -141,7 +140,7 @@ class ReportController {
 
         const report = reportResult.rows[0];
 
-        console.log('Insurance details report created successfully:', { id: report.id });
+        info('Insurance details report created successfully:', { id: report.id });
 
         const response = new SuccessResponse('Insurance details report created successfully', 201, {
           report: {
@@ -179,7 +178,7 @@ class ReportController {
       }
 
     } catch (error) {
-      console.error('Insurance details report creation error:', error);
+      logError('Insurance details report creation error:', error);
       if (error instanceof ErrorResponse) {
         error.send(res);
       } else {
@@ -191,7 +190,7 @@ class ReportController {
 
   static async createPainEvaluation(req, res) {
     try {
-      console.log('Creating pain evaluation report:', { name: req.body?.name });
+      info('Creating pain evaluation report:', { name: req.body?.name });
 
       // Validate request body
       const { error, value } = painEvaluationSchema.validate(req.body);
@@ -220,7 +219,7 @@ class ReportController {
 
         const report = reportResult.rows[0];
 
-        console.log('Pain evaluation report created successfully:', { id: report.id });
+        info('Pain evaluation report created successfully:', { id: report.id });
 
         const response = new SuccessResponse('Pain evaluation report created successfully', 201, {
           report: {
@@ -240,7 +239,7 @@ class ReportController {
       }
 
     } catch (error) {
-      console.error('Pain evaluation report creation error:', error);
+      logError('Pain evaluation report creation error:', error);
       if (error instanceof ErrorResponse) {
         error.send(res);
       } else {
@@ -252,7 +251,7 @@ class ReportController {
 
   static async createDetailedDescription(req, res) {
     try {
-      console.log('Creating detailed description report:', { name: req.body?.name });
+      info('Creating detailed description report:', { name: req.body?.name });
 
       // Validate request body
       const { error, value } = detailedDescriptionSchema.validate(req.body);
@@ -281,7 +280,7 @@ class ReportController {
 
         const report = reportResult.rows[0];
 
-        console.log('Detailed description report created successfully:', { id: report.id });
+        info('Detailed description report created successfully:', { id: report.id });
 
         const response = new SuccessResponse('Detailed description report created successfully', 201, {
           report: {
@@ -303,7 +302,7 @@ class ReportController {
       }
 
     } catch (error) {
-      console.error('Detailed description report creation error:', error);
+      logError('Detailed description report creation error:', error);
       if (error instanceof ErrorResponse) {
         error.send(res);
       } else {
@@ -315,7 +314,7 @@ class ReportController {
 
   static async createWorkImpact(req, res) {
     try {
-      console.log('Creating work impact report:', { name: req.body?.name });
+      info('Creating work impact report:', { name: req.body?.name });
 
       // Validate request body
       const { error, value } = workImpactSchema.validate(req.body);
@@ -344,7 +343,7 @@ class ReportController {
 
         const report = reportResult.rows[0];
 
-        console.log('Work impact report created successfully:', { id: report.id });
+        info('Work impact report created successfully:', { id: report.id });
 
         const response = new SuccessResponse('Work impact report created successfully', 201, {
           report: {
@@ -368,7 +367,7 @@ class ReportController {
       }
 
     } catch (error) {
-      console.error('Work impact report creation error:', error);
+      logError('Work impact report creation error:', error);
       if (error instanceof ErrorResponse) {
         error.send(res);
       } else {
@@ -380,7 +379,7 @@ class ReportController {
 
   static async createHealthCondition(req, res) {
     try {
-      console.log('Creating health condition report:', { name: req.body?.name });
+      info('Creating health condition report:', { name: req.body?.name });
 
       // Validate request body
       const { error, value } = healthConditionSchema.validate(req.body);
@@ -420,7 +419,7 @@ class ReportController {
 
         const report = reportResult.rows[0];
 
-        console.log('Health condition report created successfully:', { id: report.id });
+        info('Health condition report created successfully:', { id: report.id });
 
         const response = new SuccessResponse('Health condition report created successfully', 201, {
           report: {
@@ -453,161 +452,11 @@ class ReportController {
       }
 
     } catch (error) {
-      console.error('Health condition report creation error:', error);
+      logError('Health condition report creation error:', error);
       if (error instanceof ErrorResponse) {
         error.send(res);
       } else {
         const errorResponse = new ErrorResponse('Internal server error during health condition report creation', 500, '5000');
-        errorResponse.send(res);
-      }
-    }
-  }
-
-  static async createDoctorInitialReport(req, res) {
-    try {
-      console.log('Creating doctor initial report:', { patient_id: req.body?.patient_id });
-
-      // Validate request body
-      const { error, value } = doctorInitialReportSchema.validate(req.body);
-      if (error) {
-        throw new ErrorResponse(`Validation error: ${error.details[0].message}`, 400, '4001');
-      }
-
-      const {
-        patient_id, chief_complaint, history_of_present_illness, physical_examination,
-        assessment, treatment, plan
-      } = value;
-
-      const pool = getPostgreSQLPool();
-      if (!pool) {
-        throw new ErrorResponse('Database connection not available', 503, '5030');
-      }
-
-      const client = await pool.connect();
-
-      try {
-        // Verify patient exists
-        const patientCheck = await client.query(
-          'SELECT id, first_name, last_name FROM patients WHERE id = $1 AND status = $2',
-          [patient_id, 'active']
-        );
-
-        if (patientCheck.rows.length === 0) {
-          throw new ErrorResponse('Patient not found', 404, '4041');
-        }
-
-        const patient = patientCheck.rows[0];
-
-        // Insert doctor initial report
-        const reportResult = await client.query(
-          `INSERT INTO doctor_initial_reports (
-            patient_id, chief_complaint, history_of_present_illness, physical_examination,
-            assessment, treatment, plan, status, created_at, updated_at
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, 'active', NOW(), NOW())
-          RETURNING *`,
-          [patient_id, chief_complaint, history_of_present_illness, physical_examination, assessment, treatment, plan]
-        );
-
-        const report = reportResult.rows[0];
-
-        console.log('Doctor initial report created successfully:', { id: report.id, patient_id });
-
-        const response = new SuccessResponse('Doctor initial report created successfully', 201, {
-          report: {
-            id: report.id,
-            patient_id: report.patient_id,
-            patient_name: `${patient.first_name} ${patient.last_name}`,
-            chief_complaint: report.chief_complaint,
-            history_of_present_illness: report.history_of_present_illness,
-            physical_examination: report.physical_examination,
-            assessment: report.assessment,
-            treatment: report.treatment,
-            plan: report.plan,
-            status: report.status,
-            created_at: report.created_at,
-            updated_at: report.updated_at
-          }
-        });
-
-        response.send(res);
-
-      } finally {
-        client.release();
-      }
-
-    } catch (error) {
-      console.error('Doctor initial report creation error:', error);
-      if (error instanceof ErrorResponse) {
-        error.send(res);
-      } else {
-        const errorResponse = new ErrorResponse('Internal server error during doctor initial report creation', 500, '5000');
-        errorResponse.send(res);
-      }
-    }
-  }
-
-  static async getAllReports(req, res) {
-    try {
-      const pool = getPostgreSQLPool();
-      if (!pool) {
-        throw new ErrorResponse('Database connection not available', 503, '5030');
-      }
-
-      const client = await pool.connect();
-
-      try {
-        // Get all report types
-        const [
-          patientIntakeReports,
-          insuranceDetailsReports,
-          painEvaluationReports,
-          detailedDescriptionReports,
-          workImpactReports,
-          healthConditionReports,
-          doctorInitialReports
-        ] = await Promise.all([
-          client.query('SELECT * FROM patient_intake_reports WHERE status = $1 ORDER BY created_at DESC', ['active']),
-          client.query('SELECT * FROM insurance_details_reports WHERE status = $1 ORDER BY created_at DESC', ['active']),
-          client.query('SELECT * FROM pain_evaluation_reports WHERE status = $1 ORDER BY created_at DESC', ['active']),
-          client.query('SELECT * FROM detailed_description_reports WHERE status = $1 ORDER BY created_at DESC', ['active']),
-          client.query('SELECT * FROM work_impact_reports WHERE status = $1 ORDER BY created_at DESC', ['active']),
-          client.query('SELECT * FROM health_condition_reports WHERE status = $1 ORDER BY created_at DESC', ['active']),
-          client.query('SELECT * FROM doctor_initial_reports WHERE status = $1 ORDER BY created_at DESC', ['active'])
-        ]);
-
-        const response = new SuccessResponse('Reports retrieved successfully', 200, {
-          reports: {
-            patient_intake: patientIntakeReports.rows,
-            insurance_details: insuranceDetailsReports.rows,
-            pain_evaluation: painEvaluationReports.rows,
-            detailed_description: detailedDescriptionReports.rows,
-            work_impact: workImpactReports.rows,
-            health_condition: healthConditionReports.rows,
-            doctor_initial: doctorInitialReports.rows
-          },
-          total_count: {
-            patient_intake: patientIntakeReports.rows.length,
-            insurance_details: insuranceDetailsReports.rows.length,
-            pain_evaluation: painEvaluationReports.rows.length,
-            detailed_description: detailedDescriptionReports.rows.length,
-            work_impact: workImpactReports.rows.length,
-            health_condition: healthConditionReports.rows.length,
-            doctor_initial: doctorInitialReports.rows.length
-          }
-        });
-
-        response.send(res);
-
-      } finally {
-        client.release();
-      }
-
-    } catch (error) {
-      console.error('Get reports error:', error);
-      if (error instanceof ErrorResponse) {
-        error.send(res);
-      } else {
-        const errorResponse = new ErrorResponse('Internal server error while retrieving reports', 500, '5000');
         errorResponse.send(res);
       }
     }

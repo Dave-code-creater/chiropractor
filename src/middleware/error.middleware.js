@@ -1,4 +1,5 @@
 const { ErrorResponse } = require('../utils/httpResponses');
+const { error: logError } = require('../utils/logger');
 
 const errorMiddleware = (error, req, res, next) => {
   // Handle custom ErrorResponse instances
@@ -57,10 +58,15 @@ const errorMiddleware = (error, req, res, next) => {
     });
   }
 
-  // Log error in development
-  if (process.env.NODE_ENV !== 'production') {
-    console.error('Error:', error);
-  }
+  // Always log errors for debugging
+  logError('Error Middleware caught error:', {
+    message: error.message,
+    name: error.constructor.name,
+    stack: error.stack,
+    code: error.code,
+    statusCode: error.statusCode,
+    timestamp: new Date().toISOString()
+  });
 
   // Generic error response
   return res.status(500).json({

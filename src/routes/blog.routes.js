@@ -1,8 +1,8 @@
-const express = require('express');
+const { Router } = require('express');
 const asyncHandler = require('../utils/asyncHandler');
 const { SuccessResponse } = require('../utils/httpResponses');
 
-const router = express.Router();
+const router = Router();
 
 // Placeholder routes - to be implemented with actual controllers
 router.get('/posts', asyncHandler(async (req, res) => {

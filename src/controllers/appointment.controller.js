@@ -1,619 +1,760 @@
-const { SuccessResponse, ErrorResponse } = require('../utils/httpResponses');
+const { 
+  AppointmentCreatedSuccess, 
+  AppointmentsRetrievedSuccess, 
+  SuccessResponse, 
+  ErrorResponse 
+} = require('../utils/httpResponses');
 const { getPostgreSQLPool } = require('../config/database');
 const { appointmentCreateSchema, quickScheduleSchema, appointmentUpdateSchema } = require('../validators');
+const AppointmentService = require('../services/AppointmentService');
+const { api, error: logError, info } = require('../utils/logger');
 
+/**
+ * ===============================================
+ * APPOINTMENT BOOKING CONTROLLER
+ * ===============================================
+ * 
+ * Comprehensive appointment management system for chiropractor clinic
+ * Handles all appointment booking, scheduling, and management operations
+ * 
+ * Flow: [Routing] -> [Controller] -> [Service] -> [Repository] -> [Database]
+ */
 class AppointmentController {
+  
+  // ===============================================
+  // APPOINTMENT BOOKING ENDPOINTS
+  // ===============================================
+
+  /**
+   * Create a new appointment booking
+   * POST /appointments
+   * 
+   * Supports both registered patients and walk-in bookings
+   */
   static async createAppointment(req, res) {
     try {
-      console.log('Creating appointment:', { doctor_id: req.body?.doctor_id, date: req.body?.appointment_date });
+      api.info(' Creating new appointment:', req.body);
+      
+      const appointmentData = {
+        ...req.body,
+        // Map frontend fields to backend expected fields
+        appointment_date: req.body.date || req.body.appointment_date,
+        appointment_time: req.body.time || req.body.appointment_time,
+        duration_minutes: req.body.duration || req.body.duration_minutes || 30,
+        created_by: req.user?.id
+      };
 
-      // Validate request body
-      const { error, value } = appointmentCreateSchema.validate(req.body);
-      if (error) {
-        throw new ErrorResponse(`Validation error: ${error.details[0].message}`, 400, '4001');
-      }
-
-      const {
-        doctor_id, patient_id, patient_name, patient_phone, patient_email,
-        appointment_date, appointment_time, appointment_type, reason_for_visit,
-        additional_notes, duration_minutes, status
-      } = value;
-
-      const pool = getPostgreSQLPool();
-      if (!pool) {
-        throw new ErrorResponse('Database connection not available', 503, '5030');
-      }
-
-      const client = await pool.connect();
-
-      try {
-        // Begin transaction
-        await client.query('BEGIN');
-
-        // Verify doctor exists
-        const doctorCheck = await client.query(
-          'SELECT id, first_name, last_name FROM doctors WHERE id = $1 AND status = $2',
-          [doctor_id, 'active']
-        );
-
-        if (doctorCheck.rows.length === 0) {
-          throw new ErrorResponse('Doctor not found', 404, '4041');
-        }
-
-        const doctor = doctorCheck.rows[0];
-
-        // If patient_id is provided, verify patient exists
-        let patient = null;
-        if (patient_id) {
-          const patientCheck = await client.query(
-            'SELECT id, first_name, last_name, email, phone FROM patients WHERE id = $1 AND status = $2',
-            [patient_id, 'active']
-          );
-
-          if (patientCheck.rows.length === 0) {
-            throw new ErrorResponse('Patient not found', 404, '4042');
-          }
-
-          patient = patientCheck.rows[0];
-        }
-
-        // Parse date and time
-        let parsedDate;
-        let parsedTime;
-
-        // Handle different date formats
-        if (appointment_date.includes(',')) {
-          // Format: "Thursday, June 26, 2025"
-          const dateStr = appointment_date.replace(/^[A-Za-z]+,\s*/, ''); // Remove day of week
-          parsedDate = new Date(dateStr);
-        } else {
-          // Format: "2025-06-26"
-          parsedDate = new Date(appointment_date);
-        }
-
-        // Handle different time formats
-        if (appointment_time.includes('AM') || appointment_time.includes('PM')) {
-          // Format: "11:30 AM"
-          const [time, period] = appointment_time.split(' ');
-          const [hours, minutes] = time.split(':');
-          let hour24 = parseInt(hours);
-          
-          if (period === 'PM' && hour24 !== 12) {
-            hour24 += 12;
-          } else if (period === 'AM' && hour24 === 12) {
-            hour24 = 0;
-          }
-          
-          parsedTime = `${hour24.toString().padStart(2, '0')}:${minutes}:00`;
-        } else {
-          // Format: "14:30"
-          parsedTime = appointment_time.includes(':') ? `${appointment_time}:00` : appointment_time;
-        }
-
-        // Create full datetime
-        const appointmentDateTime = new Date(parsedDate);
-        const [hours, minutes] = parsedTime.split(':');
-        appointmentDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
-
-        // Check for scheduling conflicts
-        const conflictCheck = await client.query(
-          `SELECT id FROM appointments 
-           WHERE doctor_id = $1 
-           AND appointment_datetime = $2 
-           AND status NOT IN ('cancelled', 'no-show')`,
-          [doctor_id, appointmentDateTime]
-        );
-
-        if (conflictCheck.rows.length > 0) {
-          throw new ErrorResponse('Doctor is not available at this time slot', 409, '4093');
-        }
-
-        // Insert appointment
-        const appointmentResult = await client.query(
-          `INSERT INTO appointments (
-            doctor_id, patient_id, patient_name, patient_phone, patient_email,
-            appointment_datetime, appointment_date, appointment_time, appointment_type,
-            reason_for_visit, additional_notes, duration_minutes, status,
-            created_at, updated_at
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW(), NOW())
-          RETURNING *`,
-          [
-            doctor_id, patient_id, 
-            patient_name || (patient ? `${patient.first_name} ${patient.last_name}` : null),
-            patient_phone || (patient ? patient.phone : null),
-            patient_email || (patient ? patient.email : null),
-            appointmentDateTime, appointment_date, appointment_time, appointment_type,
-            reason_for_visit, additional_notes, duration_minutes, status
-          ]
-        );
-
-        const appointment = appointmentResult.rows[0];
-
-        // Commit transaction
-        await client.query('COMMIT');
-
-        console.log('Appointment created successfully:', { 
-          id: appointment.id, 
-          doctor_id: appointment.doctor_id,
-          datetime: appointment.appointment_datetime
-        });
-
-        const response = new SuccessResponse('Appointment booked successfully', 201, {
-          appointment: {
-            id: appointment.id,
-            doctor_id: appointment.doctor_id,
-            doctor_name: `${doctor.first_name} ${doctor.last_name}`,
-            patient_id: appointment.patient_id,
-            patient_name: appointment.patient_name,
-            patient_phone: appointment.patient_phone,
-            patient_email: appointment.patient_email,
-            appointment_datetime: appointment.appointment_datetime,
-            appointment_date: appointment.appointment_date,
-            appointment_time: appointment.appointment_time,
-            appointment_type: appointment.appointment_type,
-            reason_for_visit: appointment.reason_for_visit,
-            additional_notes: appointment.additional_notes,
-            duration_minutes: appointment.duration_minutes,
-            status: appointment.status,
-            created_at: appointment.created_at,
-            updated_at: appointment.updated_at
-          }
-        });
-
-        response.send(res);
-
-      } catch (error) {
-        await client.query('ROLLBACK');
-        throw error;
-      } finally {
-        client.release();
-      }
-
+      const appointment = await AppointmentService.createAppointment(appointmentData, req);
+      
+      api.info(' Appointment created successfully:', appointment.id);
+      
+      return new AppointmentCreatedSuccess({ 
+        appointment,
+        message: 'Appointment booked successfully! You will receive a confirmation email shortly.'
+      }).send(res);
+      
     } catch (error) {
-      console.error('Appointment creation error:', error);
+      api.error(' Appointment creation error:', error);
+      
       if (error instanceof ErrorResponse) {
-        error.send(res);
-      } else {
-        const errorResponse = new ErrorResponse('Internal server error during appointment creation', 500, '5000');
-        errorResponse.send(res);
+        return error.send(res);
       }
+      
+      return new ErrorResponse(
+        'Failed to book appointment. Please try again or contact our office.',
+        500,
+        '5000'
+      ).send(res);
     }
   }
 
-  static async quickSchedule(req, res) {
+  /**
+   * Book appointment for current user (Patient self-booking)
+   * POST /appointments/book
+   * 
+   * Allows patients to book appointments for themselves
+   */
+  static async bookAppointmentForSelf(req, res) {
     try {
-      console.log('Quick scheduling appointment:', { patient_name: req.body?.patient_name });
 
-      // Validate request body
-      const { error, value } = quickScheduleSchema.validate(req.body);
-      if (error) {
-        throw new ErrorResponse(`Validation error: ${error.details[0].message}`, 400, '4001');
-      }
 
-      const {
-        patient_name, patient_phone, patient_email, appointment_date, appointment_time,
-        appointment_type, reason, notes, doctor_id, duration_minutes
-      } = value;
+      const user = req.user;
 
-      const pool = getPostgreSQLPool();
-      if (!pool) {
-        throw new ErrorResponse('Database connection not available', 503, '5030');
-      }
+      const appointmentData = {
+        ...req.body,
+        // Map frontend fields to backend expected fields
+        appointment_date: req.body.date || req.body.appointment_date,
+        appointment_time: req.body.time || req.body.appointment_time,
+        duration_minutes: req.body.duration || req.body.duration_minutes || 30,
+        // Link to current user (from JWT payload)
+        patient_user_id: user.id,
+        patient_name: req.body.patient_name || user.email.split('@')[0],
+        patient_phone: req.body.patient_phone || user.phone_number,
+        patient_email: user.email,
+        appointment_type: req.body.appointment_type || 'consultation',
+        status: 'scheduled',
+        created_by: user.id
+      };
 
-      const client = await pool.connect();
-
-      try {
-        // Begin transaction
-        await client.query('BEGIN');
-
-        // If no doctor_id provided, assign to first available doctor
-        let selectedDoctorId = doctor_id;
-        let doctor;
-
-        if (!selectedDoctorId) {
-          const doctorResult = await client.query(
-            'SELECT id, first_name, last_name FROM doctors WHERE status = $1 ORDER BY id LIMIT 1',
-            ['active']
-          );
-
-          if (doctorResult.rows.length === 0) {
-            throw new ErrorResponse('No doctors available', 404, '4041');
+      const appointment = await AppointmentService.createAppointment(appointmentData, req);
+      
+      api.info(' Patient self-booking successful:', appointment.id);
+      
+      return new SuccessResponse(
+        'Appointment booked successfully! You will receive a confirmation email shortly.',
+        201,
+        {
+          appointment,
+          next_steps: [
+            'Check your email for appointment confirmation',
+            'Please arrive 15 minutes early for check-in',
+            'Bring a valid ID and insurance card if you have one',
+            'You can reschedule or cancel up to 24 hours before your appointment'
+          ],
+          contact_info: {
+            message: 'If you have any questions, please contact our office',
+            phone: process.env.CLINIC_PHONE || '(555) 123-4567',
+            email: process.env.CLINIC_EMAIL || 'appointments@clinic.com'
           }
-
-          doctor = doctorResult.rows[0];
-          selectedDoctorId = doctor.id;
-        } else {
-          // Verify specified doctor exists
-          const doctorCheck = await client.query(
-            'SELECT id, first_name, last_name FROM doctors WHERE id = $1 AND status = $2',
-            [selectedDoctorId, 'active']
-          );
-
-          if (doctorCheck.rows.length === 0) {
-            throw new ErrorResponse('Doctor not found', 404, '4041');
-          }
-
-          doctor = doctorCheck.rows[0];
         }
-
-        // Create full datetime
-        const appointmentDateTime = new Date(appointment_date);
-        const [hours, minutes] = appointment_time.split(':');
-        appointmentDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
-
-        // Check for scheduling conflicts
-        const conflictCheck = await client.query(
-          `SELECT id FROM appointments 
-           WHERE doctor_id = $1 
-           AND appointment_datetime = $2 
-           AND status NOT IN ('cancelled', 'no-show')`,
-          [selectedDoctorId, appointmentDateTime]
-        );
-
-        if (conflictCheck.rows.length > 0) {
-          throw new ErrorResponse('Doctor is not available at this time slot', 409, '4093');
-        }
-
-        // Format date and time for display
-        const displayDate = appointment_date.toLocaleDateString('en-US', {
-          weekday: 'long',
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric'
-        });
-
-        const displayTime = appointmentDateTime.toLocaleTimeString('en-US', {
-          hour: 'numeric',
-          minute: '2-digit',
-          hour12: true
-        });
-
-        // Insert appointment
-        const appointmentResult = await client.query(
-          `INSERT INTO appointments (
-            doctor_id, patient_name, patient_phone, patient_email,
-            appointment_datetime, appointment_date, appointment_time, appointment_type,
-            reason_for_visit, additional_notes, duration_minutes, status,
-            created_at, updated_at
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'scheduled', NOW(), NOW())
-          RETURNING *`,
-          [
-            selectedDoctorId, patient_name, patient_phone, patient_email,
-            appointmentDateTime, displayDate, displayTime, appointment_type,
-            reason, notes, duration_minutes
-          ]
-        );
-
-        const appointment = appointmentResult.rows[0];
-
-        // Commit transaction
-        await client.query('COMMIT');
-
-        console.log('Quick appointment scheduled successfully:', { 
-          id: appointment.id, 
-          patient_name: appointment.patient_name,
-          doctor_id: appointment.doctor_id
-        });
-
-        const response = new SuccessResponse('Appointment scheduled successfully', 201, {
-          appointment: {
-            id: appointment.id,
-            doctor_id: appointment.doctor_id,
-            doctor_name: `${doctor.first_name} ${doctor.last_name}`,
-            patient_name: appointment.patient_name,
-            patient_phone: appointment.patient_phone,
-            patient_email: appointment.patient_email,
-            appointment_datetime: appointment.appointment_datetime,
-            appointment_date: appointment.appointment_date,
-            appointment_time: appointment.appointment_time,
-            appointment_type: appointment.appointment_type,
-            reason_for_visit: appointment.reason_for_visit,
-            additional_notes: appointment.additional_notes,
-            duration_minutes: appointment.duration_minutes,
-            status: appointment.status,
-            created_at: appointment.created_at,
-            updated_at: appointment.updated_at
-          }
-        });
-
-        response.send(res);
-
-      } catch (error) {
-        await client.query('ROLLBACK');
-        throw error;
-      } finally {
-        client.release();
-      }
-
+      ).send(res);
+      
     } catch (error) {
-      console.error('Quick schedule error:', error);
+      api.error(' Patient self-booking error:', error);
+      
       if (error instanceof ErrorResponse) {
-        error.send(res);
-      } else {
-        const errorResponse = new ErrorResponse('Internal server error during quick scheduling', 500, '5000');
-        errorResponse.send(res);
+        return error.send(res);
       }
+      
+      return new ErrorResponse(
+        'Failed to book appointment. Please try again or contact our office.',
+        500,
+        '5002'
+      ).send(res);
     }
   }
 
+  /**
+   * Quick appointment booking (simplified form)
+   * POST /appointments/quick-book
+   * 
+   * For emergency or walk-in appointments
+   */
+  static async quickBookAppointment(req, res) {
+    try {
+      api.info('⚡ Quick booking appointment:', req.body);
+      
+      const quickBookingData = {
+        patient_name: req.body.patient_name,
+        patient_phone: req.body.patient_phone,
+        patient_email: req.body.patient_email,
+        doctor_id: req.body.doctor_id,
+        appointment_date: req.body.appointment_date,
+        appointment_time: req.body.appointment_time,
+        reason_for_visit: req.body.reason_for_visit || 'Walk-in consultation',
+        appointment_type: 'walk-in',
+        status: 'scheduled',
+        duration_minutes: req.body.duration_minutes || 30,
+        created_by: req.user?.id
+      };
+
+      const appointment = await AppointmentService.createAppointment(quickBookingData, req);
+      
+      return new SuccessResponse(
+        'Quick appointment booked successfully!',
+        201,
+        {
+          appointment,
+          next_steps: [
+            'Please arrive 15 minutes early for check-in',
+            'Bring a valid ID and insurance card',
+            'Complete intake forms online or at the clinic'
+          ]
+        }
+      ).send(res);
+      
+    } catch (error) {
+      api.error(' Quick booking error:', error);
+      
+      if (error instanceof ErrorResponse) {
+        return error.send(res);
+      }
+      
+      return new ErrorResponse(
+        'Failed to book quick appointment. Please call our office.',
+        500,
+        '5001'
+      ).send(res);
+    }
+  }
+
+  // ===============================================
+  // APPOINTMENT RETRIEVAL ENDPOINTS
+  // ===============================================
+
+  /**
+   * Get current user's appointments (for patients)
+   * GET /appointments/me
+   */
+  static async getMyAppointments(req, res) {
+    try {
+
+
+      // Use the same service method as getAllAppointments but with specific user filtering
+      const appointments = await AppointmentService.getAllAppointments(req.query, req.user);
+      
+      api.info(' Service returned my appointments:', { 
+        count: appointments.appointments?.length || 0,
+        hasData: !!appointments.appointments,
+        pagination: appointments.pagination 
+      });
+
+      // Add cache-busting headers
+      res.set({
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      });
+
+      // Format appointments with enhanced data for patient view
+      const formattedAppointments = (appointments.appointments || []).map(appointment => ({
+        id: appointment.id,
+        // Doctor information
+        doctor: {
+          id: appointment.doctor_id,
+          name: appointment.doctor_first_name && appointment.doctor_last_name 
+            ? `Dr. ${appointment.doctor_first_name} ${appointment.doctor_last_name}`
+            : 'Unknown Doctor',
+          specialization: appointment.doctor_specialization,
+          phone: appointment.doctor_phone
+        },
+        // Patient information
+        patient: {
+          name: appointment.patient_name,
+          phone: appointment.patient_phone,
+          email: appointment.patient_email
+        },
+        // Appointment details
+        appointment_datetime: appointment.appointment_datetime,
+        appointment_date: appointment.appointment_date,
+        appointment_time: appointment.appointment_time,
+        appointment_type: appointment.appointment_type,
+        reason_for_visit: appointment.reason_for_visit,
+        additional_notes: appointment.additional_notes,
+        duration_minutes: appointment.duration_minutes,
+        status: appointment.status,
+        // Metadata
+        created_at: appointment.created_at,
+        updated_at: appointment.updated_at,
+        // Status information
+        is_upcoming: new Date(appointment.appointment_datetime) > new Date(),
+        can_cancel: appointment.status === 'scheduled' && new Date(appointment.appointment_datetime) > new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours notice
+        can_reschedule: appointment.status === 'scheduled' && new Date(appointment.appointment_datetime) > new Date(Date.now() + 2 * 60 * 60 * 1000) // 2 hours notice
+      }));
+
+      const total = appointments.pagination?.total || formattedAppointments.length;
+      const page = parseInt(req.query.page || 1);
+      const limit = parseInt(req.query.limit || 50);
+
+      return new SuccessResponse('Your appointments retrieved successfully', 200, {
+        appointments: formattedAppointments,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+          hasNext: page < Math.ceil(total / limit),
+          hasPrevious: page > 1
+        },
+        summary: {
+          total_appointments: total,
+          upcoming_appointments: formattedAppointments.filter(a => a.is_upcoming).length,
+          completed_appointments: formattedAppointments.filter(a => a.status === 'completed').length,
+          cancelled_appointments: formattedAppointments.filter(a => a.status === 'cancelled').length
+        }
+      }).send(res);
+
+    } catch (error) {
+      api.error(' Get my appointments error:', error);
+      
+      if (error instanceof ErrorResponse) {
+        return error.send(res);
+      }
+      
+      return new ErrorResponse('Failed to retrieve your appointments', 500, '5000').send(res);
+    }
+  }
+
+  /**
+   * Get all appointments (admin/staff view with role-based filtering)
+   * GET /appointments
+   */
   static async getAllAppointments(req, res) {
     try {
-      const pool = getPostgreSQLPool();
-      if (!pool) {
-        throw new ErrorResponse('Database connection not available', 503, '5030');
-      }
+      api.info('📋 Getting all appointments for user:', req.user?.role);
 
-      const client = await pool.connect();
+      
+      const appointments = await AppointmentService.getAllAppointments(req.query, req.user);
+      
+      api.info(' Service returned appointments:', { 
+        count: appointments.appointments?.length || 0,
+        hasData: !!appointments.appointments,
+        pagination: appointments.pagination 
+      });
+      
+      // Add cache-busting headers
+      res.set({
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      });
 
-      try {
-        // Get appointments with doctor information
-        const appointmentsResult = await client.query(
-          `SELECT a.*, d.first_name as doctor_first_name, d.last_name as doctor_last_name
-           FROM appointments a
-           LEFT JOIN doctors d ON a.doctor_id = d.id
-           WHERE a.status != 'cancelled'
-           ORDER BY a.appointment_datetime ASC`
-        );
-
-        const appointments = appointmentsResult.rows.map(appointment => ({
-          id: appointment.id,
-          doctor_id: appointment.doctor_id,
-          doctor_name: appointment.doctor_first_name && appointment.doctor_last_name 
-            ? `${appointment.doctor_first_name} ${appointment.doctor_last_name}` 
-            : null,
-          patient_id: appointment.patient_id,
-          patient_name: appointment.patient_name,
-          patient_phone: appointment.patient_phone,
-          patient_email: appointment.patient_email,
-          appointment_datetime: appointment.appointment_datetime,
-          appointment_date: appointment.appointment_date,
-          appointment_time: appointment.appointment_time,
-          appointment_type: appointment.appointment_type,
-          reason_for_visit: appointment.reason_for_visit,
-          additional_notes: appointment.additional_notes,
-          duration_minutes: appointment.duration_minutes,
-          status: appointment.status,
-          created_at: appointment.created_at,
-          updated_at: appointment.updated_at
-        }));
-
-        const response = new SuccessResponse('Appointments retrieved successfully', 200, {
-          appointments,
-          total_count: appointments.length
-        });
-
-        response.send(res);
-
-      } finally {
-        client.release();
-      }
-
+      return new SuccessResponse('Appointments retrieved successfully', 200, {
+        appointments: appointments.appointments || appointments.data || appointments,
+        pagination: appointments.pagination,
+        filters_applied: req.query,
+        user_role: req.user?.role
+      }).send(res);
+      
     } catch (error) {
-      console.error('Get appointments error:', error);
+      api.error(' Get all appointments error:', error);
+      
       if (error instanceof ErrorResponse) {
-        error.send(res);
-      } else {
-        const errorResponse = new ErrorResponse('Internal server error while retrieving appointments', 500, '5000');
-        errorResponse.send(res);
+        return error.send(res);
       }
+      
+      return new ErrorResponse('Failed to retrieve appointments', 500, '5002').send(res);
     }
   }
 
+  /**
+   * Get specific appointment by ID
+   * GET /appointments/:id
+   */
   static async getAppointmentById(req, res) {
     try {
-      const { id } = req.params;
+      const appointmentId = req.params.id;
+  
       
-      if (!id || isNaN(parseInt(id))) {
-        throw new ErrorResponse('Invalid appointment ID', 400, '4001');
-      }
-
-      const pool = getPostgreSQLPool();
-      if (!pool) {
-        throw new ErrorResponse('Database connection not available', 503, '5030');
-      }
-
-      const client = await pool.connect();
-
-      try {
-        const appointmentResult = await client.query(
-          `SELECT a.*, d.first_name as doctor_first_name, d.last_name as doctor_last_name,
-                  p.first_name as patient_first_name, p.last_name as patient_last_name
-           FROM appointments a
-           LEFT JOIN doctors d ON a.doctor_id = d.id
-           LEFT JOIN patients p ON a.patient_id = p.id
-           WHERE a.id = $1`,
-          [parseInt(id)]
-        );
-
-        if (appointmentResult.rows.length === 0) {
-          throw new ErrorResponse('Appointment not found', 404, '4041');
-        }
-
-        const appointment = appointmentResult.rows[0];
-
-        const response = new SuccessResponse('Appointment retrieved successfully', 200, {
-          appointment: {
-            id: appointment.id,
-            doctor_id: appointment.doctor_id,
-            doctor_name: appointment.doctor_first_name && appointment.doctor_last_name 
-              ? `${appointment.doctor_first_name} ${appointment.doctor_last_name}` 
-              : null,
-            patient_id: appointment.patient_id,
-            patient_name: appointment.patient_name || (appointment.patient_first_name && appointment.patient_last_name 
-              ? `${appointment.patient_first_name} ${appointment.patient_last_name}` 
-              : null),
-            patient_phone: appointment.patient_phone,
-            patient_email: appointment.patient_email,
-            appointment_datetime: appointment.appointment_datetime,
-            appointment_date: appointment.appointment_date,
-            appointment_time: appointment.appointment_time,
-            appointment_type: appointment.appointment_type,
-            reason_for_visit: appointment.reason_for_visit,
-            additional_notes: appointment.additional_notes,
-            duration_minutes: appointment.duration_minutes,
-            status: appointment.status,
-            created_at: appointment.created_at,
-            updated_at: appointment.updated_at
-          }
-        });
-
-        response.send(res);
-
-      } finally {
-        client.release();
-      }
-
+      const appointment = await AppointmentService.getAppointmentById(appointmentId);
+      
+      // Add additional context for the appointment
+      const enhancedAppointment = {
+        ...appointment,
+        can_cancel: appointment.status === 'scheduled' && new Date(appointment.appointment_datetime) > new Date(Date.now() + 24 * 60 * 60 * 1000),
+        can_reschedule: appointment.status === 'scheduled' && new Date(appointment.appointment_datetime) > new Date(Date.now() + 2 * 60 * 60 * 1000),
+        time_until_appointment: new Date(appointment.appointment_datetime) - new Date(),
+        is_past: new Date(appointment.appointment_datetime) < new Date()
+      };
+      
+      return new SuccessResponse('Appointment retrieved successfully', 200, enhancedAppointment).send(res);
+      
     } catch (error) {
-      console.error('Get appointment error:', error);
+      api.error(' Get appointment by ID error:', error);
+      
       if (error instanceof ErrorResponse) {
-        error.send(res);
-      } else {
-        const errorResponse = new ErrorResponse('Internal server error while retrieving appointment', 500, '5000');
-        errorResponse.send(res);
+        return error.send(res);
       }
+      
+      return new ErrorResponse('Failed to retrieve appointment', 500, '5003').send(res);
     }
   }
 
+  // ===============================================
+  // APPOINTMENT MANAGEMENT ENDPOINTS
+  // ===============================================
+
+  /**
+   * Update appointment
+   * PUT /appointments/:id
+   */
   static async updateAppointment(req, res) {
     try {
-      const { id } = req.params;
+      const appointmentId = req.params.id;
+      api.info('✏️ Updating appointment:', appointmentId, req.body);
       
-      if (!id || isNaN(parseInt(id))) {
-        throw new ErrorResponse('Invalid appointment ID', 400, '4001');
-      }
-
-      // Validate request body
-      const { error, value } = appointmentUpdateSchema.validate(req.body);
-      if (error) {
-        throw new ErrorResponse(`Validation error: ${error.details[0].message}`, 400, '4001');
-      }
-
-      const pool = getPostgreSQLPool();
-      if (!pool) {
-        throw new ErrorResponse('Database connection not available', 503, '5030');
-      }
-
-      const client = await pool.connect();
-
-      try {
-        // Begin transaction
-        await client.query('BEGIN');
-
-        // Check if appointment exists
-        const existingAppointment = await client.query(
-          'SELECT * FROM appointments WHERE id = $1',
-          [parseInt(id)]
-        );
-
-        if (existingAppointment.rows.length === 0) {
-          throw new ErrorResponse('Appointment not found', 404, '4041');
-        }
-
-        // Build update query dynamically
-        const updateFields = [];
-        const updateValues = [];
-        let paramIndex = 1;
-
-        Object.keys(value).forEach(key => {
-          if (value[key] !== undefined) {
-            updateFields.push(`${key} = $${paramIndex}`);
-            updateValues.push(value[key]);
-            paramIndex++;
-          }
-        });
-
-        if (updateFields.length === 0) {
-          throw new ErrorResponse('No valid fields to update', 400, '4001');
-        }
-
-        // Add updated_at
-        updateFields.push(`updated_at = NOW()`);
-
-        // Update appointment
-        const updateQuery = `
-          UPDATE appointments 
-          SET ${updateFields.join(', ')}
-          WHERE id = $${paramIndex}
-          RETURNING *
-        `;
-        updateValues.push(parseInt(id));
-
-        const updatedAppointment = await client.query(updateQuery, updateValues);
-
-        // Commit transaction
-        await client.query('COMMIT');
-
-        console.log('Appointment updated successfully:', { id: parseInt(id) });
-
-        const response = new SuccessResponse('Appointment updated successfully', 200, {
-          appointment: updatedAppointment.rows[0]
-        });
-
-        response.send(res);
-
-      } catch (error) {
-        await client.query('ROLLBACK');
-        throw error;
-      } finally {
-        client.release();
-      }
-
+      const updateData = {
+        ...req.body,
+        updated_by: req.user?.id,
+        updated_at: new Date()
+      };
+      
+      const appointment = await AppointmentService.updateAppointment(appointmentId, updateData);
+      
+      return new SuccessResponse('Appointment updated successfully', 200, {
+        appointment,
+        message: 'Appointment has been updated. Confirmation email sent to patient.'
+      }).send(res);
+      
     } catch (error) {
-      console.error('Update appointment error:', error);
+      api.error(' Update appointment error:', error);
+      
       if (error instanceof ErrorResponse) {
-        error.send(res);
-      } else {
-        const errorResponse = new ErrorResponse('Internal server error during appointment update', 500, '5000');
-        errorResponse.send(res);
+        return error.send(res);
       }
+      
+      return new ErrorResponse('Failed to update appointment', 500, '5004').send(res);
     }
   }
 
+  /**
+   * Cancel appointment
+   * DELETE /appointments/:id
+   */
   static async cancelAppointment(req, res) {
     try {
-      const { id } = req.params;
+      const appointmentId = req.params.id;
+      const { reason, notify_patient = true } = req.body;
       
-      if (!id || isNaN(parseInt(id))) {
-        throw new ErrorResponse('Invalid appointment ID', 400, '4001');
+      api.info('❌ Cancelling appointment:', appointmentId, { reason, notify_patient });
+      
+      const appointment = await AppointmentService.cancelAppointment(appointmentId, reason, {
+        cancelled_by: req.user?.id,
+        notify_patient
+      });
+      
+      return new SuccessResponse('Appointment cancelled successfully', 200, {
+        appointment,
+        message: notify_patient 
+          ? 'Appointment cancelled. Patient has been notified via email.'
+          : 'Appointment cancelled.'
+      }).send(res);
+      
+    } catch (error) {
+      api.error(' Cancel appointment error:', error);
+      
+      if (error instanceof ErrorResponse) {
+        return error.send(res);
       }
+      
+      return new ErrorResponse('Failed to cancel appointment', 500, '5005').send(res);
+    }
+  }
 
-      const pool = getPostgreSQLPool();
-      if (!pool) {
-        throw new ErrorResponse('Database connection not available', 503, '5030');
+  /**
+   * Reschedule appointment
+   * PUT /appointments/:id/reschedule
+   */
+  static async rescheduleAppointment(req, res) {
+    try {
+      const appointmentId = req.params.id;
+      const { new_date, new_time, reason } = req.body;
+      
+      api.info('🔄 Rescheduling appointment:', appointmentId, { new_date, new_time, reason });
+      
+      const appointment = await AppointmentService.rescheduleAppointment(appointmentId, {
+        new_date,
+        new_time,
+        reason,
+        rescheduled_by: req.user?.id
+      });
+      
+      return new SuccessResponse('Appointment rescheduled successfully', 200, {
+        appointment,
+        message: 'Appointment has been rescheduled. Confirmation email sent to patient.'
+      }).send(res);
+      
+    } catch (error) {
+      api.error(' Reschedule appointment error:', error);
+      
+      if (error instanceof ErrorResponse) {
+        return error.send(res);
       }
+      
+      return new ErrorResponse('Failed to reschedule appointment', 500, '5006').send(res);
+    }
+  }
 
-      const client = await pool.connect();
+  // ===============================================
+  // DOCTOR AND AVAILABILITY ENDPOINTS
+  // ===============================================
 
-      try {
-        const cancelResult = await client.query(
-          'UPDATE appointments SET status = $1, updated_at = NOW() WHERE id = $2 RETURNING *',
-          ['cancelled', parseInt(id)]
-        );
-
-        if (cancelResult.rows.length === 0) {
-          throw new ErrorResponse('Appointment not found', 404, '4041');
+  /**
+   * Get all available doctors
+   * GET /appointments/doctors
+   */
+  static async getAllDoctors(req, res) {
+    try {
+      api.info('👨‍⚕️ Getting all doctors with filters:', req.query);
+      
+      const { getDoctorRepository } = require('../repositories');
+      const doctorRepo = getDoctorRepository();
+      
+      // Get query parameters for filtering
+      const { is_available, specialization, limit, offset, page, date } = req.query;
+      
+      // Build options object for pagination
+      const options = {};
+      if (limit) options.limit = parseInt(limit);
+      if (offset) options.offset = parseInt(offset);
+      if (page && limit) {
+        options.offset = (parseInt(page) - 1) * parseInt(limit);
+      }
+      
+      let doctors;
+      
+      // If filtering by specialization
+      if (specialization) {
+        doctors = await doctorRepo.getDoctorsBySpecialization(specialization, options);
+      } else {
+        doctors = await doctorRepo.getActiveDoctors(options);
+      }
+      
+      // If checking availability for a specific date, filter further
+      if (date && is_available === 'true') {
+        const availableDoctors = [];
+        
+        for (const doctor of doctors) {
+          const availability = await AppointmentService.getDoctorAvailability(doctor.id, date);
+          if (availability && availability.available_slots && availability.available_slots.length > 0) {
+            availableDoctors.push({
+              ...doctor,
+              available_slots: availability.available_slots,
+              next_available: availability.available_slots[0]
+            });
+          }
         }
+        
+        doctors = availableDoctors;
+      }
+      
+      // Format the response for frontend - supporting multiple field name formats
+      const formattedDoctors = doctors.map(doctor => ({
+        // Multiple ID formats for frontend compatibility
+        id: doctor.id,
+        userID: doctor.user_id,
+        user_id: doctor.user_id,
+        
+        // Name formats
+        firstName: doctor.first_name,
+        lastName: doctor.last_name,
+        first_name: doctor.first_name,
+        last_name: doctor.last_name,
+        full_name: `Dr. ${doctor.first_name} ${doctor.last_name}`,
+        display_name: `Dr. ${doctor.first_name} ${doctor.last_name}`,
+        
+        // Professional information
+        specialization: doctor.specialization,
+        specialty: doctor.specialization,
+        license_number: doctor.license_number,
+        years_of_experience: doctor.years_of_experience,
+        
+        // Contact information
+        email: doctor.email,
+        phone: doctor.phone,
+        office_phone: doctor.phone,
+        
+        // Status and availability
+        is_active: doctor.is_active,
+        isActive: doctor.is_active,
+        status: doctor.is_active ? 'active' : 'inactive',
+        
+        // Schedule information
+        consultation_fee: doctor.consultation_fee,
+        consultationFee: doctor.consultation_fee,
+        available_slots: doctor.available_slots || [],
+        next_available: doctor.next_available || null,
+        
+        // Metadata
+        created_at: doctor.created_at,
+        updated_at: doctor.updated_at
+      }));
 
-        console.log('Appointment cancelled successfully:', { id: parseInt(id) });
+      api.info(' Returning doctors:', { 
+        count: formattedDoctors.length,
+        filters: { is_available, specialization, date }
+      });
 
-        const response = new SuccessResponse('Appointment cancelled successfully', 200, {
-          appointment: cancelResult.rows[0]
+      // Add cache-busting headers
+      res.set({
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      });
+
+      return new SuccessResponse('Doctors retrieved successfully', 200, {
+        doctors: formattedDoctors,
+        total: formattedDoctors.length,
+        filters_applied: req.query,
+        available_specializations: [...new Set(formattedDoctors.map(d => d.specialization).filter(Boolean))]
+      }).send(res);
+      
+    } catch (error) {
+      api.error(' Get doctors error:', error);
+      
+      if (error instanceof ErrorResponse) {
+        return error.send(res);
+      }
+      
+      return new ErrorResponse('Failed to retrieve doctors', 500, '5007').send(res);
+    }
+  }
+
+  /**
+   * Get doctor availability
+   * GET /appointments/doctors/:doctorId/availability
+   */
+  static async getDoctorAvailability(req, res) {
+    try {
+      const { doctorId } = req.params;
+      const { date, days_ahead = 30 } = req.query;
+      
+      api.info(' Getting doctor availability:', { doctorId, date, days_ahead });
+      
+      if (date) {
+        // Get availability for specific date
+        const availability = await AppointmentService.getDoctorAvailability(doctorId, date);
+        
+        // Add cache-busting headers
+        res.set({
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
         });
 
-        response.send(res);
-
-      } finally {
-        client.release();
-      }
-
-    } catch (error) {
-      console.error('Cancel appointment error:', error);
-      if (error instanceof ErrorResponse) {
-        error.send(res);
+        return new SuccessResponse('Doctor availability retrieved successfully', 200, {
+          doctor_id: doctorId,
+          date,
+          ...availability,
+          booking_instructions: [
+            'Select your preferred time slot',
+            'Appointments are typically 30-60 minutes',
+            'Please arrive 15 minutes early',
+            'Bring valid ID and insurance information'
+          ]
+        }).send(res);
       } else {
-        const errorResponse = new ErrorResponse('Internal server error during appointment cancellation', 500, '5000');
-        errorResponse.send(res);
+        // Get availability for multiple days ahead
+        const availabilityRange = await AppointmentService.getDoctorAvailabilityRange(
+          doctorId, 
+          parseInt(days_ahead)
+        );
+        
+        return new SuccessResponse('Doctor availability range retrieved successfully', 200, {
+          doctor_id: doctorId,
+          days_ahead: parseInt(days_ahead),
+          availability: availabilityRange,
+          summary: {
+            total_available_slots: availabilityRange.reduce((sum, day) => sum + (day.available_slots?.length || 0), 0),
+            earliest_available: availabilityRange.find(day => day.available_slots?.length > 0)?.date,
+            busiest_day: availabilityRange.reduce((max, day) => 
+              (day.total_appointments || 0) > (max.total_appointments || 0) ? day : max, {}
+            )?.date
+          }
+        }).send(res);
       }
+      
+    } catch (error) {
+      api.error(' Get doctor availability error:', error);
+      
+      if (error instanceof ErrorResponse) {
+        return error.send(res);
+      }
+      
+      return new ErrorResponse('Failed to retrieve doctor availability', 500, '5008').send(res);
+    }
+  }
+
+  // ===============================================
+  // PATIENT-SPECIFIC ENDPOINTS
+  // ===============================================
+
+  /**
+   * Get patient appointments
+   * GET /appointments/patient/:patientId
+   */
+  static async getPatientAppointments(req, res) {
+    try {
+      const { patientId } = req.params;
+  
+      
+      const appointments = await AppointmentService.getPatientAppointments(patientId, req.query);
+      
+      return new SuccessResponse('Patient appointments retrieved successfully', 200, {
+        patient_id: patientId,
+        appointments: appointments.data || appointments,
+        pagination: appointments.pagination,
+        summary: appointments.summary
+      }).send(res);
+      
+    } catch (error) {
+      api.error(' Get patient appointments error:', error);
+      
+      if (error instanceof ErrorResponse) {
+        return error.send(res);
+      }
+      
+      return new ErrorResponse('Failed to retrieve patient appointments', 500, '5009').send(res);
+    }
+  }
+
+  // ===============================================
+  // UTILITY ENDPOINTS
+  // ===============================================
+
+  /**
+   * Check appointment availability
+   * POST /appointments/check-availability
+   */
+  static async checkAvailability(req, res) {
+    try {
+      const { doctor_id, date, time, duration_minutes = 30 } = req.body;
+      
+  
+      
+      const availability = await AppointmentService.checkSlotAvailability(
+        doctor_id, 
+        date, 
+        time, 
+        duration_minutes
+      );
+      
+      return new SuccessResponse('Availability checked successfully', 200, {
+        doctor_id,
+        requested_slot: { date, time, duration_minutes },
+        is_available: availability.available,
+        conflicts: availability.conflicts || [],
+        alternative_slots: availability.alternatives || [],
+        message: availability.available 
+          ? 'Time slot is available for booking'
+          : 'Time slot is not available. Please choose an alternative time.'
+      }).send(res);
+
+      } catch (error) {
+      api.error(' Check availability error:', error);
+      
+      if (error instanceof ErrorResponse) {
+        return error.send(res);
+      }
+      
+      return new ErrorResponse('Failed to check availability', 500, '5010').send(res);
+    }
+  }
+
+  /**
+   * Get appointment statistics
+   * GET /appointments/stats
+   */
+  static async getAppointmentStats(req, res) {
+    try {
+      api.info('📊 Getting appointment statistics for user:', req.user?.role);
+      
+      const stats = await AppointmentService.getAppointmentStatistics(req.user, req.query);
+      
+      return new SuccessResponse('Appointment statistics retrieved successfully', 200, {
+        ...stats,
+        generated_at: new Date(),
+        user_role: req.user?.role
+      }).send(res);
+      
+    } catch (error) {
+      api.error(' Get appointment stats error:', error);
+      
+      if (error instanceof ErrorResponse) {
+        return error.send(res);
+      }
+      
+      return new ErrorResponse('Failed to retrieve appointment statistics', 500, '5011').send(res);
     }
   }
 }

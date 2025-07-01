@@ -19,13 +19,10 @@ async function runMigrations() {
     const migrationPath = path.join(__dirname, '..', 'migrations', '001_init.sql');
     const migrationSQL = fs.readFileSync(migrationPath, 'utf8');
     
-    console.log('Running database migrations...');
     await client.query(migrationSQL);
-    console.log('✅ Migrations completed successfully');
     
     client.release();
   } catch (error) {
-    console.error('❌ Migration failed:', error);
     process.exit(1);
   } finally {
     await pool.end();

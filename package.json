@@ -9,6 +9,7 @@
     "test": "NODE_ENV=test mocha test/**/*.test.js",
     "migrate": "node scripts/migrate.js",
     "seed": "node scripts/seed.js",
+    "add-doctor": "node scripts/add-doctor-dieu-phan.js",
     "lint": "eslint src/**/*.js",
     "lint:fix": "eslint src/**/*.js --fix",
     "health-check": "curl -f http://localhost:3000/health",
@@ -21,6 +22,7 @@
     "axios": "^1.6.7",
     "bcryptjs": "^2.4.3",
     "compression": "^1.8.0",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",
     "express": "^4.21.2",
@@ -30,14 +32,15 @@
     "joi": "^17.13.3",
     "jsonwebtoken": "^9.0.2",
     "kysely": "^0.27.3",
-    "mongodb": "^6.3.0",
-    "mongoose": "^7.6.1",
+
     "morgan": "^1.10.0",
     "opossum": "^9.0.0",
     "pg": "^8.11.3",
     "socket.io": "^4.7.5",
     "ua-parser-js": "^2.0.3",
-    "uuid": "^11.1.0"
+    "uuid": "^11.1.0",
+    "winston": "^3.17.0",
+    "winston-daily-rotate-file": "^5.0.0"
   },
   "devDependencies": {
     "chai": "^5.2.0",
@@ -54,8 +57,7 @@
     "healthcare",
     "monolith",
     "nodejs",
-    "postgresql",
-    "mongodb"
+    "postgresql"
   ],
   "author": "Dr. Dieu Phan D.C",
   "license": "MIT",

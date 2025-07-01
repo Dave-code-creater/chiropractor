@@ -20,9 +20,7 @@ module.exports = {
       max: parseInt(process.env.DATABASE_POOL_MAX) || 20,
       min: parseInt(process.env.DATABASE_POOL_MIN) || 2
     },
-    mongodb: {
-      uri: process.env.MONGO_URI || 'mongodb://localhost:27017/chiropractor_monolith'
-    }
+    // MongoDB configuration removed - using PostgreSQL only
   },
   
   // CORS Configuration

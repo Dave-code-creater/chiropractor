@@ -10,6 +10,7 @@ const appointmentCreateSchema = Joi.object({
   appointment_date: Joi.string().required(), // Can be "Thursday, June 26, 2025" or "2025-06-26"
   appointment_time: Joi.string().required(), // Can be "11:30 AM" or "14:30"
   appointment_type: Joi.string().valid('consultation', 'follow-up', 'treatment', 'initial-exam', 'emergency').default('consultation'),
+  location: Joi.string().max(100).default('Clinic'),
   reason_for_visit: Joi.string().max(500).optional(),
   additional_notes: Joi.string().max(1000).optional(),
   duration_minutes: Joi.number().integer().positive().default(30),
@@ -23,6 +24,7 @@ const quickScheduleSchema = Joi.object({
   appointment_date: Joi.date().required(),
   appointment_time: Joi.string().required(),
   appointment_type: Joi.string().valid('consultation', 'follow-up', 'treatment', 'initial-exam', 'emergency').default('consultation'),
+  location: Joi.string().max(100).default('Clinic'),
   reason: Joi.string().max(500).optional(),
   notes: Joi.string().max(1000).optional(),
   doctor_id: Joi.number().integer().positive().optional(),
@@ -33,6 +35,7 @@ const appointmentUpdateSchema = Joi.object({
   appointment_date: Joi.string().optional(),
   appointment_time: Joi.string().optional(),
   appointment_type: Joi.string().valid('consultation', 'follow-up', 'treatment', 'initial-exam', 'emergency').optional(),
+  location: Joi.string().max(100).optional(),
   reason_for_visit: Joi.string().max(500).optional(),
   additional_notes: Joi.string().max(1000).optional(),
   duration_minutes: Joi.number().integer().positive().optional(),

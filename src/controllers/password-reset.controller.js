@@ -3,6 +3,7 @@ const { v4: uuidv4 } = require('uuid');
 const { SuccessResponse, ErrorResponse } = require('../utils/httpResponses');
 const { getPostgreSQLPool } = require('../config/database');
 const { passwordResetRequestSchema, verifyResetTokenSchema, resetPasswordSchema } = require('../validators');
+const { api, error: logError, info, debug } = require('../utils/logger');
 
 class PasswordResetController {
   static async requestPasswordReset(req, res) {
@@ -67,19 +68,14 @@ class PasswordResetController {
 
         // In a real application, you would send an email here
         // For now, we'll return the token in the response (NOT recommended for production)
-        console.log(`Password reset token for ${email}: ${reset_token}`);
-        console.log(`Reset link: ${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password?token=${reset_token}`);
+        info(`Password reset token for ${email}: ${reset_token}`);
+        info(`Reset link: ${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password?token=${reset_token}`);
 
         const response = new SuccessResponse(
           'If an account with that email exists, a password reset link has been sent.',
           200,
           { 
-            message: 'Password reset request processed',
-            // TODO: Remove this in production - only for development
-            ...(process.env.NODE_ENV === 'development' && { 
-              reset_token,
-              reset_link: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password?token=${reset_token}`
-            })
+            message: 'Password reset request processed'
           }
         );
 
@@ -93,7 +89,7 @@ class PasswordResetController {
       if (error instanceof ErrorResponse) {
         error.send(res);
       } else {
-        console.error('Password reset request error:', error);
+        logError('Password reset request error:', error);
         const errorResponse = new ErrorResponse('Internal server error during password reset request', 500, '5000');
         errorResponse.send(res);
       }
@@ -160,7 +156,7 @@ class PasswordResetController {
       if (error instanceof ErrorResponse) {
         error.send(res);
       } else {
-        console.error('Reset token verification error:', error);
+        logError('Reset token verification error:', error);
         const errorResponse = new ErrorResponse('Internal server error during token verification', 500, '5000');
         errorResponse.send(res);
       }
@@ -240,7 +236,7 @@ class PasswordResetController {
         // Commit transaction
         await client.query('COMMIT');
 
-        console.log(`Password reset successful for user: ${resetData.email}`);
+        info(`Password reset successful for user: ${resetData.email}`);
 
         const first_name = resetData.role === 'patient' ? resetData.patient_first_name : resetData.doctor_first_name;
         const last_name = resetData.role === 'patient' ? resetData.patient_last_name : resetData.doctor_last_name;
@@ -267,7 +263,7 @@ class PasswordResetController {
       if (error instanceof ErrorResponse) {
         error.send(res);
       } else {
-        console.error('Password reset error:', error);
+        logError('Password reset error:', error);
         const errorResponse = new ErrorResponse('Internal server error during password reset', 500, '5000');
         errorResponse.send(res);
       }
