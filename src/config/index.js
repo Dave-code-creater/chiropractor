@@ -19,8 +19,7 @@ module.exports = {
       ssl: process.env.DATABASE_SSL === 'true',
       max: parseInt(process.env.DATABASE_POOL_MAX) || 20,
       min: parseInt(process.env.DATABASE_POOL_MIN) || 2
-    },
-    // MongoDB configuration removed - using PostgreSQL only
+    }
   },
   
   // CORS Configuration

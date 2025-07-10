@@ -34,6 +34,18 @@ router.post('/patient-intake',
 );
 
 /**
+ * Submit comprehensive patient forms (intake + all sections)
+ * POST /reports/patient-forms
+ * Body: { patientIntake, insuranceDetails, painDescriptions, ... }
+ * Auth: patient, admin, staff
+ */
+router.post('/patient-forms', 
+  authenticate, 
+  authorize(['patient', 'admin', 'staff']), 
+  asyncHandler(ReportController.submitPatientForms)
+);
+
+/**
  * Create doctor initial assessment report
  * POST /reports/doctor-initial
  * Body: { patient_id, diagnosis, treatment_plan, ... }

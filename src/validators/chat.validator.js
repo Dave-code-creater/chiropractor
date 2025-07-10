@@ -24,12 +24,16 @@ const doctorPatientConversationSchema = Joi.object({
 });
 
 const sendMessageSchema = Joi.object({
-  conversation_id: Joi.string().required(),
+  conversation_id: Joi.alternatives().try(
+    Joi.number().integer().positive(),
+    Joi.string().regex(/^\d+$/),
+    Joi.string().regex(/^conv_\d+_[a-z0-9]+$/)
+  ).required(),
   content: Joi.string().max(2000).required(),
+  message_content: Joi.string().max(2000).optional(), // Alias for content
   sender_type: Joi.string().valid('doctor', 'patient', 'staff', 'admin', 'user').required(),
   sender_id: Joi.number().integer().positive().optional(),
-  message_type: Joi.string().valid('text', 'image', 'file', 'system').default('text'),
-  attachment_url: Joi.string().uri().optional()
+  message_type: Joi.string().valid('text', 'system').default('text')
 });
 
 module.exports = {

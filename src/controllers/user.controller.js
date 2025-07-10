@@ -83,6 +83,24 @@ class UserController {
     const vitals = await UserService.getVitalsHistory(req.params.id);
     return new SuccessResponse('Vitals history retrieved successfully', 200, vitals).send(res);
   }
+
+  /**
+   * Get current user's profile
+   * GET /api/users/profile
+   */
+  static async getProfile(req, res) {
+    const profile = await UserService.getProfile(req.user.id);
+    return new SuccessResponse('Profile retrieved successfully', 200, profile).send(res);
+  }
+
+  /**
+   * Update current user's profile
+   * PUT /api/users/profile
+   */
+  static async updateProfile(req, res) {
+    const profile = await UserService.updateProfile(req.user.id, req.body);
+    return new SuccessResponse('Profile updated successfully', 200, profile).send(res);
+  }
 }
 
 module.exports = UserController; 

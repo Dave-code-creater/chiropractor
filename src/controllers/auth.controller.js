@@ -179,23 +179,6 @@ class AuthController {
   }
 
   /**
-   * Get user profile
-   * GET /api/auth/profile
-   */
-  static async getProfile(req, res) {
-    try {
-      const userProfile = await AuthService.getUserProfile(req.user.id);
-      return res.status(200).json({
-        success: true,
-        message: 'Profile retrieved successfully',
-        user: userProfile
-      });
-    } catch (error) {
-      return AuthController.handleError(error, res);
-    }
-  }
-
-  /**
    * Register a new user (doctors/staff)
    * POST /api/auth/register
    */
@@ -287,24 +270,30 @@ class AuthController {
   }
 
   /**
-   * Get authentication statistics (admin only)
-   * GET /api/auth/stats
+   * Verify email with token
+   * POST /api/auth/verify-email
    */
-  static async getAuthStats(req, res) {
+  static async verifyEmail(req, res) {
     try {
-      const stats = await AuthService.getAuthStats();
+      const { token } = req.body;
+      
+      if (!token) {
+        throw new ErrorResponse('Verification token is required', 400, '4001');
+      }
 
-      const response = new SuccessResponse('Statistics retrieved successfully', 200, stats);
+      const result = await AuthService.verifyEmail(token);
+
+      const response = new SuccessResponse('Email verified successfully', 200, result);
       response.send(res);
 
     } catch (error) {
-      auth.error('Get auth stats controller error:', error);
+      auth.error('Verify email controller error:', error);
       
       if (error instanceof ErrorResponse) {
         return error.send(res);
       }
       
-      const errorResponse = new ErrorResponse('Failed to get statistics', 500, '5000');
+      const errorResponse = new ErrorResponse('Email verification failed', 500, '5000');
       errorResponse.send(res);
     }
   }

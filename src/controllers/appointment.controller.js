@@ -9,6 +9,8 @@ const { appointmentCreateSchema, quickScheduleSchema, appointmentUpdateSchema } 
 const AppointmentService = require('../services/AppointmentService');
 const { api, error: logError, info } = require('../utils/logger');
 
+const { getDoctorRepository } = require('../repositories');
+
 /**
  * ===============================================
  * APPOINTMENT BOOKING CONTROLLER
@@ -536,7 +538,6 @@ class AppointmentController {
         // Professional information
         specialization: doctor.specialization,
         specialty: doctor.specialization,
-        license_number: doctor.license_number,
         years_of_experience: doctor.years_of_experience,
         
         // Contact information
@@ -600,6 +601,50 @@ class AppointmentController {
       const { date, days_ahead = 30 } = req.query;
       
       api.info(' Getting doctor availability:', { doctorId, date, days_ahead });
+
+      const doctorRepo = getDoctorRepository();
+      
+      // Get doctor's weekly schedule, create default if doesn't exist
+      let weeklySchedule = await doctorRepo.getDoctorWeeklySchedule(doctorId);
+      
+      // If no schedule exists, create default schedules
+      if (weeklySchedule.length === 0) {
+        api.info(' No schedule found for doctor, creating default schedules:', { doctorId });
+        weeklySchedule = await doctorRepo.createDefaultSchedules(doctorId);
+      }
+      
+      // Convert schedule to frontend format
+      const workingHours = {
+        monday: { start: "00:00", end: "00:00", enabled: false },
+        tuesday: { start: "00:00", end: "00:00", enabled: false },
+        wednesday: { start: "00:00", end: "00:00", enabled: false },
+        thursday: { start: "00:00", end: "00:00", enabled: false },
+        friday: { start: "00:00", end: "00:00", enabled: false },
+        saturday: { start: "00:00", end: "00:00", enabled: false },
+        sunday: { start: "00:00", end: "00:00", enabled: false }
+      };
+
+      // Map day numbers to day names
+      const dayMap = {
+        1: 'monday',
+        2: 'tuesday',
+        3: 'wednesday',
+        4: 'thursday',
+        5: 'friday',
+        6: 'saturday',
+        7: 'sunday'
+      };
+
+      // Fill in the actual schedule
+      weeklySchedule.forEach(schedule => {
+        const dayName = dayMap[schedule.day_of_week];
+        workingHours[dayName] = {
+          start: schedule.start_time.slice(0, 5), // Convert "09:00:00" to "09:00"
+          end: schedule.end_time.slice(0, 5),
+          enabled: schedule.is_available,
+          accepts_walkin: schedule.accepts_walkin
+        };
+      });
       
       if (date) {
         // Get availability for specific date
@@ -615,6 +660,7 @@ class AppointmentController {
         return new SuccessResponse('Doctor availability retrieved successfully', 200, {
           doctor_id: doctorId,
           date,
+          workingHours,
           ...availability,
           booking_instructions: [
             'Select your preferred time slot',
@@ -623,35 +669,21 @@ class AppointmentController {
             'Bring valid ID and insurance information'
           ]
         }).send(res);
-      } else {
-        // Get availability for multiple days ahead
-        const availabilityRange = await AppointmentService.getDoctorAvailabilityRange(
-          doctorId, 
-          parseInt(days_ahead)
-        );
-        
-        return new SuccessResponse('Doctor availability range retrieved successfully', 200, {
-          doctor_id: doctorId,
-          days_ahead: parseInt(days_ahead),
-          availability: availabilityRange,
-          summary: {
-            total_available_slots: availabilityRange.reduce((sum, day) => sum + (day.available_slots?.length || 0), 0),
-            earliest_available: availabilityRange.find(day => day.available_slots?.length > 0)?.date,
-            busiest_day: availabilityRange.reduce((max, day) => 
-              (day.total_appointments || 0) > (max.total_appointments || 0) ? day : max, {}
-            )?.date
-          }
-        }).send(res);
       }
+
+      // If no date specified, just return the working hours
+      return new SuccessResponse('Doctor schedule retrieved successfully', 200, {
+        doctor_id: doctorId,
+        workingHours
+      }).send(res);
       
     } catch (error) {
-      api.error(' Get doctor availability error:', error);
-      
-      if (error instanceof ErrorResponse) {
-        return error.send(res);
-      }
-      
-      return new ErrorResponse('Failed to retrieve doctor availability', 500, '5008').send(res);
+      api.error('Get doctor availability error:', error);
+      return new ErrorResponse(
+        error.message || 'Failed to retrieve doctor availability',
+        error.statusCode || 500,
+        error.code || '5008'
+      ).send(res);
     }
   }
 

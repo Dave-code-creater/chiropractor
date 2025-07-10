@@ -22,18 +22,19 @@ const appointmentRoutes = require('./routes/appointment.routes');
 const blogRoutes = require('./routes/blog.routes');
 const chatRoutes = require('./routes/chat.routes');
 const reportRoutes = require('./routes/report.routes');
+const incidentRoutes = require('./routes/incident.routes');
 const healthRoutes = require('./routes/health.routes');
+const clinicalNotesRoutes = require('./routes/clinical-notes.routes');
+const vitalsRoutes = require('./routes/vitals.routes');
+
 
 // Import middleware
 const errorMiddleware = require('./middleware/error.middleware');
-const { authenticate } = require('./middleware/auth.middleware');
-const asyncHandler = require('./utils/asyncHandler');
 
 // Import logger
 const { info, warn, error: logError } = require('./utils/logger');
 
-// Import controllers for direct routes
-const AppointmentController = require('./controllers/appointment.controller');
+
 
 // Import socket handlers
 const socketHandler = require('./socket/socket.handler');
@@ -108,12 +109,15 @@ apiV1.use('/appointments', appointmentRoutes);
 apiV1.use('/blog', blogRoutes);
 apiV1.use('/chat', chatRoutes);
 apiV1.use('/reports', reportRoutes);
+apiV1.use('/incidents', incidentRoutes);
+
+
+
 
 // Mount API routes
 app.use('/v1/api/2025', apiV1);
 
-// Backward compatibility routes
-app.use('/auth', authRoutes);
+
 
 // Socket.IO connection handling
 socketHandler(io);
@@ -133,16 +137,24 @@ app.use('*', (req, res) => {
 // Start server
 async function startServer() {
   try {
+    info('Starting server initialization...');
+    info('Attempting to connect to databases...');
     await initializeDatabases();
+    info('Database initialization completed successfully');
     
     const PORT = process.env.PORT || 3000;
     server.listen(PORT, () => {
       info(`Chiropractor Monolith Server running on port ${PORT}`);
       info(`CORS origin: ${process.env.CORS_ORIGIN || 'http://localhost:5173'}`);
       info(`Health check: http://localhost:${PORT}/health`);
+      info('Server startup completed successfully');
     });
   } catch (error) {
     logError('Failed to start server:', error);
+    logError('Error details:', {
+      message: error.message,
+      stack: error.stack
+    });
     process.exit(1);
   }
 }
@@ -162,8 +174,6 @@ process.on('SIGINT', () => {
   });
 });
 
-if (process.env.NODE_ENV !== 'test') {
-  startServer();
-}
+startServer();
 
 module.exports = { app, server, io }; 

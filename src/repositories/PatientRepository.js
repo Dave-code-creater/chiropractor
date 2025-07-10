@@ -44,6 +44,109 @@ class PatientRepository extends BaseRepository {
   }
 
   /**
+   * Update patient profile
+   * @param {number} patientId - Patient ID
+   * @param {Object} updateData - Update data
+   * @returns {Object|null} Updated patient record
+   */
+  async updatePatient(patientId, updateData) {
+    const data = {
+      ...updateData,
+      updated_at: new Date()
+    };
+
+    return await this.updateById(patientId, data);
+  }
+
+  /**
+   * Find all patients with pagination and search
+   * @param {Object} options - Query options
+   * @returns {Object} Patients and total count
+   */
+  async findAllPatients(options = {}) {
+    const {
+      search,
+      status = 'active',
+      sort_by = 'created_at',
+      sort_order = 'desc',
+      limit = 10,
+      offset = 0
+    } = options;
+
+    let whereConditions = [`p.status = $1`];
+    let queryParams = [status];
+    let paramIndex = 2;
+
+    if (search) {
+      whereConditions.push(`(
+        p.first_name ILIKE $${paramIndex} OR 
+        p.last_name ILIKE $${paramIndex} OR
+        p.email ILIKE $${paramIndex} OR
+        p.phone ILIKE $${paramIndex} OR
+        CONCAT(p.first_name, ' ', p.last_name) ILIKE $${paramIndex}
+      )`);
+      queryParams.push(`%${search}%`);
+      paramIndex++;
+    }
+
+    const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+
+    // Count query
+    const countQuery = `
+      SELECT COUNT(*) as total
+      FROM ${this.tableName} p
+      ${whereClause}
+    `;
+    
+    const countResult = await this.query(countQuery, queryParams);
+    const total = parseInt(countResult.rows[0].total);
+
+    // Main query with appointment data
+    const query = `
+      SELECT 
+        p.*,
+        u.email as user_email, u.username, u.role, u.last_login_at,
+        MAX(a.appointment_date) as last_appointment_date
+      FROM ${this.tableName} p
+      JOIN users u ON p.user_id = u.id
+      LEFT JOIN appointments a ON p.id = a.patient_id
+      ${whereClause}
+      GROUP BY p.id, u.email, u.username, u.role, u.last_login_at
+      ORDER BY p.${sort_by} ${sort_order}
+      LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+    `;
+
+    queryParams.push(limit, offset);
+    const result = await this.query(query, queryParams);
+
+    return {
+      patients: result.rows,
+      total
+    };
+  }
+
+  /**
+   * Find patient vitals
+   * @param {number} patientId - Patient ID
+   * @returns {Array} Patient vitals records
+   */
+  async findPatientVitals(patientId) {
+    const query = `
+      SELECT 
+        v.*,
+        d.first_name as doctor_first_name,
+        d.last_name as doctor_last_name
+      FROM vitals v
+      LEFT JOIN doctors d ON v.recorded_by = d.id
+      WHERE v.patient_id = $1
+      ORDER BY v.recorded_at DESC
+    `;
+    
+    const result = await this.query(query, [patientId]);
+    return result.rows;
+  }
+
+  /**
    * Get patient with user information
    * @param {number} patientId - Patient ID
    * @returns {Object|null} Patient with user data

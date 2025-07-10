@@ -2,7 +2,7 @@ const bcrypt = require('bcryptjs');
 const { v4: uuidv4 } = require('uuid');
 const { SuccessResponse, ErrorResponse } = require('../utils/httpResponses');
 const { getPostgreSQLPool } = require('../config/database');
-const { passwordResetRequestSchema, verifyResetTokenSchema, resetPasswordSchema } = require('../validators');
+const { passwordResetRequestSchema, verifyResetTokenSchema, resetPasswordSchema } = require('../validators').schemas;
 const { api, error: logError, info, debug } = require('../utils/logger');
 
 class PasswordResetController {

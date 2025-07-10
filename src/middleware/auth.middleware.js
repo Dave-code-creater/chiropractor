@@ -52,7 +52,10 @@ const authenticate = async (req, res, next) => {
         username: user.username,
         role: user.role,
         status: user.status,
-        token: token
+        token: token,
+        profile_id: decoded.profile_id,
+        first_name: decoded.first_name,
+        last_name: decoded.last_name
       };
       
       auth.info('Authentication successful for user:', { email: user.email });

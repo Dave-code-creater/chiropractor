@@ -30,10 +30,12 @@ const patientRegisterSchema = Joi.object({
     }),
   
   phone_number: Joi.string()
-    .pattern(/^[\+]?[1-9][\d\s\-\(\)]{7,15}$/)
+    .min(10)
+    .max(20)
     .required()
     .messages({
-      'string.pattern.base': 'Please provide a valid phone number',
+      'string.min': 'Phone number must be at least 10 characters',
+      'string.max': 'Phone number cannot exceed 20 characters',
       'string.empty': 'Phone number is required',
       'any.required': 'Phone number is required'
     }),
@@ -72,78 +74,17 @@ const patientRegisterSchema = Joi.object({
 
 // General registration schema (for doctors and staff)
 const registerSchema = Joi.object({
-  first_name: Joi.string()
-    .min(2)
-    .max(50)
-    .pattern(/^[a-zA-Z\s]+$/)
-    .required()
-    .messages({
-      'string.pattern.base': 'First name can only contain letters and spaces'
-    }),
-  
-  last_name: Joi.string()
-    .min(2)
-    .max(50)
-    .pattern(/^[a-zA-Z\s]+$/)
-    .required()
-    .messages({
-      'string.pattern.base': 'Last name can only contain letters and spaces'
-    }),
-  
-  phone_number: Joi.string()
-    .pattern(/^[\+]?[1-9][\d]{0,15}$/)
-    .required()
-    .messages({
-      'string.pattern.base': 'Phone number must be a valid format'
-    }),
-  
-  email: Joi.string()
-    .email({ tlds: { allow: false } })
-    .lowercase()
-    .required()
-    .messages({
-      'string.email': 'Please provide a valid email address'
-    }),
-  
-  password: Joi.string()
-    .min(8)
-    .max(128)
-    .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
-    .required()
-    .messages({
-      'string.pattern.base': 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character'
-    }),
-  
-  confirm_password: Joi.string()
-    .valid(Joi.ref('password'))
-    .required()
-    .messages({
-      'any.only': 'Passwords do not match'
-    }),
-
-  role: Joi.string()
-    .valid('patient', 'doctor', 'staff', 'admin')
-    .default('patient'),
-
-  // Optional fields for doctor registration
-  specialization: Joi.string()
-    .min(2)
-    .max(100)
-    .when('role', {
-      is: 'doctor',
-      then: Joi.required(),
-      otherwise: Joi.optional()
-    }),
-
-  license_number: Joi.string()
-    .alphanum()
-    .min(5)
-    .max(20)
-    .when('role', {
-      is: 'doctor',
-      then: Joi.required(),
-      otherwise: Joi.optional()
-    })
+  email: Joi.string().email().required(),
+  password: Joi.string().min(8).required(),
+  role: Joi.string().valid('patient', 'doctor', 'staff', 'admin').default('patient'),
+  first_name: Joi.string().min(2).max(50).required(),
+  last_name: Joi.string().min(2).max(50).required(),
+  phone_number: Joi.string().min(10).max(20).optional(),
+  specialization: Joi.string().when('role', {
+    is: 'doctor',
+    then: Joi.required(),
+    otherwise: Joi.optional()
+  })
 });
 
 const loginSchema = Joi.object({

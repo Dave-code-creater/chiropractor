@@ -5,7 +5,7 @@ const appointmentCreateSchema = Joi.object({
   doctor_id: Joi.number().integer().positive().required(),
   patient_id: Joi.number().integer().positive().optional(),
   patient_name: Joi.string().max(100).optional(),
-  patient_phone: Joi.string().max(20).optional(),
+  patient_phone: Joi.string().min(10).max(20).optional(),
   patient_email: Joi.string().email().optional(),
   appointment_date: Joi.string().required(), // Can be "Thursday, June 26, 2025" or "2025-06-26"
   appointment_time: Joi.string().required(), // Can be "11:30 AM" or "14:30"
@@ -19,7 +19,7 @@ const appointmentCreateSchema = Joi.object({
 
 const quickScheduleSchema = Joi.object({
   patient_name: Joi.string().min(2).max(100).required(),
-  patient_phone: Joi.string().max(20).required(),
+  patient_phone: Joi.string().min(10).max(20).required(),
   patient_email: Joi.string().email().optional(),
   appointment_date: Joi.date().required(),
   appointment_time: Joi.string().required(),

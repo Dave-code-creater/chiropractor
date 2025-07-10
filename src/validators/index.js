@@ -19,7 +19,8 @@ const {
   patientCreateSchema,
   patientUpdateSchema,
   clinicalNotesSchema,
-  vitalsSchema
+  vitalsSchema,
+  profileUpdateSchema
 } = require('./user.validator');
 
 const {
@@ -58,6 +59,7 @@ const patientCreateValidator = validate(patientCreateSchema);
 const patientUpdateValidator = validate(patientUpdateSchema);
 const clinicalNotesValidator = validate(clinicalNotesSchema);
 const vitalsValidator = validate(vitalsSchema);
+const profileUpdateValidator = validate(profileUpdateSchema);
 
 const appointmentValidator = validate(appointmentCreateSchema);
 const appointmentCreateValidator = validate(appointmentCreateSchema);
@@ -94,6 +96,7 @@ module.exports = {
   patientUpdateValidator,
   clinicalNotesValidator,
   vitalsValidator,
+  profileUpdateValidator,
   
   // Appointment validators (middleware functions)
   appointmentValidator,
@@ -130,6 +133,7 @@ module.exports = {
     patientUpdateSchema,
     clinicalNotesSchema,
     vitalsSchema,
+    profileUpdateSchema,
     appointmentCreateSchema,
     quickScheduleSchema,
     appointmentUpdateSchema,

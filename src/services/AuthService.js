@@ -25,7 +25,6 @@ class AuthService {
       last_name,
       role = 'patient',
       specialization,
-      license_number,
       phone_number
     } = userData;
 
@@ -40,21 +39,13 @@ class AuthService {
       const doctorRepo = getDoctorRepository();
       const apiKeyRepo = getApiKeyRepository();
 
-      // Check if user already exists
+      // Check if email already exists
       const existingUser = await userRepo.findByEmail(email);
       if (existingUser) {
-        throw new ConflictError('User with this email already exists', '4091');
+        throw new BadRequestError('Email already registered', '4090');
       }
 
-      // For doctors, check if license number is unique (if provided)
-      if (role === 'doctor' && license_number) {
-        const existingDoctor = await doctorRepo.findByLicenseNumber(license_number);
-        if (existingDoctor) {
-          throw new ConflictError('Doctor with this license number already exists', '4092');
-        }
-      }
-
-      // Use transaction to ensure data consistency
+      // Create user and profile in transaction
       const result = await userRepo.transaction(async () => {
         // Create user
         const user = await userRepo.createUser({
@@ -83,7 +74,8 @@ class AuthService {
             first_name,
             last_name,
             specialization,
-            license_number
+            phone_number,
+            email
           });
           auth.info(' Doctor profile created:', { id: profile.id, name: `${first_name} ${last_name}` });
         }
@@ -112,11 +104,8 @@ class AuthService {
         user: formattedUser
       };
     } catch (error) {
-      auth.error('Registration service error:', error);
-      if (error instanceof BadRequestError || error instanceof ConflictError) {
-        throw error;
-      }
-      throw new InternalServerError('Registration failed', '5001');
+      auth.error('Registration error:', error);
+      throw error;
     }
   }
 
@@ -357,6 +346,40 @@ class AuthService {
   }
 
   /**
+   * Verify email with token (placeholder)
+   * @param {string} token - Verification token
+   * @returns {Object} Verification result
+   */
+  static async verifyEmail(token) {
+    try {
+      // Placeholder implementation - user mentioned they have SMTP set up
+      // but don't want to implement email verification yet
+      // In a real implementation, you would:
+      // 1. Validate the token format
+      // 2. Find user by verification token
+      // 3. Update user email verification status
+      // 4. Invalidate the token
+      
+      auth.info(' Email verification (placeholder):', { token: token ? 'provided' : 'missing' });
+      
+      if (!token) {
+        throw new BadRequestError('Verification token is required', '4001');
+      }
+      
+      return {
+        verified: true,
+        message: 'Email verified successfully (placeholder implementation)'
+      };
+    } catch (error) {
+      auth.error('Email verification service error:', error);
+      if (error instanceof BadRequestError) {
+        throw error;
+      }
+      throw new InternalServerError('Email verification failed', '5004');
+    }
+  }
+
+  /**
    * Get all users with pagination and filtering (Admin only)
    * @param {Object} options - Query options
    * @returns {Object} Users list with pagination
@@ -399,21 +422,7 @@ class AuthService {
     }
   }
 
-  /**
-   * Get authentication statistics
-   * @returns {Object} Authentication statistics
-   */
-  static async getAuthStats() {
-    try {
-      const userRepo = getUserRepository();
-      
-      const stats = await userRepo.getUserStats();
-      return stats;
-    } catch (error) {
-      auth.error('Get auth stats service error:', error);
-      throw new InternalServerError('Failed to retrieve authentication statistics', '5009');
-    }
-  }
+ 
 
   /**
    * Generate JWT access token

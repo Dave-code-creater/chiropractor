@@ -1,6 +1,6 @@
 const { BadRequestError, NotFoundError, InternalServerError } = require('../utils/httpResponses');
 const { getUserRepository, getPatientRepository } = require('../repositories');
-const { reportValidator, patientIntakeSchema, doctorInitialReportSchema } = require('../validators');
+const { patientIntakeSchema, doctorInitialReportSchema } = require('../validators').schemas;
 const { info, error: logError, debug, warn } = require('../utils/logger');
 
 /**
@@ -17,63 +17,62 @@ class ReportService {
    * @returns {Object} Report creation result
    */
   static async createPatientIntakeReport(reportData, req) {
-    const { error } = reportValidator.validate(reportData);
-    if (error) throw new BadRequestError(error.details[0].message, '4001');
-
     try {
       const userRepo = getUserRepository();
       const patientRepo = getPatientRepository();
 
-      const {
-        patient_id,
-        chief_complaint,
-        current_symptoms,
-        symptom_duration,
-        pain_level,
-        pain_description,
-        previous_treatments,
-        medications,
-        allergies,
-        medical_history,
-        insurance_details,
-        emergency_contact,
-        work_status_impact,
-        additional_notes
-      } = reportData;
-
-      // Validate patient exists
-      const patient = await patientRepo.findPatientById(patient_id);
-      if (!patient) {
-        throw new NotFoundError('Patient not found', '4041');
+      // Get user email from JWT token
+      const userEmail = req.user?.email;
+      if (!userEmail) {
+        throw new BadRequestError('User email not found in token', '4003');
       }
 
-      // Create intake report
-      const report = await userRepo.createIntakeReport({
-        patient_id,
-        report_type: 'patient_intake',
-        chief_complaint,
-        current_symptoms: JSON.stringify(current_symptoms || []),
-        symptom_duration,
-        pain_level,
-        pain_description,
-        previous_treatments: JSON.stringify(previous_treatments || []),
-        medications: JSON.stringify(medications || []),
-        allergies: JSON.stringify(allergies || []),
-        medical_history: JSON.stringify(medical_history || {}),
-        insurance_details: JSON.stringify(insurance_details || {}),
-        emergency_contact: JSON.stringify(emergency_contact || {}),
-        work_status_impact,
-        additional_notes,
-        status: 'pending_review',
-        created_by: req.user?.id
-      });
+      // Handle both nested and flat data structures
+      let intakeData;
+      if (reportData.patientIntake) {
+        // Nested structure from frontend
+        intakeData = reportData.patientIntake;
+      } else {
+        // Flat structure (direct submission)
+        intakeData = reportData;
+      }
+
+      // Map frontend field names to database field names
+      const mappedData = {
+        first_name: intakeData.first_name,
+        middle_name: intakeData.middle_name || '',
+        last_name: intakeData.last_name,
+        ssn: intakeData.ssn,
+        date_of_birth: intakeData.date_of_birth,
+        gender: intakeData.gender?.toLowerCase(), // Convert to lowercase for database enum
+        marital_status: intakeData.marital_status,
+        race: intakeData.race,
+        street: intakeData.address || intakeData.street,  // Handle both field names
+        city: intakeData.city,
+        state: intakeData.state,
+        zip: intakeData.zip_code || intakeData.zip,       // Handle both field names
+        home_phone: intakeData.home_phone,
+        cell_phone: intakeData.cell_phone || '',
+        emergency_contact: intakeData.emergency_contact_name || intakeData.emergency_contact,
+        emergency_contact_phone: intakeData.emergency_contact_phone,
+        emergency_contact_relationship: intakeData.emergency_contact_relationship
+      };
+
+      debug('Mapped patient intake data:', mappedData);
+
+      // Validate the mapped data
+      const { error } = patientIntakeSchema.validate(mappedData);
+      if (error) throw new BadRequestError(error.details[0].message, '4001');
+
+      // Create intake report with email from JWT
+      const report = await userRepo.createIntakeReport(mappedData, req.user?.id);
 
       info(' Patient intake report created:', { 
         report_id: report.id,
-        patient_id 
+        email: userEmail
       });
 
-      return ReportService.formatReportResponse(report);
+      return report;
 
     } catch (error) {
       logError('Create patient intake report service error:', error);
@@ -283,10 +282,34 @@ class ReportService {
       const userRepo = getUserRepository();
       const patientRepo = getPatientRepository();
 
-      // Validate patient exists
-      const patient = await patientRepo.findPatientById(patientId);
+      // First try to find patient by ID
+      let patient = await patientRepo.findPatientById(patientId);
+      
+      // If not found, try to find by user ID (in case patientId is actually a user ID)
       if (!patient) {
-        throw new NotFoundError('Patient not found', '4041');
+        patient = await patientRepo.findByUserId(patientId);
+        
+        // If still not found, create a basic patient record for this user
+        if (!patient) {
+          const user = await userRepo.findById(patientId);
+          if (!user) {
+            throw new NotFoundError('User not found', '4041');
+          }
+          
+          // Create basic patient record
+          patient = await patientRepo.createPatient({
+            user_id: patientId,
+            first_name: user.username || 'Patient',
+            last_name: '',
+            email: user.email,
+            status: 'active'
+          });
+          
+          logError('Auto-created patient record for user:', { 
+            user_id: patientId, 
+            patient_id: patient.id 
+          });
+        }
       }
 
       const {

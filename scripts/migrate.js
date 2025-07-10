@@ -15,8 +15,8 @@ async function runMigrations() {
   try {
     const client = await pool.connect();
     
-    // Read and execute migration file
-    const migrationPath = path.join(__dirname, '..', 'migrations', '001_init.sql');
+    // Read and execute complete schema file
+    const migrationPath = path.join(__dirname, '..', 'migrations', '001_complete_schema.sql');
     const migrationSQL = fs.readFileSync(migrationPath, 'utf8');
     
     await client.query(migrationSQL);

@@ -3,6 +3,8 @@ const UserRepository = require('./UserRepository');
 const PatientRepository = require('./PatientRepository');
 const DoctorRepository = require('./DoctorRepository');
 const ApiKeyRepository = require('./ApiKeyRepository');
+const AppointmentRepository = require('./AppointmentRepository');
+const ChatRepository = require('./ChatRepository');
 
 /**
  * Repository Factory
@@ -37,6 +39,14 @@ class RepositoryFactory {
         case 'api_key':
         case 'api_keys':
           this._instances.set(repositoryName, new ApiKeyRepository());
+          break;
+        case 'appointment':
+        case 'appointments':
+          this._instances.set(repositoryName, new AppointmentRepository());
+          break;
+        case 'chat':
+        case 'chats':
+          this._instances.set(repositoryName, new ChatRepository());
           break;
         default:
           throw new Error(`Repository '${repositoryName}' not found`);
@@ -79,6 +89,22 @@ class RepositoryFactory {
   }
 
   /**
+   * Get appointment repository
+   * @returns {AppointmentRepository} Appointment repository instance
+   */
+  getAppointmentRepository() {
+    return this.getRepository('appointment');
+  }
+
+  /**
+   * Get chat repository
+   * @returns {ChatRepository} Chat repository instance
+   */
+  getChatRepository() {
+    return this.getRepository('chat');
+  }
+
+  /**
    * Clear all repository instances (useful for testing)
    */
   clearInstances() {
@@ -99,6 +125,8 @@ module.exports = {
   PatientRepository,
   DoctorRepository,
   ApiKeyRepository,
+  AppointmentRepository,
+  ChatRepository,
   
   // Factory instance
   repositoryFactory,
@@ -108,6 +136,8 @@ module.exports = {
   getPatientRepository: () => repositoryFactory.getPatientRepository(),
   getDoctorRepository: () => repositoryFactory.getDoctorRepository(),
   getApiKeyRepository: () => repositoryFactory.getApiKeyRepository(),
+  getAppointmentRepository: () => repositoryFactory.getAppointmentRepository(),
+  getChatRepository: () => repositoryFactory.getChatRepository(),
   
   // Get repository by name
   getRepository: (name) => repositoryFactory.getRepository(name)

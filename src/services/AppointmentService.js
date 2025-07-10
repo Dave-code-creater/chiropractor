@@ -1,5 +1,5 @@
 const { BadRequestError, NotFoundError, InternalServerError } = require('../utils/httpResponses');
-const { getUserRepository, getPatientRepository, getDoctorRepository } = require('../repositories');
+const { getUserRepository, getPatientRepository, getDoctorRepository, getAppointmentRepository } = require('../repositories');
 const { api, error: logError, info } = require('../utils/logger');
 
 /**
@@ -64,44 +64,43 @@ class AppointmentService {
       const appointmentDateTime = AppointmentService.parseAppointmentDateTime(appointment_date, appointment_time);
       
       // Check for scheduling conflicts
-      const hasConflict = await AppointmentService.checkSchedulingConflict(doctor_id, appointmentDateTime);
+      const appointmentRepo = getAppointmentRepository();
+      const hasConflict = await appointmentRepo.checkSchedulingConflict(doctor_id, appointmentDateTime);
       if (hasConflict) {
         throw new BadRequestError('Doctor is not available at this time slot', '4093');
       }
 
-      // Use transaction for data consistency
-      const result = await userRepo.transaction(async () => {
-        const appointmentRecord = {
-          doctor_id,
-          patient_id: resolvedPatientId,
-          patient_user_id: patient_user_id, // Always capture user_id from JWT
-          patient_name: patient_name || (patient ? `${patient.first_name} ${patient.last_name}` : null),
-          patient_phone: patient_phone || (patient ? patient.phone : null),
-          patient_email: patient_email || (patient ? patient.email : currentUser?.email),
-          appointment_datetime: appointmentDateTime,
-          appointment_date,
-          appointment_time,
-          appointment_type,
-          location: location || 'Clinic',
-          reason_for_visit,
-          additional_notes,
-          duration_minutes,
-          status: status || 'scheduled',
-          created_by: patient_user_id
-        };
+      // Create appointment record
+      const appointmentRecord = {
+        doctor_id,
+        patient_id: resolvedPatientId,
+        patient_user_id: patient_user_id, // Always capture user_id from JWT
+        patient_name: patient_name || (patient ? `${patient.first_name} ${patient.last_name}` : null),
+        patient_phone: patient_phone || (patient ? patient.phone : null),
+        patient_email: patient_email || (patient ? patient.email : currentUser?.email),
+        appointment_date,
+        appointment_time,
+        appointment_type,
+        location: location || 'Clinic',
+        reason_for_visit,
+        additional_notes,
+        duration_minutes,
+        status: status || 'scheduled',
+        created_by: patient_user_id
+      };
 
-        api.info('📝 Creating appointment record:', appointmentRecord);
-        const appointment = await AppointmentService.createAppointmentRecord(appointmentRecord);
+      api.info('📝 Creating appointment record:', appointmentRecord);
+      const appointment = await appointmentRepo.createAppointment(appointmentRecord);
 
-        api.info(' Appointment created:', { 
-          id: appointment.id, 
-          doctor_id, 
-          patient_id: resolvedPatientId,
-          patient_user_id,
-          datetime: appointmentDateTime 
-        });
-        return { appointment, doctor, patient };
+      api.info(' Appointment created:', { 
+        id: appointment.id, 
+        doctor_id, 
+        patient_id: resolvedPatientId,
+        patient_user_id,
+        datetime: appointmentDateTime 
       });
+
+      const result = { appointment, doctor, patient };
 
       return AppointmentService.formatAppointmentResponse(result.appointment, result.doctor, result.patient);
     } catch (error) {
@@ -179,8 +178,9 @@ class AppointmentService {
       }
 
       const offset = (page - 1) * limit;
-      const appointments = await AppointmentService.getAppointmentsByConditions(conditions, { limit, offset });
-      const totalCount = await AppointmentService.countAppointmentsByConditions(conditions);
+      const appointmentRepo = getAppointmentRepository();
+      const appointments = await appointmentRepo.getAppointmentsByConditions(conditions, { limit, offset });
+      const totalCount = await appointmentRepo.countAppointmentsByConditions(conditions);
 
       return {
         appointments,
@@ -234,7 +234,7 @@ class AppointmentService {
 
       // Parse new datetime if provided
       if (updateData.appointment_date && updateData.appointment_time) {
-        updateData.appointment_datetime = AppointmentService.parseAppointmentDateTime(
+        const appointmentDateTime = AppointmentService.parseAppointmentDateTime(
           updateData.appointment_date, 
           updateData.appointment_time
         );
@@ -242,7 +242,7 @@ class AppointmentService {
         // Check for conflicts if changing datetime
         const hasConflict = await AppointmentService.checkSchedulingConflict(
           existingAppointment.doctor_id, 
-          updateData.appointment_datetime,
+          appointmentDateTime,
           appointmentId // Exclude current appointment
         );
         if (hasConflict) {
@@ -338,33 +338,33 @@ class AppointmentService {
   }
 
   static async checkSchedulingConflict(doctorId, appointmentDateTime, excludeAppointmentId = null) {
-    const userRepo = getUserRepository();
-    return await userRepo.checkAppointmentConflict(doctorId, appointmentDateTime, excludeAppointmentId);
+    const appointmentRepo = getAppointmentRepository();
+    return await appointmentRepo.checkSchedulingConflict(doctorId, appointmentDateTime, excludeAppointmentId);
   }
 
   static async createAppointmentRecord(data) {
-    const userRepo = getUserRepository();
-    return await userRepo.createAppointment(data);
+    const appointmentRepo = getAppointmentRepository();
+    return await appointmentRepo.createAppointment(data);
   }
 
   static async findAppointmentById(appointmentId) {
-    const userRepo = getUserRepository();
-    return await userRepo.findAppointmentById(appointmentId);
+    const appointmentRepo = getAppointmentRepository();
+    return await appointmentRepo.findAppointmentById(appointmentId);
   }
 
   static async updateAppointmentRecord(appointmentId, updateData) {
-    const userRepo = getUserRepository();
-    return await userRepo.updateAppointment(appointmentId, updateData);
+    const appointmentRepo = getAppointmentRepository();
+    return await appointmentRepo.updateAppointment(appointmentId, updateData);
   }
 
   static async getAppointmentsByConditions(conditions, options) {
-    const userRepo = getUserRepository();
-    return await userRepo.findAppointmentsByConditions(conditions, options);
+    const appointmentRepo = getAppointmentRepository();
+    return await appointmentRepo.getAppointmentsByConditions(conditions, options);
   }
 
   static async countAppointmentsByConditions(conditions) {
-    const userRepo = getUserRepository();
-    return await userRepo.countAppointmentsByConditions(conditions);
+    const appointmentRepo = getAppointmentRepository();
+    return await appointmentRepo.countAppointmentsByConditions(conditions);
   }
 
   static formatAppointmentResponse(appointment, doctor = null, patient = null) {
@@ -407,22 +407,22 @@ class AppointmentService {
         throw new NotFoundError('Doctor not found or inactive', '4041');
       }
 
-      // Parse the date
+      // Parse the date and get day of week (1-7)
       const targetDate = new Date(date);
-      const dayOfWeek = targetDate.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+      const dayOfWeek = targetDate.getDay() || 7; // Convert Sunday from 0 to 7
 
       // Get doctor's schedule for the day
-      const schedule = doctor.schedule || {};
-      const daySchedule = schedule[dayOfWeek];
+      const schedule = await doctorRepo.getDoctorSchedule(doctorId, dayOfWeek);
 
-      if (!daySchedule || !daySchedule.available) {
+      if (!schedule || !schedule.is_available) {
         return {
           is_available: false,
           available_slots: [],
           working_hours: null,
           total_slots: 0,
           booked_slots: 0,
-          message: `Dr. ${doctor.first_name} ${doctor.last_name} is not available on ${dayOfWeek}s`
+          accepts_walkin: false,
+          message: `Dr. ${doctor.first_name} ${doctor.last_name} is not available on this day`
         };
       }
 
@@ -431,8 +431,8 @@ class AppointmentService {
 
       // Generate available time slots
       const availableSlots = AppointmentService.generateTimeSlots(
-        daySchedule.start_time,
-        daySchedule.end_time,
+        schedule.start_time,
+        schedule.end_time,
         30, // 30-minute slots
         existingAppointments
       );
@@ -441,9 +441,10 @@ class AppointmentService {
         is_available: availableSlots.length > 0,
         available_slots: availableSlots,
         working_hours: {
-          start_time: daySchedule.start_time,
-          end_time: daySchedule.end_time
+          start_time: schedule.start_time,
+          end_time: schedule.end_time
         },
+        accepts_walkin: schedule.accepts_walkin,
         total_slots: availableSlots.length + existingAppointments.length,
         booked_slots: existingAppointments.length,
         doctor_info: {

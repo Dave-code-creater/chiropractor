@@ -6,11 +6,11 @@ const patientCreateSchema = Joi.object({
   middle_name: Joi.string().max(50).optional(),
   last_name: Joi.string().min(2).max(50).required(),
   email: Joi.string().email().required(),
-  phone_number: Joi.string().max(20).optional(),
+  phone_number: Joi.string().min(10).max(20).optional(),
   date_of_birth: Joi.date().optional(),
-  gender: Joi.string().valid('male', 'female', 'other').optional(),
+  gender: Joi.string().valid('Male', 'Female', 'Other', 'male', 'female', 'other').optional(),
   marriage_status: Joi.string().valid('Single', 'Married', 'Divorced', 'Widowed', 'Other').optional(),
-  race: Joi.string().valid('White', 'Black', 'Asian', 'Hispanic', 'Other').optional(),
+  race: Joi.string().valid('White', 'Black', 'Asian', 'Hispanic', 'Caucasian', 'Other').optional(),
   address: Joi.object({
     street: Joi.string().max(255).optional(),
     city: Joi.string().max(100).optional(),
@@ -19,7 +19,7 @@ const patientCreateSchema = Joi.object({
   }).optional(),
   emergency_contact: Joi.object({
     name: Joi.string().max(100).optional(),
-    phone_number: Joi.string().max(20).optional(),
+    phone_number: Joi.string().min(10).max(20).optional(),
     relationship: Joi.string().max(50).optional()
   }).optional(),
   insurance_info: Joi.object().optional(),
@@ -31,11 +31,11 @@ const patientUpdateSchema = Joi.object({
   middle_name: Joi.string().max(50).optional(),
   last_name: Joi.string().min(2).max(50).optional(),
   email: Joi.string().email().optional(),
-  phone_number: Joi.string().max(20).optional(),
+  phone_number: Joi.string().min(10).max(20).optional(),
   date_of_birth: Joi.date().optional(),
-  gender: Joi.string().valid('male', 'female', 'other').optional(),
+  gender: Joi.string().valid('Male', 'Female', 'Other', 'male', 'female', 'other').optional(),
   marriage_status: Joi.string().valid('Single', 'Married', 'Divorced', 'Widowed', 'Other').optional(),
-  race: Joi.string().valid('White', 'Black', 'Asian', 'Hispanic', 'Other').optional(),
+  race: Joi.string().valid('White', 'Black', 'Asian', 'Hispanic', 'Caucasian', 'Other').optional(),
   address: Joi.object({
     street: Joi.string().max(255).optional(),
     city: Joi.string().max(100).optional(),
@@ -44,7 +44,7 @@ const patientUpdateSchema = Joi.object({
   }).optional(),
   emergency_contact: Joi.object({
     name: Joi.string().max(100).optional(),
-    phone_number: Joi.string().max(20).optional(),
+    phone_number: Joi.string().min(10).max(20).optional(),
     relationship: Joi.string().max(50).optional()
   }).optional(),
   insurance_info: Joi.object().optional(),
@@ -85,9 +85,34 @@ const vitalsSchema = Joi.object({
   notes: Joi.string().max(500).optional()
 });
 
+const profileUpdateSchema = Joi.object({
+  first_name: Joi.string().min(2).max(50).optional(),
+  middle_name: Joi.string().max(50).optional(),
+  last_name: Joi.string().min(2).max(50).optional(),
+  date_of_birth: Joi.date().optional(),
+  gender: Joi.string().valid('Male', 'Female', 'Other', 'male', 'female', 'other').optional(),
+  marriage_status: Joi.string().valid('Single', 'Married', 'Divorced', 'Widowed', 'Other').optional(),
+  race: Joi.string().valid('White', 'Black', 'Asian', 'Hispanic', 'Caucasian', 'Other').optional(),
+  phone: Joi.string().min(10).max(20).optional(),
+  email: Joi.string().email().optional(),
+  street: Joi.string().max(255).optional(),
+  city: Joi.string().max(100).optional(),
+  state: Joi.string().length(2).optional(),
+  zip: Joi.string().max(10).optional(),
+  employer: Joi.string().max(100).optional(),
+  occupation: Joi.string().max(100).optional(),
+  work_address: Joi.string().max(255).optional(),
+  work_phone: Joi.string().min(10).max(20).optional(),
+  spouse_phone: Joi.string().min(10).max(20).optional(),
+  emergency_contact_name: Joi.string().max(100).optional(),
+  emergency_contact_phone: Joi.string().min(10).max(20).optional(),
+  emergency_contact_relationship: Joi.string().max(50).optional()
+});
+
 module.exports = {
   patientCreateSchema,
   patientUpdateSchema,
   clinicalNotesSchema,
-  vitalsSchema
+  vitalsSchema,
+  profileUpdateSchema
 }; 

@@ -1,6 +1,7 @@
 const express = require('express');
 const asyncHandler = require('../utils/asyncHandler');
 const AuthController = require('../controllers/auth.controller');
+const UserController = require('../controllers/user.controller');
 const PasswordResetController = require('../controllers/password-reset.controller');
 const { authenticate, authorize, authenticateForLogout } = require('../middleware/auth.middleware');
 const { 
@@ -100,6 +101,15 @@ router.post('/reset-password',
   asyncHandler(PasswordResetController.resetPassword)
 );
 
+/**
+ * Verify email with token
+ * POST /auth/verify-email
+ * Body: { token }
+ */
+router.post('/verify-email',
+  asyncHandler(AuthController.verifyEmail)
+);
+
 // ===============================================
 // AUTHENTICATED ROUTES
 // ===============================================
@@ -146,7 +156,7 @@ router.post('/verify-account',
  */
 router.get('/profile',
   authenticate,
-  asyncHandler(AuthController.getProfile)
+  asyncHandler(UserController.getProfile)
 );
 
 /**
@@ -156,7 +166,7 @@ router.get('/profile',
  */
 router.get('/me',
   authenticate,
-  asyncHandler(AuthController.getProfile)
+  asyncHandler(UserController.getProfile)
 );
 
 // ===============================================
@@ -174,16 +184,7 @@ router.get('/users',
   asyncHandler(AuthController.getAllUsers)
 );
 
-/**
- * Get authentication statistics
- * GET /auth/stats
- * Auth: Admin only
- */
-router.get('/stats',
-  authenticate,
-  authorize(['admin']),
-  asyncHandler(AuthController.getAuthStats)
-);
+
 
 
 

@@ -1,5 +1,4 @@
 const { Pool } = require('pg');
-// MongoDB removed - using PostgreSQL only
 const config = require('./index');
 const { info, error: logError, debug, warn } = require('../utils/logger');
 
@@ -33,16 +32,12 @@ async function connectPostgreSQL() {
   }
 }
 
-// MongoDB connection removed - using PostgreSQL only
-
 function getPostgreSQLPool() {
   if (!pgPool) {
     throw new Error('PostgreSQL pool not initialized. Call connectPostgreSQL() first.');
   }
   return pgPool;
 }
-
-// MongoDB connection getter removed - using PostgreSQL only
 
 module.exports = {
   connectPostgreSQL,

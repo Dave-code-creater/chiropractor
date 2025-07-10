@@ -2,23 +2,23 @@ const Joi = require('joi');
 
 // Report validation schemas - using snake_case for consistency
 const patientIntakeSchema = Joi.object({
-  name: Joi.string().max(100).default('Patient Intake Report'),
-  first_name: Joi.string().min(2).max(50).required(),
-  middle_name: Joi.string().max(50).optional(),
-  last_name: Joi.string().min(2).max(50).required(),
+  first_name: Joi.string().required(),
+  middle_name: Joi.string().allow(''),
+  last_name: Joi.string().required(),
+  ssn: Joi.string().pattern(/^\d{3}-?\d{2}-?\d{4}$/),
   date_of_birth: Joi.date().required(),
-  address: Joi.string().max(255).required(),
-  city: Joi.string().max(100).required(),
+  gender: Joi.string().valid('Male', 'Female', 'Other', 'male', 'female', 'other').required(),
+  marital_status: Joi.string().valid('Single', 'Married', 'Divorced', 'Widowed').required(),
+  race: Joi.string().valid('White', 'Black', 'Asian', 'Hispanic', 'Caucasian', 'Other').required(),
+  street: Joi.string().required(),
+  city: Joi.string().required(),
   state: Joi.string().length(2).required(),
-  zip_code: Joi.string().max(10).required(),
-  home_phone: Joi.string().max(20).optional(),
-  work_phone: Joi.string().max(20).optional(),
-  cell_phone: Joi.string().max(20).optional(),
-  email: Joi.string().email().required(),
-  ssn: Joi.string().max(11).optional(),
-  emergency_contact_name: Joi.string().max(100).required(),
-  emergency_contact_phone: Joi.string().max(20).required(),
-  emergency_contact_relationship: Joi.string().max(50).required()
+  zip: Joi.string().pattern(/^\d{5}(-\d{4})?$/).required(),
+  home_phone: Joi.string().min(10).max(20).required(),
+  cell_phone: Joi.string().min(10).max(20).optional(),
+  emergency_contact: Joi.string().required(),
+  emergency_contact_phone: Joi.string().min(10).max(20).required(),
+  emergency_contact_relationship: Joi.string().required()
 });
 
 const insuranceDetailsSchema = Joi.object({

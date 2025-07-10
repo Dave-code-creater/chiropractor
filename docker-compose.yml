@@ -34,7 +34,6 @@ services:
         condition: service_healthy
     volumes:
       - ./logs:/app/logs
-      - ./uploads:/app/uploads
     networks:
       - clinic-network
     restart: unless-stopped
@@ -68,8 +67,6 @@ services:
       timeout: 5s
       retries: 5
       start_period: 30s
-
-  # MongoDB removed - using PostgreSQL only for simplified architecture
 
   # Redis - Sessions, Caching & Real-time Features
   redis:

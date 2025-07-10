@@ -1,5 +1,5 @@
 const { Router } = require('express');
-const { getPostgreSQLPool, getMongooseConnection } = require('../config/database');
+const { getPostgreSQLPool } = require('../config/database');
 const { SuccessResponse } = require('../utils/httpResponses');
 
 const router = Router();
@@ -38,26 +38,6 @@ router.get('/', async (req, res) => {
       health.databases.postgresql = {
         status: 'disconnected',
         error: pgError.message
-      };
-      health.status = 'degraded';
-    }
-
-    // Check MongoDB connection
-    try {
-      const mongoConnection = getMongooseConnection();
-      if (mongoConnection.readyState === 1) {
-        health.databases.mongodb = {
-          status: 'connected',
-          type: 'mongodb',
-          collections: ['posts', 'conversations', 'messages', 'users']
-        };
-      } else {
-        throw new Error('MongoDB not connected');
-      }
-    } catch (mongoError) {
-      health.databases.mongodb = {
-        status: 'disconnected',
-        error: mongoError.message
       };
       health.status = 'degraded';
     }

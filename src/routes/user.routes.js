@@ -117,4 +117,29 @@ router.get('/patients/:id/vitals',
   asyncHandler(UserController.getVitalsHistory)
 );
 
+// ===============================================
+// USER PROFILE ROUTES
+// ===============================================
+
+/**
+ * Get current user's profile
+ * GET /users/profile
+ * Auth: All authenticated users
+ */
+router.get('/profile', 
+  authenticate, 
+  asyncHandler(UserController.getProfile)
+);
+
+/**
+ * Create or update current user's profile
+ * PUT /users/profile
+ * Body: { first_name, last_name, date_of_birth, gender, ... }
+ * Auth: All authenticated users
+ */
+router.put('/profile', 
+  authenticate, 
+  asyncHandler(UserController.updateProfile)
+);
+
 module.exports = router; 

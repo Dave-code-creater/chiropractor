@@ -59,4 +59,10 @@ router.post('/messages',
   asyncHandler(ChatController.sendMessage)
 );
 
+router.delete('/conversations/:conversationId', 
+  authenticate, 
+  authorize(['doctor', 'admin', 'staff', 'patient']), 
+  asyncHandler(ChatController.deleteConversation)
+);
+
 module.exports = router; 

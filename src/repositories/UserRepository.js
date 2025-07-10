@@ -194,7 +194,7 @@ class UserRepository extends BaseRepository {
         p.id as patient_id, p.first_name as patient_first_name, p.last_name as patient_last_name,
         p.date_of_birth, p.gender, p.marriage_status, p.race,
         d.id as doctor_id, d.first_name as doctor_first_name, d.last_name as doctor_last_name,
-        d.specialization, d.license_number
+        d.specialization
       FROM users u
       LEFT JOIN patients p ON u.id = p.user_id AND u.role IN ('patient', 'staff')
       LEFT JOIN doctors d ON u.id = d.user_id AND u.role = 'doctor'
@@ -310,7 +310,7 @@ class UserRepository extends BaseRepository {
         a.appointment_time,
         a.duration_minutes,
         a.status,
-        a.notes,
+        a.additional_notes,
         p.first_name as patient_first_name,
         p.last_name as patient_last_name,
         p.email as patient_email,
@@ -335,10 +335,10 @@ class UserRepository extends BaseRepository {
     const query = `
       INSERT INTO appointments (
         doctor_id, patient_id, patient_user_id, patient_name, patient_phone, patient_email,
-        appointment_date, appointment_time, appointment_datetime, appointment_type, location,
+        appointment_date, appointment_time, appointment_type, location,
         reason_for_visit, additional_notes, duration_minutes, status,
         created_by, created_at, updated_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, NOW(), NOW())
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, NOW(), NOW())
       RETURNING *
     `;
     
@@ -351,7 +351,6 @@ class UserRepository extends BaseRepository {
       appointmentData.patient_email,
       appointmentData.appointment_date,
       appointmentData.appointment_time,
-      appointmentData.appointment_datetime,
       appointmentData.appointment_type || 'consultation',
       appointmentData.location || 'Clinic',
       appointmentData.reason_for_visit,
@@ -661,18 +660,18 @@ class UserRepository extends BaseRepository {
   async createConversation(conversationData) {
     const query = `
       INSERT INTO conversations (
-        patient_id, doctor_id, conversation_type, subject, priority, status,
-        created_at, updated_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
+        conversation_id, patient_id, doctor_id, title, description, participant_type, status
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING *
     `;
     
     const values = [
+      conversationData.conversation_id,
       conversationData.patient_id,
       conversationData.doctor_id,
-      conversationData.conversation_type || 'general',
-      conversationData.subject,
-      conversationData.priority || 'normal',
+      conversationData.title || conversationData.subject || 'New Conversation',
+      conversationData.description || '',
+      conversationData.participant_type || 'patient-doctor',
       conversationData.status || 'active'
     ];
     
@@ -682,7 +681,7 @@ class UserRepository extends BaseRepository {
 
   /**
    * Find conversation by ID
-   * @param {number} conversationId - Conversation ID
+   * @param {string} conversationId - Conversation ID (conversation_id field)
    * @returns {Object|null} Conversation data
    */
   async findConversationById(conversationId) {
@@ -696,7 +695,7 @@ class UserRepository extends BaseRepository {
       FROM conversations c
       LEFT JOIN patients p ON c.patient_id = p.id
       LEFT JOIN doctors d ON c.doctor_id = d.id
-      WHERE c.id = $1
+      WHERE c.conversation_id = $1
     `;
     
     const result = await this.query(query, [conversationId]);
@@ -711,7 +710,7 @@ class UserRepository extends BaseRepository {
   async createMessage(messageData) {
     const query = `
       INSERT INTO messages (
-        conversation_id, sender_id, sender_type, message_content, message_type,
+        conversation_id, sender_id, sender_type, content, message_type,
         attachment_url, attachment_type, sent_at
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
       RETURNING *
@@ -721,7 +720,7 @@ class UserRepository extends BaseRepository {
       messageData.conversation_id,
       messageData.sender_id,
       messageData.sender_type,
-      messageData.message_content,
+      messageData.content,
       messageData.message_type || 'text',
       messageData.attachment_url,
       messageData.attachment_type
@@ -733,14 +732,14 @@ class UserRepository extends BaseRepository {
 
   /**
    * Update conversation last activity
-   * @param {number} conversationId - Conversation ID
+   * @param {string} conversationId - Conversation ID (conversation_id field)
    * @returns {void}
    */
   async updateConversationLastActivity(conversationId) {
     const query = `
       UPDATE conversations 
       SET last_message_at = NOW(), updated_at = NOW()
-      WHERE id = $1
+      WHERE conversation_id = $1
     `;
     
     await this.query(query, [conversationId]);
@@ -786,14 +785,14 @@ class UserRepository extends BaseRepository {
 
   /**
    * Mark messages as read
-   * @param {number} conversationId - Conversation ID
+   * @param {string} conversationId - Conversation ID (conversation_id field)
    * @param {number} userId - User ID
    * @returns {void}
    */
   async markMessagesAsRead(conversationId, userId) {
     const query = `
       UPDATE messages 
-      SET is_read = true, read_at = NOW()
+      SET is_read = true, updated_at = NOW()
       WHERE conversation_id = $1 AND sender_id != $2 AND is_read = false
     `;
     
@@ -825,7 +824,7 @@ class UserRepository extends BaseRepository {
     // admin and staff can see all conversations
     
     if (conversation_type) {
-      whereConditions.push(`c.conversation_type = $${paramIndex}`);
+      whereConditions.push(`c.participant_type = $${paramIndex}`);
       queryParams.push(conversation_type);
       paramIndex++;
     }
@@ -850,8 +849,8 @@ class UserRepository extends BaseRepository {
         p.last_name as patient_last_name,
         d.first_name as doctor_first_name,
         d.last_name as doctor_last_name,
-        (SELECT message_content FROM messages WHERE conversation_id = c.id ORDER BY sent_at DESC LIMIT 1) as last_message,
-        (SELECT COUNT(*) FROM messages WHERE conversation_id = c.id AND is_read = false AND sender_id != $${unreadCountParam}) as unread_count
+        (SELECT content FROM messages WHERE conversation_id = c.conversation_id ORDER BY sent_at DESC LIMIT 1) as last_message,
+        (SELECT COUNT(*) FROM messages WHERE conversation_id = c.conversation_id AND is_read = false AND sender_id != $${unreadCountParam}) as unread_count
       FROM conversations c
       LEFT JOIN patients p ON c.patient_id = p.id
       LEFT JOIN doctors d ON c.doctor_id = d.id
@@ -926,25 +925,85 @@ class UserRepository extends BaseRepository {
    * @param {string} userRole - User role
    * @returns {boolean} Is participant
    */
-  async isUserParticipantByUserId(userId, conversationId, userRole) {
+  async isUserParticipantByUserId(userId, conversationId, userRole, profileId = null) {
+    // Debug: Log the parameters
+    console.log('isUserParticipantByUserId called with:', { userId, conversationId, userRole, profileId });
+    
+    // Check if user has sent messages in this conversation (most reliable way)
+    const messageQuery = `
+      SELECT 1 FROM messages WHERE conversation_id = $1 AND sender_id = $2 LIMIT 1
+    `;
+    const messageResult = await this.query(messageQuery, [conversationId, userId]);
+    if (messageResult.rows.length > 0) {
+      console.log('User has sent messages in this conversation, allowing access');
+      return true;
+    }
+    
+    // Use profile_id from JWT if available (most efficient)
+    if (profileId) {
+      if (userRole === 'patient') {
+        const query = `
+          SELECT 1 FROM conversations WHERE conversation_id = $1 AND patient_id = $2
+        `;
+        const result = await this.query(query, [conversationId, profileId]);
+        console.log('Patient profile_id query result:', { conversationId, profileId, rows: result.rows.length });
+        if (result.rows.length > 0) {
+          return true;
+        }
+      } else if (userRole === 'doctor') {
+        const query = `
+          SELECT 1 FROM conversations WHERE conversation_id = $1 AND doctor_id = $2
+        `;
+        const result = await this.query(query, [conversationId, profileId]);
+        console.log('Doctor profile_id query result:', { conversationId, profileId, rows: result.rows.length });
+        if (result.rows.length > 0) {
+          return true;
+        }
+      }
+    }
+    
+    // Check if user is a participant based on patient_id/doctor_id (primary method)
     if (userRole === 'patient') {
       const query = `
         SELECT 1 FROM conversations c
         LEFT JOIN patients p ON c.patient_id = p.id
-        WHERE c.id = $1 AND p.user_id = $2
+        WHERE c.conversation_id = $1 AND p.user_id = $2
       `;
       const result = await this.query(query, [conversationId, userId]);
-      return result.rows.length > 0;
+      console.log('Patient query result:', { conversationId, userId, rows: result.rows.length });
+      if (result.rows.length > 0) {
+        return true;
+      }
     } else if (userRole === 'doctor') {
       const query = `
         SELECT 1 FROM conversations c
         LEFT JOIN doctors d ON c.doctor_id = d.id
-        WHERE c.id = $1 AND d.user_id = $2
+        WHERE c.conversation_id = $1 AND d.user_id = $2
       `;
       const result = await this.query(query, [conversationId, userId]);
-      return result.rows.length > 0;
+      console.log('Doctor query result:', { conversationId, userId, rows: result.rows.length });
+      if (result.rows.length > 0) {
+        return true;
+      }
     } else if (['admin', 'staff'].includes(userRole)) {
       // Admin and staff can access all conversations
+      return true;
+    }
+    
+    // Check if user can see this conversation in their conversation list (fallback)
+    const userConversationQuery = `
+      SELECT 1 FROM conversations c
+      LEFT JOIN patients p ON c.patient_id = p.id
+      LEFT JOIN doctors d ON c.doctor_id = d.id
+      WHERE c.conversation_id = $1 AND (
+        (p.user_id = $2) OR 
+        (d.user_id = $2) OR
+        ($3 IN ('admin', 'staff'))
+      )
+    `;
+    const userConversationResult = await this.query(userConversationQuery, [conversationId, userId, userRole]);
+    if (userConversationResult.rows.length > 0) {
+      console.log('User can see this conversation in their list, allowing access');
       return true;
     }
     
@@ -1176,6 +1235,345 @@ class UserRepository extends BaseRepository {
     
     const result = await this.query(query, [reportId, updateData.report_data]);
     return result.rows[0] || null;
+  }
+
+  // ========================================
+  // INCIDENTS METHODS
+  // ========================================
+
+  /**
+   * Create a new incident
+   * @param {Object} incidentData - Incident data
+   * @returns {Object} Created incident
+   */
+  async createIncident(incidentData) {
+    const query = `
+      INSERT INTO incidents (
+        user_id, patient_id, incident_type, title, description, date_occurred, status, created_at, updated_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
+      RETURNING *
+    `;
+    
+    const values = [
+      incidentData.user_id,
+      incidentData.patient_id,
+      incidentData.incident_type,
+      incidentData.title,
+      incidentData.description,
+      incidentData.incident_date || incidentData.date_occurred,
+      incidentData.status || 'active'
+    ];
+    
+    const result = await this.query(query, values);
+    return result.rows[0];
+  }
+
+  /**
+   * Get user incidents
+   * @param {number} userId - User ID
+   * @param {Object} options - Query options
+   * @returns {Array} User incidents
+   */
+  async getUserIncidents(userId, options = {}) {
+    const { status, incident_type, limit = 50, offset = 0 } = options;
+    
+    let whereConditions = ['i.user_id = $1'];
+    let queryParams = [userId];
+    let paramIndex = 2;
+
+    if (status) {
+      whereConditions.push(`i.status = $${paramIndex}`);
+      queryParams.push(status);
+      paramIndex++;
+    }
+
+    if (incident_type) {
+      whereConditions.push(`i.incident_type = $${paramIndex}`);
+      queryParams.push(incident_type);
+      paramIndex++;
+    }
+
+    const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+
+    const query = `
+      SELECT 
+        i.*,
+        p.first_name as patient_first_name,
+        p.last_name as patient_last_name,
+        COUNT(if.id) as total_forms,
+        COUNT(CASE WHEN if.is_completed = true THEN 1 END) as completed_forms
+      FROM incidents i
+      LEFT JOIN patients p ON i.patient_id = p.id
+      LEFT JOIN incident_forms if ON i.id = if.incident_id
+      ${whereClause}
+      GROUP BY i.id, p.first_name, p.last_name
+      ORDER BY i.created_at DESC
+      LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+    `;
+
+    queryParams.push(limit, offset);
+    const result = await this.query(query, queryParams);
+    return result.rows;
+  }
+
+  /**
+   * Get incident by ID
+   * @param {number} incidentId - Incident ID
+   * @returns {Object|null} Incident with forms and notes
+   */
+  async getIncidentById(incidentId) {
+    const query = `
+      SELECT 
+        i.*,
+        p.first_name as patient_first_name,
+        p.last_name as patient_last_name
+      FROM incidents i
+      LEFT JOIN patients p ON i.patient_id = p.id
+      WHERE i.id = $1
+    `;
+    
+    const result = await this.query(query, [incidentId]);
+    return result.rows[0] || null;
+  }
+
+  /**
+   * Update incident
+   * @param {number} incidentId - Incident ID
+   * @param {Object} updateData - Update data
+   * @returns {Object|null} Updated incident
+   */
+  async updateIncident(incidentId, updateData) {
+    const fields = [];
+    const values = [];
+    let paramIndex = 1;
+
+    Object.keys(updateData).forEach(key => {
+      if (updateData[key] !== undefined) {
+        fields.push(`${key} = $${paramIndex}`);
+        values.push(updateData[key]);
+        paramIndex++;
+      }
+    });
+
+    if (fields.length === 0) return null;
+
+    fields.push('updated_at = NOW()');
+    values.push(incidentId);
+
+    const query = `
+      UPDATE incidents 
+      SET ${fields.join(', ')}
+      WHERE id = $${paramIndex}
+      RETURNING *
+    `;
+
+    const result = await this.query(query, values);
+    return result.rows[0] || null;
+  }
+
+  /**
+   * Create or update incident form
+   * @param {Object} formData - Form data
+   * @returns {Object} Created/updated form
+   */
+  async createOrUpdateIncidentForm(formData) {
+    // First check if the form already exists
+    const existingForm = await this.getIncidentFormByType(formData.incident_id, formData.form_type);
+    
+    if (existingForm) {
+      // Update existing form
+      const updateQuery = `
+        UPDATE incident_forms 
+        SET form_data = $1, is_completed = $2, updated_at = NOW()
+        WHERE incident_id = $3 AND form_type = $4
+        RETURNING *
+      `;
+      
+      const updateValues = [
+        formData.form_data,
+        formData.is_completed || false,
+        formData.incident_id,
+        formData.form_type
+      ];
+      
+      const result = await this.query(updateQuery, updateValues);
+      return result.rows[0];
+    } else {
+      // Create new form
+      const insertQuery = `
+        INSERT INTO incident_forms (
+          incident_id, form_type, form_data, is_completed, is_required, created_at, updated_at
+        ) VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+        RETURNING *
+      `;
+      
+      const insertValues = [
+        formData.incident_id,
+        formData.form_type,
+        formData.form_data,
+        formData.is_completed || false,
+        formData.is_required !== undefined ? formData.is_required : true
+      ];
+      
+      const result = await this.query(insertQuery, insertValues);
+      return result.rows[0];
+    }
+  }
+
+  /**
+   * Get incident forms
+   * @param {number} incidentId - Incident ID
+   * @returns {Array} Incident forms
+   */
+  async getIncidentForms(incidentId) {
+    const query = `
+      SELECT * FROM incident_forms 
+      WHERE incident_id = $1 
+      ORDER BY created_at ASC
+    `;
+    
+    const result = await this.query(query, [incidentId]);
+    return result.rows;
+  }
+
+  /**
+   * Get incident form by type
+   * @param {number} incidentId - Incident ID
+   * @param {string} formType - Form type
+   * @returns {Object|null} Form data
+   */
+  async getIncidentFormByType(incidentId, formType) {
+    const query = `
+      SELECT * FROM incident_forms 
+      WHERE incident_id = $1 AND form_type = $2
+    `;
+    
+    const result = await this.query(query, [incidentId, formType]);
+    return result.rows[0] || null;
+  }
+
+  /**
+   * Add incident note
+   * @param {Object} noteData - Note data
+   * @returns {Object} Created note
+   */
+  async addIncidentNote(noteData) {
+    const query = `
+      INSERT INTO incident_notes (
+        incident_id, user_id, note_text, note_type, created_at
+      ) VALUES ($1, $2, $3, $4, NOW())
+      RETURNING *
+    `;
+    
+    const values = [
+      noteData.incident_id,
+      noteData.user_id,
+      noteData.note_text,
+      noteData.note_type || 'progress'
+    ];
+    
+    const result = await this.query(query, values);
+    return result.rows[0];
+  }
+
+  /**
+   * Get incident notes
+   * @param {number} incidentId - Incident ID
+   * @returns {Array} Incident notes
+   */
+  async getIncidentNotes(incidentId) {
+    const query = `
+      SELECT 
+        n.*,
+        u.username,
+        u.email
+      FROM incident_notes n
+      LEFT JOIN users u ON n.user_id = u.id
+      WHERE n.incident_id = $1 
+      ORDER BY n.created_at DESC
+    `;
+    
+    const result = await this.query(query, [incidentId]);
+    return result.rows;
+  }
+
+  /**
+   * Update incident completion percentage
+   * @param {number} incidentId - Incident ID
+   * @returns {Object|null} Updated incident
+   */
+  async updateIncidentCompletion(incidentId) {
+    const query = `
+      UPDATE incidents 
+      SET completion_percentage = (
+        SELECT CASE 
+          WHEN COUNT(*) = 0 THEN 0
+          ELSE (COUNT(CASE WHEN is_completed = true THEN 1 END) * 100 / COUNT(*))
+        END
+        FROM incident_forms 
+        WHERE incident_id = $1
+      ),
+      updated_at = NOW()
+      WHERE id = $1
+      RETURNING *
+    `;
+    
+    const result = await this.query(query, [incidentId]);
+    return result.rows[0] || null;
+  }
+
+  /**
+   * Delete incident
+   * @param {number} incidentId - Incident ID
+   * @returns {boolean} Success status
+   */
+  async deleteIncident(incidentId) {
+    const query = `DELETE FROM incidents WHERE id = $1`;
+    const result = await this.query(query, [incidentId]);
+    return result.rowCount > 0;
+  }
+
+  /**
+   * Create a patient intake report
+   * @param {Object} data - Patient intake data
+   * @returns {Object} Created intake report
+   */
+  async createIntakeReport(data, userId) {
+    const query = `
+      INSERT INTO patient_intake_responses (
+        user_id, first_name, middle_name, last_name, ssn, date_of_birth,
+        gender, marital_status, race, street, city, state, zip,
+        home_phone, cell_phone, emergency_contact,
+        emergency_contact_phone, emergency_contact_relationship
+      ) VALUES (
+        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12,
+        $13, $14, $15, $16, $17, $18
+      ) RETURNING *
+    `;
+    
+    const values = [
+      userId,
+      data.first_name,
+      data.middle_name,
+      data.last_name,
+      data.ssn,
+      data.date_of_birth,
+      data.gender,
+      data.marital_status,
+      data.race,
+      data.street,
+      data.city,
+      data.state,
+      data.zip,
+      data.home_phone,
+      data.cell_phone,
+      data.emergency_contact,
+      data.emergency_contact_phone,
+      data.emergency_contact_relationship
+    ];
+    
+    const result = await this.query(query, values);
+    return result.rows[0];
   }
 }
 

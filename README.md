@@ -18,7 +18,7 @@ This application consolidates all previously separate microservices into a singl
 ## 🛠️ Technology Stack
 
 - **Backend**: Node.js, Express.js
-- **Databases**: PostgreSQL (primary), MongoDB (blog/chat)
+- **Database**: PostgreSQL
 - **Authentication**: JWT tokens
 - **Real-time**: Socket.IO
 - **Caching**: Redis (optional)
@@ -30,7 +30,7 @@ This application consolidates all previously separate microservices into a singl
 
 - Node.js 18+ and npm
 - Docker and Docker Compose (recommended)
-- PostgreSQL and MongoDB (if running locally)
+- PostgreSQL (if running locally)
 
 ### Option 1: Docker Compose (Recommended)
 
@@ -63,9 +63,9 @@ This application consolidates all previously separate microservices into a singl
    npm install
    ```
 
-2. **Setup databases**
+2. **Setup database**
    ```bash
-   # Start PostgreSQL and MongoDB locally
+   # Start PostgreSQL locally
    # Update .env with your database credentials
    ```
 
@@ -158,7 +158,7 @@ chiropractor-monolith/
 
 ## 🗄️ Database Schema
 
-### PostgreSQL (Primary Database)
+### PostgreSQL Database
 - `users` - User accounts and authentication
 - `patients` - Patient information and medical records
 - `doctors` - Doctor profiles and schedules
@@ -173,12 +173,9 @@ chiropractor-monolith/
 - `health_conditions` - Medical history
 - `pain_descriptions` - Pain assessment data
 - `emergency_contacts` - Emergency contact information
-
-### MongoDB (Secondary Database)
 - `posts` - Blog posts and content
 - `conversations` - Chat conversations
 - `messages` - Chat messages
-- `users` - Chat user profiles
 
 ## 🔧 Development
 
@@ -220,17 +217,13 @@ The Docker setup provides a full clinic management environment:
 
 **Core Services:**
 - **Clinic App** (port 3000): Main application with all features
-- **PostgreSQL** (port 5432): Patient records, appointments, clinical data
-- **MongoDB** (port 27017): Blog posts, chat messages, file storage
+- **PostgreSQL** (port 5432): All application data including patient records, appointments, clinical data, blog posts, and chat messages
 - **Redis** (port 6379): Session management, caching, real-time features
 
 **Admin Tools (with `--profile admin`):**
 - **pgAdmin** (port 5050): PostgreSQL database administration
   - URL: http://localhost:5050
   - Login: admin@clinic.com / admin123
-- **Mongo Express** (port 8081): MongoDB database administration
-  - URL: http://localhost:8081
-  - Login: admin / admin123
 - **Redis Commander** (port 8082): Redis cache administration
   - URL: http://localhost:8082
 
