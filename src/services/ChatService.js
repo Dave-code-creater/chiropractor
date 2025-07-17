@@ -235,26 +235,34 @@ class ChatService {
         throw new ForbiddenError('You are not authorized to send messages in this conversation', '4033');
       }
 
-      // Create message
+      // Create message with timestamp for Long-Polling
       const message = await chatRepo.createMessage({
         conversation_id,
         sender_id: req.user.id,
         sender_type: req.user.role,
         content: finalMessageContent,
         message_type,
-        sent_at: new Date()
+        sent_at: new Date(),
+        delivery_status: 'sent'
       });
 
       // Update conversation last activity
       await chatRepo.updateConversationTimestamp(conversation_id);
 
-      chat.info(' Message sent:', { 
+      chat.info('✅ Message sent:', { 
         message_id: message.id,
         conversation_id,
         sender_id: req.user.id 
       });
 
-      return ChatService.formatMessageResponse(message);
+      // Format response for Long-Polling clients
+      const formattedMessage = ChatService.formatMessageResponse(message);
+      
+      return {
+        ...formattedMessage,
+        sent_timestamp: message.sent_at,
+        conversation_updated: true
+      };
 
     } catch (error) {
       chat.error('Send message service error:', error);
@@ -262,6 +270,160 @@ class ChatService {
         throw error;
       }
       throw new InternalServerError('Failed to send message', '5002');
+    }
+  }
+
+  /**
+   * Long-polling for new messages in a conversation
+   * @param {Object} pollOptions - Polling options
+   * @returns {Object} New messages or empty array after timeout
+   */
+  static async pollForNewMessages(pollOptions) {
+    try {
+      const {
+        conversation_id,
+        last_message_timestamp,
+        timeout_seconds = 30,
+        max_messages = 50,
+        user
+      } = pollOptions;
+
+      const chatRepo = getChatRepository();
+      const maxTimeout = Math.min(timeout_seconds, 60); // Limit max timeout to 60 seconds
+      const pollInterval = 2000; // Poll every 2 seconds
+      const startTime = Date.now();
+      const endTime = startTime + (maxTimeout * 1000);
+
+      chat.debug('🔄 Starting Long-Polling for messages:', {
+        conversation_id,
+        last_message_timestamp,
+        timeout_seconds: maxTimeout,
+        user_id: user.id
+      });
+
+      // Convert timestamp to Date object if provided
+      let lastTimestamp = null;
+      if (last_message_timestamp) {
+        lastTimestamp = new Date(last_message_timestamp);
+        if (isNaN(lastTimestamp.getTime())) {
+          throw new BadRequestError('Invalid last_message_timestamp format', '4001');
+        }
+      }
+
+      while (Date.now() < endTime) {
+        // Check for new messages
+        const newMessages = await chatRepo.getNewMessagesSince({
+          conversation_id,
+          since_timestamp: lastTimestamp,
+          limit: max_messages,
+          user_id: user.id
+        });
+
+        if (newMessages.length > 0) {
+          chat.info('✅ New messages found during polling:', {
+            conversation_id,
+            message_count: newMessages.length,
+            user_id: user.id
+          });
+
+          // Mark messages as delivered to this user
+          await chatRepo.markMessagesAsDelivered(conversation_id, user.id, newMessages.map(m => m.id));
+
+          return {
+            messages: newMessages.map(message => ChatService.formatMessageResponse(message)),
+            conversation_status: 'active',
+            has_more: newMessages.length === max_messages,
+            next_poll_timestamp: new Date().toISOString()
+          };
+        }
+
+        // Wait before next poll (non-blocking)
+        await new Promise(resolve => setTimeout(resolve, pollInterval));
+      }
+
+      // Timeout reached, return empty result
+      chat.debug('⏰ Long-Polling timeout reached:', {
+        conversation_id,
+        timeout_seconds: maxTimeout,
+        user_id: user.id
+      });
+
+      return {
+        messages: [],
+        conversation_status: 'active',
+        has_more: false,
+        next_poll_timestamp: new Date().toISOString()
+      };
+
+    } catch (error) {
+      chat.error('Poll for new messages error:', error);
+      if (error instanceof BadRequestError) {
+        throw error;
+      }
+      throw new InternalServerError('Failed to poll for new messages', '5011');
+    }
+  }
+
+  /**
+   * Validate if user has access to conversation
+   * @param {string} conversationId - Conversation ID
+   * @param {Object} user - User object
+   * @returns {boolean} Has access
+   */
+  static async validateConversationAccess(conversationId, user) {
+    try {
+      return await ChatService.isUserParticipant(user.id, conversationId, user.role, user.profile_id);
+    } catch (error) {
+      chat.error('Validate conversation access error:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Get message status and delivery information
+   * @param {string} messageId - Message ID
+   * @param {string} conversationId - Conversation ID
+   * @param {Object} user - User object
+   * @returns {Object} Message status
+   */
+  static async getMessageStatus(messageId, conversationId, user) {
+    try {
+      const chatRepo = getChatRepository();
+
+      // Validate user has access to conversation
+      const hasAccess = await ChatService.validateConversationAccess(conversationId, user);
+      if (!hasAccess) {
+        throw new ForbiddenError('You are not authorized to access this conversation', '4033');
+      }
+
+      const messageStatus = await chatRepo.getMessageStatus(messageId, conversationId);
+      if (!messageStatus) {
+        throw new NotFoundError('Message not found', '4043');
+      }
+
+      chat.info('✅ Message status retrieved:', {
+        message_id: messageId,
+        conversation_id: conversationId,
+        user_id: user.id
+      });
+
+      return {
+        message_id: messageId,
+        conversation_id: conversationId,
+        delivery_status: messageStatus.delivery_status || 'sent',
+        sent_at: messageStatus.sent_at,
+        delivered_at: messageStatus.delivered_at,
+        read_at: messageStatus.read_at,
+        sender_id: messageStatus.sender_id,
+        sender_type: messageStatus.sender_type
+      };
+
+    } catch (error) {
+      chat.error('Get message status error:', error);
+      if (error instanceof NotFoundError || error instanceof ForbiddenError) {
+        throw error;
+      }
+      throw new InternalServerError('Failed to get message status', '5012');
     }
   }
 
@@ -323,25 +485,27 @@ class ChatService {
 
       const {
         page = 1,
-        limit = 20,
+        per_page = 20,
         before_message_id = null,
-        after_message_id = null
+        after_message_id = null,
+        sort_order = 'desc'
       } = query;
 
-      const offset = (page - 1) * limit;
+      const offset = (page - 1) * per_page;
 
       const result = await userRepo.findConversationMessages({
         conversation_id: conversationId,
         before_message_id,
         after_message_id,
-        limit: parseInt(limit),
-        offset
+        limit: parseInt(per_page),
+        offset,
+        sort_order
       });
 
       // Mark messages as read for current user
       await userRepo.markMessagesAsRead(conversationId, user.id);
 
-      chat.info(' Messages retrieved:', { 
+      chat.info('✅ Messages retrieved:', { 
         conversation_id: conversationId,
         count: result.messages.length 
       });
@@ -350,10 +514,10 @@ class ChatService {
         messages: result.messages.map(message => ChatService.formatMessageResponse(message)),
         pagination: {
           current_page: parseInt(page),
-          total_pages: Math.ceil(result.total / limit),
+          total_pages: Math.ceil(result.total / per_page),
           total_count: result.total,
-          per_page: parseInt(limit),
-          has_next: page * limit < result.total,
+          per_page: parseInt(per_page),
+          has_next: page * per_page < result.total,
           has_prev: page > 1
         }
       };
@@ -379,18 +543,19 @@ class ChatService {
 
       const {
         page = 1,
-        limit = 10,
+        per_page = 10,
         status = 'active'
       } = query;
 
-      const offset = (page - 1) * limit;
+      const offset = (page - 1) * per_page;
 
       const conversations = await chatRepo.getUserConversations(user, {
-        limit: parseInt(limit),
-        offset
+        limit: parseInt(per_page),
+        offset,
+        status
       });
 
-      chat.info(' User conversations retrieved:', { 
+      chat.info('✅ User conversations retrieved:', { 
         user_id: user.id,
         count: conversations.length 
       });
@@ -401,10 +566,10 @@ class ChatService {
         ),
         pagination: {
           current_page: parseInt(page),
-          total_pages: Math.ceil(conversations.length / limit),
+          total_pages: Math.ceil(conversations.length / per_page),
           total_count: conversations.length,
-          per_page: parseInt(limit),
-          has_next: page * limit < conversations.length,
+          per_page: parseInt(per_page),
+          has_next: page * per_page < conversations.length,
           has_prev: page > 1
         }
       };
@@ -583,19 +748,20 @@ class ChatService {
   static async getAvailableUsersForChat(currentUser, query = {}) {
     try {
       const chatRepo = getChatRepository();
-      const { search = '', limit = 20 } = query;
+      const { search_term = '', per_page = 20 } = query;
 
-      chat.debug(' Getting available users for chat:', {
+      chat.debug('🔍 Getting available users for chat:', {
         current_user_role: currentUser.role,
-        search_term: search
+        search_term: search_term
       });
 
       // Get available users from repository
       const users = await chatRepo.getAvailableUsersForChat(currentUser, {
-        limit: parseInt(limit)
+        limit: parseInt(per_page),
+        search_term
       });
 
-      chat.info(' Available users found:', { count: users.length });
+      chat.info('✅ Available users found:', { count: users.length });
 
       return {
         users: users.map(user => ({
@@ -625,15 +791,15 @@ class ChatService {
   static async getAllStaffAdminDoctors(query = {}) {
     try {
       const chatRepo = getChatRepository();
-      const { limit = 100 } = query;
+      const { per_page = 100 } = query;
 
-      chat.debug(' Getting healthcare professionals:', {
-        limit: limit
+      chat.debug('🔍 Getting healthcare professionals:', {
+        per_page: per_page
       });
 
       // Get healthcare professionals from repository
       const users = await chatRepo.getAllStaffAdminDoctors({
-        limit: parseInt(limit)
+        limit: parseInt(per_page)
       });
 
       // Organize users by type
@@ -666,7 +832,7 @@ class ChatService {
 
       const totalCount = organizedUsers.doctors.length + organizedUsers.staff.length;
 
-      chat.info(' Healthcare professionals found:', { 
+      chat.info('✅ Healthcare professionals found:', { 
         doctors: organizedUsers.doctors.length,
         staff: organizedUsers.staff.length,
         total: totalCount
@@ -684,6 +850,137 @@ class ChatService {
     } catch (error) {
       chat.error('Get healthcare professionals error:', error);
       throw new InternalServerError('Failed to get healthcare professionals', '5008');
+    }
+  }
+
+  /**
+   * Get users by specific role for chat selection
+   * @param {string} role - Role to filter by (doctor, staff, admin)
+   * @param {Object} query - Query parameters
+   * @returns {Array} Users with the specified role
+   */
+  static async getUsersByRole(role, query = {}) {
+    try {
+      const chatRepo = getChatRepository();
+      const { per_page = 100, search_term = '' } = query;
+
+      chat.debug('🔍 Getting users by role:', {
+        role,
+        per_page,
+        search_term
+      });
+
+      // Get users by role from repository
+      const users = await chatRepo.getUsersByRole(role, {
+        limit: parseInt(per_page),
+        search: search_term.trim()
+      });
+
+      // Format users consistently
+      const formattedUsers = users.map(user => ({
+        id: user.id,
+        user_id: user.user_id || user.id,
+        role: user.role || user.type || role,
+        first_name: user.first_name,
+        last_name: user.last_name,
+        email: user.email,
+        phone: user.phone,
+        full_name: `${user.first_name || ''} ${user.last_name || ''}`.trim(),
+        specialization: user.specialization || null,
+        status: user.status || 'active'
+      }));
+
+      chat.info('✅ Users by role retrieved:', { 
+        role,
+        count: formattedUsers.length,
+        search_applied: !!search_term
+      });
+
+      return formattedUsers;
+
+    } catch (error) {
+      chat.error('Get users by role error:', error);
+      throw new InternalServerError(`Failed to get ${role}s`, '5009');
+    }
+  }
+
+  /**
+   * Get users for conversation creation with enhanced information
+   * @param {string} role - Role to filter by (doctor, staff, admin)
+   * @param {Object} query - Query parameters
+   * @param {Object} currentUser - Current authenticated user
+   * @returns {Array} Users formatted for conversation creation
+   */
+  static async getUsersForConversations(role, query = {}, currentUser) {
+    try {
+      const chatRepo = getChatRepository();
+      const { per_page = 100, search_term = '' } = query;
+
+      chat.debug('🔍 Getting users for conversations:', {
+        role,
+        per_page,
+        search_term,
+        current_user_role: currentUser.role
+      });
+
+      // Get users by role from repository
+      const users = await chatRepo.getUsersByRole(role, {
+        limit: parseInt(per_page),
+        search: search_term.trim()
+      });
+
+      // Format users for conversation creation with additional context
+      const formattedUsers = users.map(user => {
+        const baseUser = {
+          id: user.id,
+          user_id: user.user_id || user.id,
+          role: user.role || user.type || role,
+          first_name: user.first_name,
+          last_name: user.last_name,
+          email: user.email,
+          phone: user.phone,
+          full_name: `${user.first_name || ''} ${user.last_name || ''}`.trim(),
+          status: user.status || 'active',
+          available_for_chat: true
+        };
+
+        // Add role-specific information
+        if (role === 'doctor') {
+          baseUser.specialization = user.specialization || 'General Practice';
+          baseUser.title = 'Dr.';
+          baseUser.display_name = `Dr. ${baseUser.full_name}`;
+          if (user.specialization) {
+            baseUser.display_name += ` (${user.specialization})`;
+          }
+        } else if (role === 'staff') {
+          baseUser.department = user.specialization || 'General Staff';
+          baseUser.title = 'Staff';
+          baseUser.display_name = `${baseUser.full_name} - Staff`;
+        } else if (role === 'admin') {
+          baseUser.department = 'Administration';
+          baseUser.title = 'Admin';
+          baseUser.display_name = `${baseUser.full_name} - Administrator`;
+        }
+
+        return baseUser;
+      });
+
+      // Filter out current user from the list (users shouldn't chat with themselves)
+      const filteredUsers = formattedUsers.filter(user => user.user_id !== currentUser.id);
+
+      chat.info('✅ Users for conversations retrieved:', { 
+        role,
+        total_found: formattedUsers.length,
+        available_after_filter: filteredUsers.length,
+        search_applied: !!search_term,
+        current_user_filtered: formattedUsers.length !== filteredUsers.length
+      });
+
+      return filteredUsers;
+
+    } catch (error) {
+      chat.error('Get users for conversations error:', error);
+      throw new InternalServerError(`Failed to get ${role}s for conversations`, '5010');
     }
   }
 

@@ -12,7 +12,7 @@
     "add-doctor": "node scripts/add-doctor-dieu-phan.js",
     "lint": "eslint src/**/*.js",
     "lint:fix": "eslint src/**/*.js --fix",
-    "health-check": "curl -f http://localhost:3000/health",
+
     "docker:build": "docker build -t chiropractor-monolith .",
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down",

@@ -4,17 +4,14 @@ const { app } = require('../src/index');
 
 describe('Chiropractor Monolith Application', () => {
   
-  describe('Health Check', () => {
-    it('should return health status', async () => {
+  describe('Application Startup', () => {
+    it('should start successfully', async () => {
+      // Test that the application starts and responds to routes
       const response = await request(app)
-        .get('/health')
-        .expect(200);
+        .get('/v1/api/2025/auth/register')
+        .expect(400); // Expect validation error for missing data
       
-      expect(response.body).to.have.property('success', true);
-      expect(response.body).to.have.property('message');
-      expect(response.body).to.have.property('data');
-      expect(response.body.data).to.have.property('timestamp');
-      expect(response.body.data).to.have.property('status');
+      expect(response.body).to.have.property('success', false);
     });
   });
 
@@ -54,7 +51,7 @@ describe('Chiropractor Monolith Application', () => {
   describe('CORS Configuration', () => {
     it('should have CORS headers', async () => {
       const response = await request(app)
-        .options('/health')
+        .options('/v1/api/2025/auth/register')
         .expect(204);
       
       expect(response.headers).to.have.property('access-control-allow-origin');
@@ -64,8 +61,8 @@ describe('Chiropractor Monolith Application', () => {
   describe('Security Headers', () => {
     it('should have security headers from helmet', async () => {
       const response = await request(app)
-        .get('/health')
-        .expect(200);
+        .get('/v1/api/2025/auth/register')
+        .expect(400);
       
       expect(response.headers).to.have.property('x-content-type-options');
       expect(response.headers).to.have.property('x-frame-options');
@@ -73,8 +70,8 @@ describe('Chiropractor Monolith Application', () => {
 
     it('should not expose x-powered-by header', async () => {
       const response = await request(app)
-        .get('/health')
-        .expect(200);
+        .get('/v1/api/2025/auth/register')
+        .expect(400);
       
       expect(response.headers).to.not.have.property('x-powered-by');
     });
@@ -83,8 +80,8 @@ describe('Chiropractor Monolith Application', () => {
   describe('Rate Limiting', () => {
     it('should have rate limiting headers', async () => {
       const response = await request(app)
-        .get('/health')
-        .expect(200);
+        .get('/v1/api/2025/auth/register')
+        .expect(400);
       
       // Rate limiting headers might have different names depending on the version
       const hasRateLimitHeaders = 

@@ -37,7 +37,7 @@ router.get('/doctors',
  * Get doctor availability  
  * GET /appointments/doctors/:doctorId/availability?date=2025-06-29&days_ahead=30
  */
-router.get('/doctors/:doctorId/availability', 
+router.get('/doctors/:doctor_id/availability', 
   asyncHandler(AppointmentController.getDoctorAvailability)
 );
 
@@ -48,25 +48,13 @@ router.get('/doctors/:doctorId/availability',
 /**
  * Create new appointment (Doctor/Staff only)
  * POST /appointments
- * Body: { doctor_id, patient_name, appointment_date, appointment_time, ... }
+ * Body: { doctor_id, patient_id, appointment_date, appointment_time, location, reason_for_visit, additional_notes }
  * Auth: doctor, admin, staff
  */
 router.post('/', 
   authenticate, 
   authorize('doctor', 'admin', 'staff'), 
   asyncHandler(AppointmentController.createAppointment)
-);
-
-/**
- * Quick appointment booking (Doctor/Staff only)
- * POST /appointments/quick-book
- * Body: { patient_name, patient_phone, doctor_id, appointment_date, appointment_time }
- * Auth: doctor, admin, staff
- */
-router.post('/quick-book', 
-  authenticate, 
-  authorize('doctor', 'admin', 'staff'), 
-  asyncHandler(AppointmentController.quickBookAppointment)
 );
 
 // ===============================================
@@ -76,7 +64,7 @@ router.post('/quick-book',
 /**
  * Check appointment availability
  * POST /appointments/check-availability
- * Body: { doctor_id, date, time, duration_minutes }
+ * Body: { doctor_id, date, time }
  * Auth: Any authenticated user
  */
 router.post('/check-availability', 
@@ -87,7 +75,7 @@ router.post('/check-availability',
 /**
  * Book appointment for current user (Patient self-booking)
  * POST /appointments/book
- * Body: { doctor_id, date, time, reason_for_visit, additional_notes, duration }
+ * Body: { doctor_id, appointment_date, appointment_time, location, reason_for_visit, additional_notes }
  * Auth: patient only
  */
 router.post('/book', 
@@ -120,7 +108,7 @@ router.get('/me',
  * GET /appointments/patient/:patientId?status=scheduled&date_from=2025-01-01
  * Auth: doctor, admin, staff only
  */
-router.get('/patient/:patientId', 
+router.get('/patient/:patient_id', 
   authenticate, 
   authorize('doctor', 'admin', 'staff'),
   asyncHandler(AppointmentController.getPatientAppointments)

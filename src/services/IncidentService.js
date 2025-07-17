@@ -211,9 +211,6 @@ class IncidentService {
         is_required: formData.is_required
       });
 
-      // Update incident completion percentage
-      await userRepo.updateIncidentCompletion(incidentId);
-
       info('Incident form saved:', { 
         incident_id: incidentId,
         form_type: formData.form_type 
@@ -339,36 +336,12 @@ class IncidentService {
    */
   static getFormTemplatesByType(incidentType) {
     const templates = {
-      car_accident: [
+      general_patient_record: [
         { form_type: 'patient_info', is_required: true },
-        { form_type: 'accident_details', is_required: true },
-        { form_type: 'injuries_symptoms', is_required: true },
-        { form_type: 'auto_insurance', is_required: true },
-        { form_type: 'pain_assessment', is_required: true },
-        { form_type: 'work_impact', is_required: false }
-      ],
-      work_injury: [
-        { form_type: 'patient_info', is_required: true },
-        { form_type: 'work_incident_details', is_required: true },
-        { form_type: 'injuries_symptoms', is_required: true },
-        { form_type: 'workers_comp', is_required: true },
-        { form_type: 'pain_assessment', is_required: true },
-        { form_type: 'work_status_restrictions', is_required: true }
-      ],
-      sports_injury: [
-        { form_type: 'patient_info', is_required: true },
-        { form_type: 'sports_incident_details', is_required: true },
-        { form_type: 'injuries_symptoms', is_required: true },
         { form_type: 'health_insurance', is_required: true },
-        { form_type: 'pain_assessment', is_required: true },
-        { form_type: 'activity_impact', is_required: false }
-      ],
-      general_pain: [
-        { form_type: 'patient_info', is_required: true },
         { form_type: 'pain_description', is_required: true },
-        { form_type: 'medical_history', is_required: true },
-        { form_type: 'health_insurance', is_required: true },
         { form_type: 'pain_assessment', is_required: true },
+        { form_type: 'medical_history', is_required: true },
         { form_type: 'lifestyle_impact', is_required: false }
       ]
     };
@@ -393,7 +366,7 @@ class IncidentService {
       description: incident.description,
       incident_date: incident.date_occurred || incident.incident_date,
       status: incident.status,
-      completion_percentage: incident.completion_percentage || 0,
+      completion_percentage: 0,
       patient_name: incident.patient_first_name && incident.patient_last_name 
         ? `${incident.patient_first_name} ${incident.patient_last_name}`.trim()
         : null,

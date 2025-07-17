@@ -25,9 +25,10 @@ class BlogService {
         excerpt,
         category,
         tags = [],
-        status = 'draft',
-        featured_image_url = null,
-        meta_description = null
+        is_published = false,
+        featured_image,
+        meta_description,
+        slug: customSlug
       } = postData;
 
       // Basic validation
@@ -35,38 +36,49 @@ class BlogService {
         throw new BadRequestError('Title must be at least 3 characters long', '4001');
       }
 
-      if (!content || content.trim().length < 10) {
-        throw new BadRequestError('Content must be at least 10 characters long', '4002');
+      if (!content || !Array.isArray(content) || content.length === 0) {
+        throw new BadRequestError('Content must be a non-empty array', '4002');
       }
 
-      // Generate slug from title
-      const slug = BlogService.generateSlug(title);
+      // Validate content structure
+      const isValidContent = content.every(item => 
+        item && typeof item === 'object' && item.type && item.text
+      );
+      if (!isValidContent) {
+        throw new BadRequestError('Content must be array of objects with type and text properties', '4003');
+      }
+
+      // Generate slug from title or use custom slug
+      const slug = customSlug || BlogService.generateSlug(title);
 
       // Check if slug already exists
       const existingPost = await userRepo.findBlogPostBySlug(slug);
       if (existingPost) {
-        throw new BadRequestError('A blog post with this title already exists', '4003');
+        throw new BadRequestError('A blog post with this title already exists', '4004');
       }
+
+      // Determine status from is_published flag
+      const status = is_published ? 'published' : 'draft';
 
       // Create blog post
       const blogPost = await userRepo.createBlogPost({
         title,
         slug,
         content,
-        excerpt: excerpt || BlogService.generateExcerpt(content),
+        excerpt: excerpt || BlogService.generateExcerptFromContent(content),
         category,
-        tags: JSON.stringify(tags),
+        tags,
         status,
-        featured_image_url,
-        meta_description: meta_description || excerpt || BlogService.generateExcerpt(content),
-        author_id: req.user?.id,
-        published_at: status === 'published' ? new Date() : null
+        featured_image_url: featured_image,
+        meta_description: meta_description || excerpt || BlogService.generateExcerptFromContent(content),
+        author_id: req.user?.id
       });
 
       info(' Blog post created:', { 
         post_id: blogPost.id,
         title,
-        author_id: req.user?.id
+        author_id: req.user?.id,
+        status
       });
 
       return BlogService.formatBlogPostResponse(blogPost);
@@ -83,28 +95,44 @@ class BlogService {
   /**
    * Get all blog posts with filtering and pagination
    * @param {Object} query - Query parameters
+   * @param {Object} user - User object (null for public access)
    * @returns {Object} Paginated blog posts list
    */
-  static async getAllBlogPosts(query = {}) {
+  static async getAllBlogPosts(query = {}, user = null) {
     try {
       const userRepo = getUserRepository();
       
       const {
         page = 1,
         limit = 10,
-        status = 'published',
+        status,
         category,
         author_id,
         tag,
         search,
-        sort_by = 'published_at',
+        sort_by = 'created_at',
         sort_order = 'desc'
       } = query;
+
+      // Determine allowed statuses based on user role
+      let finalStatus;
+      
+      if (user && ['admin', 'doctor', 'staff'].includes(user.role)) {
+        // Authenticated staff can see all posts or filter by specific status
+        if (status === 'all') {
+          finalStatus = null; // Show all statuses
+        } else {
+          finalStatus = status || null; // Use provided status or show all
+        }
+      } else {
+        // Public users can only see published posts
+        finalStatus = 'published';
+      }
 
       const offset = (page - 1) * limit;
 
       const result = await userRepo.findAllBlogPosts({
-        status,
+        status: finalStatus,
         category,
         author_id,
         tag,
@@ -192,6 +220,18 @@ class BlogService {
         throw new NotFoundError('Blog post not found', '4041');
       }
 
+      // Transform is_published to status
+      if (updateData.is_published !== undefined) {
+        updateData.status = updateData.is_published ? 'published' : 'draft';
+        delete updateData.is_published;
+      }
+
+      // Transform featured_image to featured_image_url
+      if (updateData.featured_image !== undefined) {
+        updateData.featured_image_url = updateData.featured_image;
+        delete updateData.featured_image;
+      }
+
       // Update slug if title is being changed
       if (updateData.title && updateData.title !== existingPost.title) {
         updateData.slug = BlogService.generateSlug(updateData.title);
@@ -203,19 +243,28 @@ class BlogService {
         }
       }
 
-      // Update excerpt if content is changed
-      if (updateData.content && !updateData.excerpt) {
-        updateData.excerpt = BlogService.generateExcerpt(updateData.content);
+      // Validate content structure if provided
+      if (updateData.content) {
+        if (!Array.isArray(updateData.content) || updateData.content.length === 0) {
+          throw new BadRequestError('Content must be a non-empty array', '4002');
+        }
+
+        const isValidContent = updateData.content.every(item => 
+          item && typeof item === 'object' && item.type && item.text
+        );
+        if (!isValidContent) {
+          throw new BadRequestError('Content must be array of objects with type and text properties', '4003');
+        }
+
+        // Update excerpt if content is changed
+        if (!updateData.excerpt) {
+          updateData.excerpt = BlogService.generateExcerptFromContent(updateData.content);
+        }
       }
 
       // Update published_at if status is changed to published
       if (updateData.status === 'published' && existingPost.status !== 'published') {
         updateData.published_at = new Date();
-      }
-
-      // Parse tags if provided
-      if (updateData.tags && Array.isArray(updateData.tags)) {
-        updateData.tags = JSON.stringify(updateData.tags);
       }
 
       const updatedPost = await userRepo.updateBlogPost(postId, updateData);
@@ -340,6 +389,32 @@ class BlogService {
   }
 
   /**
+   * Generate excerpt from content array
+   * @param {Array} content - Blog post content array
+   * @param {number} maxLength - Maximum excerpt length
+   * @returns {string} Generated excerpt
+   */
+  static generateExcerptFromContent(content, maxLength = 160) {
+    if (!content || !Array.isArray(content) || content.length === 0) return '';
+    
+    // Extract text from all content blocks
+    const plainText = content
+      .map(item => item.text || '')
+      .join(' ')
+      .trim();
+    
+    if (plainText.length <= maxLength) {
+      return plainText;
+    }
+    
+    // Cut at word boundary
+    const truncated = plainText.substring(0, maxLength);
+    const lastSpace = truncated.lastIndexOf(' ');
+    
+    return lastSpace > 0 ? truncated.substring(0, lastSpace) + '...' : truncated + '...';
+  }
+
+  /**
    * Format blog post response
    * @param {Object} post - Raw blog post data
    * @returns {Object} Formatted blog post
@@ -351,15 +426,15 @@ class BlogService {
       id: post.id,
       title: post.title,
       slug: post.slug,
-      content: post.content,
+      content: BlogService.parseJSON(post.content) || [],
       excerpt: post.excerpt,
       category: post.category,
       tags: BlogService.parseJSON(post.tags) || [],
-      status: post.status,
-      featured_image_url: post.featured_image_url,
+      featured_image: post.featured_image_url,
       meta_description: post.meta_description,
+      is_published: post.status === 'published',
       author_id: post.author_id,
-      author_name: post.author_name || `${post.author_first_name} ${post.author_last_name}`,
+      author_name: post.author_name || `${post.first_name || ''} ${post.last_name || ''}`.trim() || post.username,
       view_count: post.view_count || 0,
       published_at: post.published_at,
       created_at: post.created_at,
@@ -368,13 +443,25 @@ class BlogService {
   }
 
   /**
-   * Safely parse JSON string
-   * @param {string} jsonString - JSON string to parse
-   * @returns {Object|Array|null} Parsed JSON or null
+   * Safely parse JSON string or return if already parsed
+   * @param {string|Object|Array} data - JSON string or already parsed data
+   * @returns {Object|Array|null} Parsed JSON or original data
    */
-  static parseJSON(jsonString) {
+  static parseJSON(data) {
     try {
-      return jsonString ? JSON.parse(jsonString) : null;
+      // If data is null or undefined, return null
+      if (!data) return null;
+      
+      // If data is already an object or array, return it as-is
+      if (typeof data === 'object') return data;
+      
+      // If data is a string, try to parse it
+      if (typeof data === 'string') {
+        return JSON.parse(data);
+      }
+      
+      // For any other type, return null
+      return null;
     } catch (error) {
       logError('Error parsing JSON:', error);
       return null;

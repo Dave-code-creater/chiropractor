@@ -308,7 +308,6 @@ class UserRepository extends BaseRepository {
         a.patient_id,
         a.appointment_date,
         a.appointment_time,
-        a.duration_minutes,
         a.status,
         a.additional_notes,
         p.first_name as patient_first_name,
@@ -334,28 +333,21 @@ class UserRepository extends BaseRepository {
   async createAppointment(appointmentData) {
     const query = `
       INSERT INTO appointments (
-        doctor_id, patient_id, patient_user_id, patient_name, patient_phone, patient_email,
-        appointment_date, appointment_time, appointment_type, location,
-        reason_for_visit, additional_notes, duration_minutes, status,
+        doctor_id, patient_id, appointment_date, appointment_time, location,
+        reason_for_visit, additional_notes, status,
         created_by, created_at, updated_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, NOW(), NOW())
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW())
       RETURNING *
     `;
     
     const values = [
       appointmentData.doctor_id,
-      appointmentData.patient_id || null,
-      appointmentData.patient_user_id || null,
-      appointmentData.patient_name,
-      appointmentData.patient_phone,
-      appointmentData.patient_email,
+      appointmentData.patient_id,
       appointmentData.appointment_date,
       appointmentData.appointment_time,
-      appointmentData.appointment_type || 'consultation',
-      appointmentData.location || 'Clinic',
+      appointmentData.location || 'main_office',
       appointmentData.reason_for_visit,
       appointmentData.additional_notes,
-      appointmentData.duration_minutes || 30,
       appointmentData.status || 'scheduled',
       appointmentData.created_by
     ];
@@ -475,7 +467,9 @@ class UserRepository extends BaseRepository {
         p.phone as patient_phone,
         d.first_name as doctor_first_name,
         d.last_name as doctor_last_name,
-        d.specialization as doctor_specialization
+        d.specialization as doctor_specialization,
+        d.phone_number as doctor_phone,
+        d.email as doctor_email
       FROM appointments a
       LEFT JOIN patients p ON a.patient_id = p.id
       LEFT JOIN doctors d ON a.doctor_id = d.id
@@ -489,8 +483,6 @@ class UserRepository extends BaseRepository {
     Object.keys(conditions).forEach(key => {
       if (conditions[key] !== undefined && 
           key !== 'date_range' && 
-          key !== 'patient_user_id' && 
-          key !== 'patient_email' && 
           key !== 'patient_id') {
         query += ` AND a.${key} = $${paramCount}`;
         values.push(conditions[key]);
@@ -498,31 +490,11 @@ class UserRepository extends BaseRepository {
       }
     });
 
-    // Handle patient identification with comprehensive OR logic
-    if (conditions.patient_id || conditions.patient_user_id || conditions.patient_email) {
-      const patientConditions = [];
-      
-      if (conditions.patient_id) {
-        patientConditions.push(`a.patient_id = $${paramCount}`);
-        values.push(conditions.patient_id);
-        paramCount++;
-      }
-      
-      if (conditions.patient_user_id) {
-        patientConditions.push(`a.patient_user_id = $${paramCount}`);
-        values.push(conditions.patient_user_id);
-        paramCount++;
-      }
-      
-      if (conditions.patient_email) {
-        patientConditions.push(`a.patient_email = $${paramCount}`);
-        values.push(conditions.patient_email);
-        paramCount++;
-      }
-      
-      if (patientConditions.length > 0) {
-        query += ` AND (${patientConditions.join(' OR ')})`;
-      }
+    // Handle patient identification
+    if (conditions.patient_id) {
+      query += ` AND a.patient_id = $${paramCount}`;
+      values.push(conditions.patient_id);
+      paramCount++;
     }
 
     // Handle date range
@@ -574,8 +546,6 @@ class UserRepository extends BaseRepository {
     Object.keys(conditions).forEach(key => {
       if (conditions[key] !== undefined && 
           key !== 'date_range' && 
-          key !== 'patient_user_id' && 
-          key !== 'patient_email' && 
           key !== 'patient_id') {
         query += ` AND a.${key} = $${paramCount}`;
         values.push(conditions[key]);
@@ -583,31 +553,11 @@ class UserRepository extends BaseRepository {
       }
     });
 
-    // Handle patient identification with comprehensive OR logic
-    if (conditions.patient_id || conditions.patient_user_id || conditions.patient_email) {
-      const patientConditions = [];
-      
-      if (conditions.patient_id) {
-        patientConditions.push(`a.patient_id = $${paramCount}`);
-        values.push(conditions.patient_id);
-        paramCount++;
-      }
-      
-      if (conditions.patient_user_id) {
-        patientConditions.push(`a.patient_user_id = $${paramCount}`);
-        values.push(conditions.patient_user_id);
-        paramCount++;
-      }
-      
-      if (conditions.patient_email) {
-        patientConditions.push(`a.patient_email = $${paramCount}`);
-        values.push(conditions.patient_email);
-        paramCount++;
-      }
-      
-      if (patientConditions.length > 0) {
-        query += ` AND (${patientConditions.join(' OR ')})`;
-      }
+    // Handle patient identification
+    if (conditions.patient_id) {
+      query += ` AND a.patient_id = $${paramCount}`;
+      values.push(conditions.patient_id);
+      paramCount++;
     }
 
     // Handle date range
@@ -1377,46 +1327,72 @@ class UserRepository extends BaseRepository {
    * @returns {Object} Created/updated form
    */
   async createOrUpdateIncidentForm(formData) {
-    // First check if the form already exists
-    const existingForm = await this.getIncidentFormByType(formData.incident_id, formData.form_type);
-    
-    if (existingForm) {
-      // Update existing form
-      const updateQuery = `
-        UPDATE incident_forms 
-        SET form_data = $1, is_completed = $2, updated_at = NOW()
-        WHERE incident_id = $3 AND form_type = $4
-        RETURNING *
-      `;
+    try {
+      // Ensure form_data is properly serialized for JSONB
+      const serializedFormData = typeof formData.form_data === 'string' 
+        ? formData.form_data 
+        : JSON.stringify(formData.form_data || {});
+
+      console.log('💾 Saving form data to DB:', {
+        incident_id: formData.incident_id,
+        form_type: formData.form_type,
+        data_size: serializedFormData.length,
+        is_completed: formData.is_completed
+      });
+
+      // First check if the form already exists
+      const existingForm = await this.getIncidentFormByType(formData.incident_id, formData.form_type);
       
-      const updateValues = [
-        formData.form_data,
-        formData.is_completed || false,
-        formData.incident_id,
-        formData.form_type
-      ];
-      
-      const result = await this.query(updateQuery, updateValues);
-      return result.rows[0];
-    } else {
-      // Create new form
-      const insertQuery = `
-        INSERT INTO incident_forms (
-          incident_id, form_type, form_data, is_completed, is_required, created_at, updated_at
-        ) VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
-        RETURNING *
-      `;
-      
-      const insertValues = [
-        formData.incident_id,
-        formData.form_type,
-        formData.form_data,
-        formData.is_completed || false,
-        formData.is_required !== undefined ? formData.is_required : true
-      ];
-      
-      const result = await this.query(insertQuery, insertValues);
-      return result.rows[0];
+      if (existingForm) {
+        console.log('📝 Updating existing form:', existingForm.id);
+        // Update existing form
+        const updateQuery = `
+          UPDATE incident_forms 
+          SET form_data = $1::jsonb, is_completed = $2, updated_at = NOW()
+          WHERE incident_id = $3 AND form_type = $4
+          RETURNING *
+        `;
+        
+        const updateValues = [
+          serializedFormData,
+          formData.is_completed || false,
+          formData.incident_id,
+          formData.form_type
+        ];
+        
+        const result = await this.query(updateQuery, updateValues);
+        console.log('✅ Form updated successfully:', result.rows[0]?.id);
+        return result.rows[0];
+      } else {
+        console.log('➕ Creating new form');
+        // Create new form
+        const insertQuery = `
+          INSERT INTO incident_forms (
+            incident_id, form_type, form_data, is_completed, is_required, created_at, updated_at
+          ) VALUES ($1, $2, $3::jsonb, $4, $5, NOW(), NOW())
+          RETURNING *
+        `;
+        
+        const insertValues = [
+          formData.incident_id,
+          formData.form_type,
+          serializedFormData,
+          formData.is_completed || false,
+          formData.is_required !== undefined ? formData.is_required : true
+        ];
+        
+        const result = await this.query(insertQuery, insertValues);
+        console.log('✅ Form created successfully:', result.rows[0]?.id);
+        return result.rows[0];
+      }
+    } catch (error) {
+      console.error('❌ Database error in createOrUpdateIncidentForm:', error);
+      console.error('❌ Form data causing error:', {
+        incident_id: formData.incident_id,
+        form_type: formData.form_type,
+        data_keys: formData.form_data ? Object.keys(formData.form_data) : 'null'
+      });
+      throw error;
     }
   }
 
@@ -1574,6 +1550,287 @@ class UserRepository extends BaseRepository {
     
     const result = await this.query(query, values);
     return result.rows[0];
+  }
+
+  // ============================================
+  // BLOG METHODS
+  // ============================================
+
+  /**
+   * Create a new blog post
+   * @param {Object} postData - Blog post data
+   * @returns {Object} Created blog post
+   */
+  async createBlogPost(postData) {
+    const {
+      title,
+      slug,
+      content,
+      excerpt,
+      category,
+      tags,
+      status = 'draft',
+      featured_image_url,
+      meta_description,
+      author_id
+    } = postData;
+
+    const query = `
+      INSERT INTO blog_posts (
+        title, slug, content, excerpt, category, tags, status, 
+        featured_image_url, meta_description, author_id, published_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      RETURNING *
+    `;
+
+    const values = [
+      title,
+      slug,
+      JSON.stringify(content),
+      excerpt,
+      category,
+      JSON.stringify(tags || []),
+      status,
+      featured_image_url,
+      meta_description,
+      author_id,
+      status === 'published' ? new Date() : null
+    ];
+
+    const result = await this.query(query, values);
+    return result.rows[0];
+  }
+
+  /**
+   * Find blog post by ID
+   * @param {number} id - Blog post ID
+   * @returns {Object|null} Blog post or null
+   */
+  async findBlogPostById(id) {
+    const query = `
+      SELECT bp.*, u.username, u.role,
+             COALESCE(p.first_name, d.first_name) as first_name,
+             COALESCE(p.last_name, d.last_name) as last_name
+      FROM blog_posts bp
+      LEFT JOIN users u ON bp.author_id = u.id
+      LEFT JOIN patients p ON u.id = p.user_id
+      LEFT JOIN doctors d ON u.id = d.user_id
+      WHERE bp.id = $1
+    `;
+    const result = await this.query(query, [id]);
+    return result.rows[0] || null;
+  }
+
+  /**
+   * Find blog post by slug
+   * @param {string} slug - Blog post slug
+   * @returns {Object|null} Blog post or null
+   */
+  async findBlogPostBySlug(slug) {
+    const query = `
+      SELECT bp.*, u.username, u.role,
+             COALESCE(p.first_name, d.first_name) as first_name,
+             COALESCE(p.last_name, d.last_name) as last_name
+      FROM blog_posts bp
+      LEFT JOIN users u ON bp.author_id = u.id
+      LEFT JOIN patients p ON u.id = p.user_id
+      LEFT JOIN doctors d ON u.id = d.user_id
+      WHERE bp.slug = $1
+    `;
+    const result = await this.query(query, [slug]);
+    return result.rows[0] || null;
+  }
+
+  /**
+   * Find all blog posts with filters
+   * @param {Object} filters - Search filters
+   * @returns {Object} Posts and total count
+   */
+  async findAllBlogPosts(filters = {}) {
+    const {
+      status = 'published',
+      category,
+      author_id,
+      tag,
+      search,
+      sort_by = 'created_at',
+      sort_order = 'desc',
+      limit = 10,
+      offset = 0
+    } = filters;
+
+    let whereConditions = [];
+    let queryParams = [];
+    let paramCount = 1;
+
+    // Status filter
+    if (status) {
+      whereConditions.push(`bp.status = $${paramCount}`);
+      queryParams.push(status);
+      paramCount++;
+    }
+
+    // Category filter
+    if (category) {
+      whereConditions.push(`bp.category = $${paramCount}`);
+      queryParams.push(category);
+      paramCount++;
+    }
+
+    // Author filter
+    if (author_id) {
+      whereConditions.push(`bp.author_id = $${paramCount}`);
+      queryParams.push(author_id);
+      paramCount++;
+    }
+
+    // Tag filter
+    if (tag) {
+      whereConditions.push(`bp.tags @> $${paramCount}`);
+      queryParams.push(JSON.stringify([tag]));
+      paramCount++;
+    }
+
+    // Search filter
+    if (search) {
+      whereConditions.push(`(bp.title ILIKE $${paramCount} OR bp.excerpt ILIKE $${paramCount})`);
+      queryParams.push(`%${search}%`);
+      paramCount++;
+    }
+
+    const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+    
+    // Validate sort_by field to prevent SQL injection
+    const allowedSortFields = ['created_at', 'updated_at', 'published_at', 'title', 'view_count'];
+    const safeSortBy = allowedSortFields.includes(sort_by) ? sort_by : 'created_at';
+    const safeSortOrder = sort_order.toLowerCase() === 'asc' ? 'ASC' : 'DESC';
+    
+    // Handle NULL values for published_at when sorting
+    const orderBy = safeSortBy === 'published_at' 
+      ? `ORDER BY bp.${safeSortBy} ${safeSortOrder} NULLS LAST`
+      : `ORDER BY bp.${safeSortBy} ${safeSortOrder}`;
+
+    // Count query
+    const countQuery = `
+      SELECT COUNT(*) as total
+      FROM blog_posts bp
+      ${whereClause}
+    `;
+
+    // Posts query
+    const postsQuery = `
+      SELECT bp.*, u.username, u.role,
+             COALESCE(p.first_name, d.first_name) as first_name,
+             COALESCE(p.last_name, d.last_name) as last_name
+      FROM blog_posts bp
+      LEFT JOIN users u ON bp.author_id = u.id
+      LEFT JOIN patients p ON u.id = p.user_id
+      LEFT JOIN doctors d ON u.id = d.user_id
+      ${whereClause}
+      ${orderBy}
+      LIMIT $${paramCount} OFFSET $${paramCount + 1}
+    `;
+
+    queryParams.push(limit, offset);
+
+    const [countResult, postsResult] = await Promise.all([
+      this.query(countQuery, queryParams.slice(0, -2)),
+      this.query(postsQuery, queryParams)
+    ]);
+
+    return {
+      posts: postsResult.rows,
+      total: parseInt(countResult.rows[0].total)
+    };
+  }
+
+  /**
+   * Update blog post
+   * @param {number} id - Blog post ID
+   * @param {Object} updateData - Update data
+   * @returns {Object} Updated blog post
+   */
+  async updateBlogPost(id, updateData) {
+    const allowedFields = [
+      'title', 'slug', 'content', 'excerpt', 'category', 'tags', 
+      'status', 'featured_image_url', 'meta_description', 'published_at'
+    ];
+    
+    const updates = [];
+    const values = [];
+    let paramCount = 1;
+
+    for (const [key, value] of Object.entries(updateData)) {
+      if (allowedFields.includes(key) && value !== undefined) {
+        updates.push(`${key} = $${paramCount}`);
+        
+        if (key === 'content' || key === 'tags') {
+          values.push(JSON.stringify(value));
+        } else {
+          values.push(value);
+        }
+        paramCount++;
+      }
+    }
+
+    if (updates.length === 0) {
+      throw new Error('No valid fields to update');
+    }
+
+    updates.push(`updated_at = $${paramCount}`);
+    values.push(new Date());
+    values.push(id);
+
+    const query = `
+      UPDATE blog_posts 
+      SET ${updates.join(', ')}
+      WHERE id = $${paramCount + 1}
+      RETURNING *
+    `;
+
+    const result = await this.query(query, values);
+    return result.rows[0];
+  }
+
+  /**
+   * Delete blog post
+   * @param {number} id - Blog post ID
+   * @returns {boolean} Success status
+   */
+  async deleteBlogPost(id) {
+    const query = 'DELETE FROM blog_posts WHERE id = $1';
+    const result = await this.query(query, [id]);
+    return result.rowCount > 0;
+  }
+
+  /**
+   * Increment blog post view count
+   * @param {number} id - Blog post ID
+   * @returns {boolean} Success status
+   */
+  async incrementBlogPostViews(id) {
+    const query = `
+      UPDATE blog_posts 
+      SET view_count = view_count + 1 
+      WHERE id = $1
+    `;
+    const result = await this.query(query, [id]);
+    return result.rowCount > 0;
+  }
+
+  /**
+   * Get blog categories (from posts)
+   * @returns {Array} Unique categories
+   */
+  async findBlogCategories() {
+    const query = `
+      SELECT DISTINCT category
+      FROM blog_posts
+      WHERE category IS NOT NULL
+      ORDER BY category
+    `;
+    const result = await this.query(query);
+    return result.rows.map(row => row.category);
   }
 }
 

@@ -83,6 +83,27 @@ class AuthService {
         // Generate token pair
         const tokens = AuthService.generateTokenPair(user, profile);
 
+        // Log the session
+        const session = {
+          user_id: user.id,
+          session_token: tokens.token,
+          event_type: 'login',
+          ip_address: req.ip,
+          user_agent: req.headers['user-agent'],
+          device_type: req.headers['device-type'],
+          device_os: req.headers['device-os'],
+          browser_name: req.headers['browser-name'],
+          browser_version: req.headers['browser-version'],
+          is_mobile: req.headers['is-mobile'],
+          location_country: req.headers['location-country'],
+          location_city: req.headers['location-city'],
+          success: true,
+          failure_reason: null,
+          session_duration_minutes: 0,
+          created_at: new Date(),
+
+        }
+
         // Store API key for session management
         await apiKeyRepo.createApiKey({
           user_id: user.id,

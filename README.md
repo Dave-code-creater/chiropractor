@@ -13,7 +13,7 @@ This application consolidates all previously separate microservices into a singl
 - **Real-time Chat**: Socket.IO-based communication system
 - **Blog Management**: Content management for clinic blog/news
 - **Analytics & Reporting**: Practice analytics and patient reports
-- **Health Monitoring**: Comprehensive health checks and monitoring
+- **Application Monitoring**: Comprehensive application monitoring
 
 ## 🛠️ Technology Stack
 
@@ -51,9 +51,9 @@ This application consolidates all previously separate microservices into a singl
    npm run docker:up
    ```
 
-4. **Check application health**
+4. **Application should now be running**
    ```bash
-   curl http://localhost:3000/health
+   # The application will be available at http://localhost:3000
    ```
 
 ### Option 2: Local Development
@@ -104,9 +104,6 @@ chiropractor-monolith/
 ```
 
 ## 🔌 API Endpoints
-
-### Health Check
-- `GET /health` - Application and database health status
 
 ### Authentication (No Auth Required)
 - `POST /v1/api/2025/auth/register` - Register new user
@@ -305,10 +302,9 @@ npm test -- --grep "auth"
 
 ## 📊 Monitoring
 
-The application includes comprehensive health monitoring:
+The application includes comprehensive monitoring:
 
-- **Application Health**: `/health` endpoint
-- **Database Connectivity**: PostgreSQL and MongoDB status
+- **Database Connectivity**: PostgreSQL status  
 - **Service Status**: All integrated services status
 - **Performance Metrics**: Uptime, memory usage
 

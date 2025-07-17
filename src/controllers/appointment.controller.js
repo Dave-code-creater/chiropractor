@@ -5,7 +5,7 @@ const {
   ErrorResponse 
 } = require('../utils/httpResponses');
 const { getPostgreSQLPool } = require('../config/database');
-const { appointmentCreateSchema, quickScheduleSchema, appointmentUpdateSchema } = require('../validators');
+const { appointmentCreateSchema, appointmentUpdateSchema } = require('../validators');
 const AppointmentService = require('../services/AppointmentService');
 const { api, error: logError, info } = require('../utils/logger');
 
@@ -42,7 +42,6 @@ class AppointmentController {
         // Map frontend fields to backend expected fields
         appointment_date: req.body.date || req.body.appointment_date,
         appointment_time: req.body.time || req.body.appointment_time,
-        duration_minutes: req.body.duration || req.body.duration_minutes || 30,
         created_by: req.user?.id
       };
 
@@ -78,22 +77,28 @@ class AppointmentController {
    */
   static async bookAppointmentForSelf(req, res) {
     try {
-
-
       const user = req.user;
+
+      // Find the patient record for this user
+      const { getPatientRepository } = require('../repositories');
+      const patientRepo = getPatientRepository();
+      const patient = await patientRepo.findByUserId(user.id);
+      
+      if (!patient) {
+        return new ErrorResponse(
+          'Patient profile not found. Please complete your patient registration first.',
+          404,
+          '4042'
+        ).send(res);
+      }
 
       const appointmentData = {
         ...req.body,
         // Map frontend fields to backend expected fields
         appointment_date: req.body.date || req.body.appointment_date,
         appointment_time: req.body.time || req.body.appointment_time,
-        duration_minutes: req.body.duration || req.body.duration_minutes || 30,
-        // Link to current user (from JWT payload)
-        patient_user_id: user.id,
-        patient_name: req.body.patient_name || user.email.split('@')[0],
-        patient_phone: req.body.patient_phone || user.phone_number,
-        patient_email: user.email,
-        appointment_type: req.body.appointment_type || 'consultation',
+        patient_id: patient.id,
+        location: req.body.location || 'main_office',
         status: 'scheduled',
         created_by: user.id
       };
@@ -136,60 +141,6 @@ class AppointmentController {
     }
   }
 
-  /**
-   * Quick appointment booking (simplified form)
-   * POST /appointments/quick-book
-   * 
-   * For emergency or walk-in appointments
-   */
-  static async quickBookAppointment(req, res) {
-    try {
-      api.info('⚡ Quick booking appointment:', req.body);
-      
-      const quickBookingData = {
-        patient_name: req.body.patient_name,
-        patient_phone: req.body.patient_phone,
-        patient_email: req.body.patient_email,
-        doctor_id: req.body.doctor_id,
-        appointment_date: req.body.appointment_date,
-        appointment_time: req.body.appointment_time,
-        reason_for_visit: req.body.reason_for_visit || 'Walk-in consultation',
-        appointment_type: 'walk-in',
-        status: 'scheduled',
-        duration_minutes: req.body.duration_minutes || 30,
-        created_by: req.user?.id
-      };
-
-      const appointment = await AppointmentService.createAppointment(quickBookingData, req);
-      
-      return new SuccessResponse(
-        'Quick appointment booked successfully!',
-        201,
-        {
-          appointment,
-          next_steps: [
-            'Please arrive 15 minutes early for check-in',
-            'Bring a valid ID and insurance card',
-            'Complete intake forms online or at the clinic'
-          ]
-        }
-      ).send(res);
-      
-    } catch (error) {
-      api.error(' Quick booking error:', error);
-      
-      if (error instanceof ErrorResponse) {
-        return error.send(res);
-      }
-      
-      return new ErrorResponse(
-        'Failed to book quick appointment. Please call our office.',
-        500,
-        '5001'
-      ).send(res);
-    }
-  }
-
   // ===============================================
   // APPOINTMENT RETRIEVAL ENDPOINTS
   // ===============================================
@@ -221,33 +172,37 @@ class AppointmentController {
       // Format appointments with enhanced data for patient view
       const formattedAppointments = (appointments.appointments || []).map(appointment => ({
         id: appointment.id,
-        // Doctor information
-        doctor: {
-          id: appointment.doctor_id,
-          name: appointment.doctor_first_name && appointment.doctor_last_name 
-            ? `Dr. ${appointment.doctor_first_name} ${appointment.doctor_last_name}`
-            : 'Unknown Doctor',
-          specialization: appointment.doctor_specialization,
-          phone: appointment.doctor_phone
-        },
-        // Patient information
-        patient: {
-          name: appointment.patient_name,
-          phone: appointment.patient_phone,
-          email: appointment.patient_email
-        },
-        // Appointment details
         appointment_datetime: appointment.appointment_datetime,
         appointment_date: appointment.appointment_date,
         appointment_time: appointment.appointment_time,
-        appointment_type: appointment.appointment_type,
+        status: appointment.status,
+        location: appointment.location,
         reason_for_visit: appointment.reason_for_visit,
         additional_notes: appointment.additional_notes,
-        duration_minutes: appointment.duration_minutes,
-        status: appointment.status,
+        
+        // Nested doctor object
+        doctor: {
+          id: appointment.doctor_id,
+          first_name: appointment.doctor_first_name,
+          last_name: appointment.doctor_last_name,
+          specialization: appointment.doctor_specialization,
+          phone_number: appointment.doctor_phone,
+          email: appointment.doctor_email
+        },
+        
+        // Nested patient object
+        patient: {
+          id: appointment.patient_id,
+          first_name: appointment.patient_first_name,
+          last_name: appointment.patient_last_name,
+          phone: appointment.patient_phone,
+          email: appointment.patient_email
+        },
+        
         // Metadata
         created_at: appointment.created_at,
         updated_at: appointment.updated_at,
+        
         // Status information
         is_upcoming: new Date(appointment.appointment_datetime) > new Date(),
         can_cancel: appointment.status === 'scheduled' && new Date(appointment.appointment_datetime) > new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours notice
@@ -295,7 +250,6 @@ class AppointmentController {
     try {
       api.info('📋 Getting all appointments for user:', req.user?.role);
 
-      
       const appointments = await AppointmentService.getAllAppointments(req.query, req.user);
       
       api.info(' Service returned appointments:', { 
@@ -311,8 +265,46 @@ class AppointmentController {
         'Expires': '0'
       });
 
+      // Format appointments with nested object structure
+      const formattedAppointments = (appointments.appointments || []).map(appointment => ({
+        id: appointment.id,
+        appointment_datetime: appointment.appointment_datetime,
+        appointment_date: appointment.appointment_date,
+        appointment_time: appointment.appointment_time,
+        status: appointment.status,
+        location: appointment.location,
+        reason_for_visit: appointment.reason_for_visit,
+        additional_notes: appointment.additional_notes,
+        
+        // Nested doctor object
+        doctor: {
+          id: appointment.doctor_id,
+          first_name: appointment.doctor_first_name,
+          last_name: appointment.doctor_last_name,
+          specialization: appointment.doctor_specialization,
+          phone_number: appointment.doctor_phone,
+          email: appointment.doctor_email
+        },
+        
+        // Nested patient object
+        patient: {
+          id: appointment.patient_id,
+          first_name: appointment.patient_first_name,
+          last_name: appointment.patient_last_name,
+          phone: appointment.patient_phone,
+          email: appointment.patient_email
+        },
+        
+        // Metadata
+        created_at: appointment.created_at,
+        updated_at: appointment.updated_at,
+        created_by: appointment.created_by,
+        cancelled_at: appointment.cancelled_at,
+        cancellation_reason: appointment.cancellation_reason
+      }));
+
       return new SuccessResponse('Appointments retrieved successfully', 200, {
-        appointments: appointments.appointments || appointments.data || appointments,
+        appointments: formattedAppointments,
         pagination: appointments.pagination,
         filters_applied: req.query,
         user_role: req.user?.role
@@ -325,7 +317,7 @@ class AppointmentController {
         return error.send(res);
       }
       
-      return new ErrorResponse('Failed to retrieve appointments', 500, '5002').send(res);
+      return new ErrorResponse('Failed to retrieve appointments', 500, '5003').send(res);
     }
   }
 
@@ -551,8 +543,7 @@ class AppointmentController {
         status: doctor.is_active ? 'active' : 'inactive',
         
         // Schedule information
-        consultation_fee: doctor.consultation_fee,
-        consultationFee: doctor.consultation_fee,
+
         available_slots: doctor.available_slots || [],
         next_available: doctor.next_available || null,
         
@@ -597,20 +588,20 @@ class AppointmentController {
    */
   static async getDoctorAvailability(req, res) {
     try {
-      const { doctorId } = req.params;
+      const { doctor_id } = req.params;
       const { date, days_ahead = 30 } = req.query;
       
-      api.info(' Getting doctor availability:', { doctorId, date, days_ahead });
+      api.info(' Getting doctor availability:', { doctor_id, date, days_ahead });
 
       const doctorRepo = getDoctorRepository();
       
       // Get doctor's weekly schedule, create default if doesn't exist
-      let weeklySchedule = await doctorRepo.getDoctorWeeklySchedule(doctorId);
+      let weeklySchedule = await doctorRepo.getDoctorWeeklySchedule(doctor_id);
       
       // If no schedule exists, create default schedules
       if (weeklySchedule.length === 0) {
-        api.info(' No schedule found for doctor, creating default schedules:', { doctorId });
-        weeklySchedule = await doctorRepo.createDefaultSchedules(doctorId);
+        api.info(' No schedule found for doctor, creating default schedules:', { doctor_id });
+        weeklySchedule = await doctorRepo.createDefaultSchedules(doctor_id);
       }
       
       // Convert schedule to frontend format
@@ -648,7 +639,7 @@ class AppointmentController {
       
       if (date) {
         // Get availability for specific date
-        const availability = await AppointmentService.getDoctorAvailability(doctorId, date);
+        const availability = await AppointmentService.getDoctorAvailability(doctor_id, date);
         
         // Add cache-busting headers
         res.set({
@@ -658,7 +649,7 @@ class AppointmentController {
         });
 
         return new SuccessResponse('Doctor availability retrieved successfully', 200, {
-          doctor_id: doctorId,
+          doctor_id,
           date,
           workingHours,
           ...availability,
@@ -673,7 +664,7 @@ class AppointmentController {
 
       // If no date specified, just return the working hours
       return new SuccessResponse('Doctor schedule retrieved successfully', 200, {
-        doctor_id: doctorId,
+        doctor_id,
         workingHours
       }).send(res);
       
@@ -697,14 +688,48 @@ class AppointmentController {
    */
   static async getPatientAppointments(req, res) {
     try {
-      const { patientId } = req.params;
+      const { patient_id } = req.params;
   
+      const appointments = await AppointmentService.getPatientAppointments(patient_id, req.query);
       
-      const appointments = await AppointmentService.getPatientAppointments(patientId, req.query);
+      // Format appointments with nested object structure
+      const formattedAppointments = (appointments.data || appointments || []).map(appointment => ({
+        id: appointment.id,
+        appointment_datetime: appointment.appointment_datetime,
+        appointment_date: appointment.appointment_date,
+        appointment_time: appointment.appointment_time,
+        status: appointment.status,
+        location: appointment.location,
+        reason_for_visit: appointment.reason_for_visit,
+        additional_notes: appointment.additional_notes,
+        
+        // Nested doctor object
+        doctor: {
+          id: appointment.doctor_id,
+          first_name: appointment.doctor_first_name,
+          last_name: appointment.doctor_last_name,
+          specialization: appointment.doctor_specialization,
+          phone_number: appointment.doctor_phone,
+          email: appointment.doctor_email
+        },
+        
+        // Nested patient object
+        patient: {
+          id: appointment.patient_id,
+          first_name: appointment.patient_first_name,
+          last_name: appointment.patient_last_name,
+          phone: appointment.patient_phone,
+          email: appointment.patient_email
+        },
+        
+        // Metadata
+        created_at: appointment.created_at,
+        updated_at: appointment.updated_at
+      }));
       
       return new SuccessResponse('Patient appointments retrieved successfully', 200, {
-        patient_id: patientId,
-        appointments: appointments.data || appointments,
+        patient_id,
+        appointments: formattedAppointments,
         pagination: appointments.pagination,
         summary: appointments.summary
       }).send(res);
@@ -730,20 +755,18 @@ class AppointmentController {
    */
   static async checkAvailability(req, res) {
     try {
-      const { doctor_id, date, time, duration_minutes = 30 } = req.body;
-      
-  
+      const { doctor_id, date, time } = req.body;
       
       const availability = await AppointmentService.checkSlotAvailability(
         doctor_id, 
         date, 
-        time, 
-        duration_minutes
+        time,
+        30 // Fixed 30-minute duration
       );
       
       return new SuccessResponse('Availability checked successfully', 200, {
         doctor_id,
-        requested_slot: { date, time, duration_minutes },
+        requested_slot: { date, time, duration_minutes: 30 },
         is_available: availability.available,
         conflicts: availability.conflicts || [],
         alternative_slots: availability.alternatives || [],

@@ -17,9 +17,8 @@ class AppointmentService {
    */
   static async createAppointment(appointmentData, req) {
     const {
-      doctor_id, patient_id, patient_name, patient_phone, patient_email,
-      appointment_date, appointment_time, appointment_type, location,
-      reason_for_visit, additional_notes, duration_minutes, status
+      doctor_id, patient_id, appointment_date, appointment_time, 
+      location, reason_for_visit, additional_notes, status
     } = appointmentData;
 
     try {
@@ -29,9 +28,6 @@ class AppointmentService {
 
       // Extract user info from JWT (if available)
       const currentUser = req?.user;
-      const patient_user_id = currentUser?.id || null;
-      
-
 
       // Verify doctor exists
       const doctor = await doctorRepo.findById(doctor_id);
@@ -39,25 +35,10 @@ class AppointmentService {
         throw new BadRequestError('Doctor not found or inactive', '4041');
       }
 
-      // Try to find or resolve patient information
-      let patient = null;
-      let resolvedPatientId = patient_id;
-      
-      if (patient_id) {
-        // Use provided patient_id
-        patient = await patientRepo.findById(patient_id);
-        if (!patient || patient.status !== 'active') {
-          throw new BadRequestError('Patient not found or inactive', '4042');
-        }
-      } else if (patient_user_id) {
-        // Try to find patient record by user_id
-        patient = await patientRepo.findByUserId(patient_user_id);
-        if (patient) {
-          resolvedPatientId = patient.id;
-          api.info(' Found patient record for user:', { patient_id: patient.id, user_id: patient_user_id });
-        } else {
-          warn(' No patient record found for user_id:', patient_user_id);
-        }
+      // Verify patient exists
+      const patient = await patientRepo.findById(patient_id);
+      if (!patient || patient.status !== 'active') {
+        throw new BadRequestError('Patient not found or inactive', '4042');
       }
 
       // Parse and validate appointment datetime
@@ -73,20 +54,14 @@ class AppointmentService {
       // Create appointment record
       const appointmentRecord = {
         doctor_id,
-        patient_id: resolvedPatientId,
-        patient_user_id: patient_user_id, // Always capture user_id from JWT
-        patient_name: patient_name || (patient ? `${patient.first_name} ${patient.last_name}` : null),
-        patient_phone: patient_phone || (patient ? patient.phone : null),
-        patient_email: patient_email || (patient ? patient.email : currentUser?.email),
+        patient_id,
         appointment_date,
         appointment_time,
-        appointment_type,
-        location: location || 'Clinic',
+        location: location || 'main_office',
         reason_for_visit,
         additional_notes,
-        duration_minutes,
         status: status || 'scheduled',
-        created_by: patient_user_id
+        created_by: currentUser?.id
       };
 
       api.info('📝 Creating appointment record:', appointmentRecord);
@@ -95,14 +70,11 @@ class AppointmentService {
       api.info(' Appointment created:', { 
         id: appointment.id, 
         doctor_id, 
-        patient_id: resolvedPatientId,
-        patient_user_id,
+        patient_id,
         datetime: appointmentDateTime 
       });
 
-      const result = { appointment, doctor, patient };
-
-      return AppointmentService.formatAppointmentResponse(result.appointment, result.doctor, result.patient);
+      return AppointmentService.formatAppointmentResponse(appointment, doctor, patient);
     } catch (error) {
       api.error('Create appointment service error:', error);
       if (error instanceof BadRequestError) {
@@ -122,14 +94,13 @@ class AppointmentService {
     try {
       const { 
         page = 1, limit = 10, doctor_id, patient_id, status, 
-        start_date, end_date, appointment_type, location 
+        start_date, end_date, location 
       } = options;
 
       const conditions = {};
       if (doctor_id) conditions.doctor_id = doctor_id;
       if (patient_id) conditions.patient_id = patient_id;
       if (status) conditions.status = status;
-      if (appointment_type) conditions.appointment_type = appointment_type;
       if (location) conditions.location = location;
 
       // Add authorization filtering based on user role
@@ -149,24 +120,20 @@ class AppointmentService {
           }
         } else if (user.role === 'patient') {
           // Patients can only see their own appointments
-          // Check both patient table and direct user_id/email matching
-      
-          
+          // Find patient record by user_id
           const patientRepo = getPatientRepository();
           const patient = await patientRepo.findByUserId(user.id);
           
           if (patient) {
             api.info(' Found patient record:', { patient_id: patient.id, user_id: user.id });
-            // For patients with a patient record, check both patient_id and fallback to user_id/email
             conditions.patient_id = patient.id;
-            conditions.patient_user_id = user.id;
-            conditions.patient_email = user.email;
           } else {
-            // Also check for appointments with patient_user_id or patient_email
-            api.info('⚠️ No patient record found, checking direct user_id/email matching');
-            conditions.patient_user_id = user.id;
-            conditions.patient_email = user.email;
-        
+            // If no patient record found, return empty results
+            api.info('⚠️ No patient record found for user');
+            return {
+              appointments: [],
+              pagination: { page, limit, total: 0, pages: 0 }
+            };
           }
         }
         // Admin and staff can see all appointments (no additional filtering)
@@ -370,21 +337,46 @@ class AppointmentService {
   static formatAppointmentResponse(appointment, doctor = null, patient = null) {
     return {
       id: appointment.id,
-      doctor_id: appointment.doctor_id,
-      doctor_name: doctor ? `${doctor.first_name} ${doctor.last_name}` : null,
-      patient_id: appointment.patient_id,
-      patient_name: appointment.patient_name,
-      patient_phone: appointment.patient_phone,
-      patient_email: appointment.patient_email,
       appointment_datetime: appointment.appointment_datetime,
       appointment_date: appointment.appointment_date,
       appointment_time: appointment.appointment_time,
-      appointment_type: appointment.appointment_type,
+      status: appointment.status,
       location: appointment.location,
       reason_for_visit: appointment.reason_for_visit,
       additional_notes: appointment.additional_notes,
-      duration_minutes: appointment.duration_minutes,
-      status: appointment.status,
+      
+      // Nested patient object
+      patient: patient ? {
+        id: patient.id,
+        first_name: patient.first_name,
+        last_name: patient.last_name,
+        email: patient.email,
+        phone: patient.phone
+      } : {
+        id: appointment.patient_id,
+        first_name: null,
+        last_name: null,
+        email: null,
+        phone: null
+      },
+      
+      // Nested doctor object
+      doctor: doctor ? {
+        id: doctor.id,
+        first_name: doctor.first_name,
+        last_name: doctor.last_name,
+        specialization: doctor.specialization,
+        phone_number: doctor.phone_number,
+        email: doctor.email
+      } : {
+        id: appointment.doctor_id,
+        first_name: null,
+        last_name: null,
+        specialization: null,
+        phone_number: null,
+        email: null
+      },
+      
       created_at: appointment.created_at,
       updated_at: appointment.updated_at
     };

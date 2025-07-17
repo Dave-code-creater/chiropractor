@@ -72,10 +72,7 @@ class AppointmentRepository extends BaseRepository {
       
       if (conditions.doctor_id) whereConditions.doctor_id = conditions.doctor_id;
       if (conditions.patient_id) whereConditions.patient_id = conditions.patient_id;
-      if (conditions.patient_user_id) whereConditions.patient_user_id = conditions.patient_user_id;
-      if (conditions.patient_email) whereConditions.patient_email = conditions.patient_email;
       if (conditions.status) whereConditions.status = conditions.status;
-      if (conditions.appointment_type) whereConditions.appointment_type = conditions.appointment_type;
       if (conditions.location) whereConditions.location = conditions.location;
 
       // Handle date range filtering
@@ -98,8 +95,15 @@ class AppointmentRepository extends BaseRepository {
       const whereClause = this.buildWhereClause(whereConditions);
       const query = `
         SELECT a.*, 
-               d.first_name as doctor_first_name, d.last_name as doctor_last_name,
-               p.first_name as patient_first_name, p.last_name as patient_last_name
+               d.first_name as doctor_first_name, 
+               d.last_name as doctor_last_name,
+               d.specialization as doctor_specialization,
+               d.phone_number as doctor_phone,
+               d.email as doctor_email,
+               p.first_name as patient_first_name, 
+               p.last_name as patient_last_name,
+               p.email as patient_email,
+               p.phone as patient_phone
         FROM appointments a
         LEFT JOIN doctors d ON a.doctor_id = d.id
         LEFT JOIN patients p ON a.patient_id = p.id
@@ -128,11 +132,7 @@ class AppointmentRepository extends BaseRepository {
       const whereConditions = {};
       
       if (conditions.doctor_id) whereConditions.doctor_id = conditions.doctor_id;
-      if (conditions.patient_id) whereConditions.patient_id = conditions.patient_id;
-      if (conditions.patient_user_id) whereConditions.patient_user_id = conditions.patient_user_id;
-      if (conditions.patient_email) whereConditions.patient_email = conditions.patient_email;
       if (conditions.status) whereConditions.status = conditions.status;
-      if (conditions.appointment_type) whereConditions.appointment_type = conditions.appointment_type;
       if (conditions.location) whereConditions.location = conditions.location;
 
       // Handle date range filtering
@@ -213,7 +213,7 @@ class AppointmentRepository extends BaseRepository {
   async getDoctorAvailability(doctorId, date) {
     try {
       const query = `
-        SELECT appointment_time, duration_minutes
+        SELECT appointment_time
         FROM appointments
         WHERE doctor_id = $1
         AND appointment_date = $2

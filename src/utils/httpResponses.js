@@ -4,29 +4,40 @@
  */
 
 class BaseResponse {
-  constructor(message, statusCode, data = null, errorCode = null) {
+  constructor(message, statusCode, data = null, errorCode = null, meta = null) {
     this.success = statusCode < 400;
     this.message = message;
     this.statusCode = statusCode;
     this.data = data;
+    this.meta = meta;
     this.errorCode = errorCode;
   }
 
   send(res) {
-    return res.status(this.statusCode).json({
+    const response = {
       success: this.success,
       message: this.message,
-      data: this.data,
-      statusCode: this.statusCode,
-      ...(this.errorCode && { errorCode: this.errorCode })
-    });
+      data: this.data
+    };
+
+    // Add meta if provided
+    if (this.meta) {
+      response.meta = this.meta;
+    }
+
+    // Add error code if it's an error response
+    if (this.errorCode && !this.success) {
+      response.error_code = this.errorCode;
+    }
+
+    return res.status(this.statusCode).json(response);
   }
 }
 
 // Success Response Classes
 class SuccessResponse extends BaseResponse {
-  constructor(message, statusCode = 200, data = null) {
-    super(message, statusCode, data);
+  constructor(message, statusCode = 200, data = null, meta = null) {
+    super(message, statusCode, data, null, meta);
   }
 }
 

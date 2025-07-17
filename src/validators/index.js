@@ -25,7 +25,6 @@ const {
 
 const {
   appointmentCreateSchema,
-  quickScheduleSchema,
   appointmentUpdateSchema
 } = require('./appointment.validator');
 
@@ -34,6 +33,13 @@ const {
   doctorPatientConversationSchema,
   sendMessageSchema
 } = require('./chat.validator');
+
+const {
+  createIncidentSchema,
+  updateIncidentSchema,
+  incidentFormSchema,
+  incidentNoteSchema
+} = require('./incident.validator');
 
 const {
   patientIntakeSchema,
@@ -63,13 +69,17 @@ const profileUpdateValidator = validate(profileUpdateSchema);
 
 const appointmentValidator = validate(appointmentCreateSchema);
 const appointmentCreateValidator = validate(appointmentCreateSchema);
-const quickScheduleValidator = validate(quickScheduleSchema);
 const appointmentUpdateValidator = validate(appointmentUpdateSchema);
 
 const messageValidator = validate(sendMessageSchema);
 const createConversationValidator = validate(createConversationSchema);
 const doctorPatientConversationValidator = validate(doctorPatientConversationSchema);
 const sendMessageValidator = validate(sendMessageSchema);
+
+const createIncidentValidator = validate(createIncidentSchema);
+const updateIncidentValidator = validate(updateIncidentSchema);
+const incidentFormValidator = validate(incidentFormSchema);
+const incidentNoteValidator = validate(incidentNoteSchema);
 
 const reportValidator = validate(patientIntakeSchema);
 const patientIntakeValidator = validate(patientIntakeSchema);
@@ -101,7 +111,6 @@ module.exports = {
   // Appointment validators (middleware functions)
   appointmentValidator,
   appointmentCreateValidator,
-  quickScheduleValidator,
   appointmentUpdateValidator,
   
   // Chat validators (middleware functions)
@@ -109,6 +118,12 @@ module.exports = {
   createConversationValidator,
   doctorPatientConversationValidator,
   sendMessageValidator,
+  
+  // Incident validators (middleware functions)
+  createIncidentValidator,
+  updateIncidentValidator,
+  incidentFormValidator,
+  incidentNoteValidator,
   
   // Report validators (middleware functions)
   reportValidator,
@@ -135,11 +150,14 @@ module.exports = {
     vitalsSchema,
     profileUpdateSchema,
     appointmentCreateSchema,
-    quickScheduleSchema,
     appointmentUpdateSchema,
     createConversationSchema,
     doctorPatientConversationSchema,
     sendMessageSchema,
+    createIncidentSchema,
+    updateIncidentSchema,
+    incidentFormSchema,
+    incidentNoteSchema,
     patientIntakeSchema,
     insuranceDetailsSchema,
     painEvaluationSchema,

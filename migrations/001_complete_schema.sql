@@ -28,13 +28,11 @@ CREATE TYPE work_time_type AS ENUM('Full Time','Part Time');
 CREATE TYPE accident_cause AS ENUM('Auto Collision','On the job','Other');
 
 -- Incident system enums
-CREATE TYPE incident_type_enum AS ENUM ('car_accident', 'work_injury', 'sports_injury', 'general_pain');
+CREATE TYPE incident_type_enum AS ENUM ('car_accident', 'work_injury', 'sports_injury', 'general_pain', 'general_patient_record');
 CREATE TYPE incident_status_enum AS ENUM ('active', 'completed', 'inactive');
 CREATE TYPE form_type_enum AS ENUM (
-  'patient_info', 'accident_details', 'injuries_symptoms', 'auto_insurance', 
-  'pain_assessment', 'work_impact', 'work_incident_details', 'workers_comp',
-  'work_status_restrictions', 'sports_incident_details', 'health_insurance',
-  'activity_impact', 'pain_description', 'medical_history', 'lifestyle_impact'
+  'patient_info', 'health_insurance', 'pain_description', 
+  'pain_assessment', 'medical_history', 'lifestyle_impact'
 );
 
 -- ========================================
@@ -269,15 +267,9 @@ CREATE TABLE appointments (
   id SERIAL PRIMARY KEY,
   patient_id INT REFERENCES patients(id),
   doctor_id INT REFERENCES doctors(id),
-  patient_user_id INT REFERENCES users(id),
-  patient_name TEXT,
-  patient_email TEXT,
-  patient_phone TEXT,
   appointment_date DATE NOT NULL,
   appointment_time TIME NOT NULL,
   appointment_datetime TIMESTAMPTZ GENERATED ALWAYS AS (appointment_date + appointment_time) STORED,
-  duration_minutes INT DEFAULT 30,
-  appointment_type TEXT DEFAULT 'consultation',
   reason_for_visit TEXT,
   additional_notes TEXT,
   location TEXT DEFAULT 'main_office',
@@ -369,10 +361,28 @@ CREATE TABLE messages (
   attachment_url TEXT,
   is_read BOOLEAN DEFAULT FALSE,
   status TEXT DEFAULT 'sent',
+  delivery_status TEXT DEFAULT 'sent',
   sent_at TIMESTAMPTZ DEFAULT NOW(),
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Message delivery status tracking for Long-Polling
+CREATE TABLE message_delivery_status (
+  id SERIAL PRIMARY KEY,
+  message_id INT REFERENCES messages(id) ON DELETE CASCADE,
+  user_id INT REFERENCES users(id) ON DELETE CASCADE,
+  delivered_at TIMESTAMPTZ,
+  read_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(message_id, user_id)
+);
+
+-- Indexes for message delivery status
+CREATE INDEX idx_message_delivery_status_message_id ON message_delivery_status(message_id);
+CREATE INDEX idx_message_delivery_status_user_id ON message_delivery_status(user_id);
+CREATE INDEX idx_message_delivery_status_delivered_at ON message_delivery_status(delivered_at);
 
 -- ========================================
 -- INCIDENT MANAGEMENT SYSTEM
@@ -460,11 +470,13 @@ CREATE TABLE blog_posts (
   title VARCHAR(200) NOT NULL,
   slug VARCHAR(200) NOT NULL UNIQUE,
   excerpt TEXT,
-  content TEXT NOT NULL,
+  content JSONB NOT NULL,
   featured_image_url TEXT,
-  category_id INT REFERENCES blog_categories(id),
+  category VARCHAR(100),
+  tags JSONB DEFAULT '[]',
   author_id INT REFERENCES users(id),
-  status VARCHAR(20) DEFAULT 'draft' CHECK (status IN ('draft', 'published', 'archived')),
+  status VARCHAR(20) DEFAULT 'draft' CHECK (status IN ('draft', 'published')),
+  meta_description TEXT,
   view_count INT DEFAULT 0,
   published_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -515,8 +527,6 @@ CREATE INDEX idx_doctors_status ON doctors(status);
 -- Appointment indexes
 CREATE INDEX idx_appointments_patient_id ON appointments(patient_id);
 CREATE INDEX idx_appointments_doctor_id ON appointments(doctor_id);
-CREATE INDEX idx_appointments_patient_user_id ON appointments(patient_user_id);
-CREATE INDEX idx_appointments_patient_email ON appointments(patient_email);
 CREATE INDEX idx_appointments_date ON appointments(appointment_date);
 CREATE INDEX idx_appointments_datetime ON appointments(appointment_datetime);
 CREATE INDEX idx_appointments_status ON appointments(status);
@@ -547,9 +557,10 @@ CREATE INDEX idx_blog_categories_slug ON blog_categories(slug);
 CREATE INDEX idx_blog_tags_slug ON blog_tags(slug);
 CREATE INDEX idx_blog_posts_slug ON blog_posts(slug);
 CREATE INDEX idx_blog_posts_status ON blog_posts(status);
-CREATE INDEX idx_blog_posts_category ON blog_posts(category_id);
+CREATE INDEX idx_blog_posts_category ON blog_posts(category);
 CREATE INDEX idx_blog_posts_author ON blog_posts(author_id);
 CREATE INDEX idx_blog_posts_published_at ON blog_posts(published_at);
+CREATE INDEX idx_blog_posts_tags ON blog_posts USING GIN(tags);
 
 -- Auth indexes
 CREATE INDEX idx_password_resets_token ON password_resets(token);
@@ -567,9 +578,9 @@ CREATE INDEX idx_login_sessions_event_type ON login_sessions(event_type);
 INSERT INTO users (email, username, password_hash, role, is_verified, phone_verified, status) VALUES
 ('admin@clinic.com', 'admin', '$2b$10$rKQhgGJmHrJhT3fkZJGmceRXhDYPk4YJXLkQhxKZVXzPGKxWvKFOW', 'admin', true, true, 'active');
 
--- Insert default doctor (password: 'doctor123' - change in production!)
+-- Insert default doctor (password: 'Oces2023@')
 INSERT INTO users (email, username, password_hash, role, is_verified, phone_verified, status) VALUES
-('doctor@gmail.com', 'doctor', '$2b$10$rKQhgGJmHrJhT3fkZJGmceRXhDYPk4YJXLkQhxKZVXzPGKxWvKFOW', 'doctor', true, true, 'active');
+('doctor@gmail.com', 'doctor', '$2a$12$MycIXQHLdgeTMiUZaJUrgOxWn0f8lmLIKWAg5ITF24c0dOufCxwqq', 'doctor', true, true, 'active');
 
 -- Insert doctor profile
 INSERT INTO doctors (user_id, first_name, last_name, specialization, phone_number, email, office_address, is_available, status) VALUES

@@ -6,11 +6,11 @@ const Joi = require('joi');
 
 const createIncidentSchema = Joi.object({
   incident_type: Joi.string()
-    .valid('car_accident', 'work_injury', 'sports_injury', 'general_pain')
+    .valid('car_accident', 'work_injury', 'sports_injury', 'general_pain', 'general_patient_record')
     .required()
     .messages({
       'any.required': 'Incident type is required',
-      'any.only': 'Incident type must be one of: car_accident, work_injury, sports_injury, general_pain'
+      'any.only': 'Incident type must be one of: car_accident, work_injury, sports_injury, general_pain, general_patient_record'
     }),
   
   title: Joi.string()
@@ -77,10 +77,8 @@ const updateIncidentSchema = Joi.object({
 const incidentFormSchema = Joi.object({
   form_type: Joi.string()
     .valid(
-      'patient_info', 'accident_details', 'injuries_symptoms', 'auto_insurance',
-      'pain_assessment', 'work_impact', 'work_incident_details', 'workers_comp',
-      'work_status_restrictions', 'sports_incident_details', 'health_insurance',
-      'activity_impact', 'pain_description', 'medical_history', 'lifestyle_impact'
+      'patient_info', 'health_insurance', 'pain_description', 
+      'pain_assessment', 'medical_history', 'lifestyle_impact'
     )
     .required()
     .messages({

@@ -21,11 +21,9 @@ const userRoutes = require('./routes/user.routes');
 const appointmentRoutes = require('./routes/appointment.routes');
 const blogRoutes = require('./routes/blog.routes');
 const chatRoutes = require('./routes/chat.routes');
-const reportRoutes = require('./routes/report.routes');
+
 const incidentRoutes = require('./routes/incident.routes');
-const healthRoutes = require('./routes/health.routes');
 const clinicalNotesRoutes = require('./routes/clinical-notes.routes');
-const vitalsRoutes = require('./routes/vitals.routes');
 
 
 // Import middleware
@@ -94,9 +92,6 @@ async function initializeDatabases() {
   }
 }
 
-// Routes
-app.use('/health', healthRoutes);
-
 // API v1 routes
 const apiV1 = express.Router();
 
@@ -108,14 +103,14 @@ apiV1.use('/users', userRoutes);
 apiV1.use('/appointments', appointmentRoutes);
 apiV1.use('/blog', blogRoutes);
 apiV1.use('/chat', chatRoutes);
-apiV1.use('/reports', reportRoutes);
+
 apiV1.use('/incidents', incidentRoutes);
 
 
 
 
 // Mount API routes
-app.use('/v1/api/2025', apiV1);
+app.use('/api/v1/2025', apiV1);
 
 
 
@@ -146,7 +141,6 @@ async function startServer() {
     server.listen(PORT, () => {
       info(`Chiropractor Monolith Server running on port ${PORT}`);
       info(`CORS origin: ${process.env.CORS_ORIGIN || 'http://localhost:5173'}`);
-      info(`Health check: http://localhost:${PORT}/health`);
       info('Server startup completed successfully');
     });
   } catch (error) {

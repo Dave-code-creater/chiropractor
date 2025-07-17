@@ -1,7 +1,8 @@
 const express = require('express');
 const { authenticate } = require('../middleware/auth.middleware');
 const asyncHandler = require('../utils/asyncHandler');
-const ReportController = require('../controllers/report.controller');
+const IncidentController = require('../controllers/incident.controller');
+const { createIncidentValidator, updateIncidentValidator, incidentNoteValidator } = require('../validators');
 
 const router = express.Router();
 
@@ -9,17 +10,22 @@ const router = express.Router();
 router.use(authenticate);
 
 // Incident CRUD operations
-router.post('/', asyncHandler(ReportController.createIncident));
-router.get('/', asyncHandler(ReportController.getUserIncidents));
-router.get('/:id', asyncHandler(ReportController.getIncidentById));
-router.put('/:id', asyncHandler(ReportController.updateIncident));
-router.delete('/:id', asyncHandler(ReportController.deleteIncident));
+router.post('/', createIncidentValidator, asyncHandler(IncidentController.createIncident));
+router.get('/', asyncHandler(IncidentController.getUserIncidents));
+router.get('/:id', asyncHandler(IncidentController.getIncidentById));
+router.put('/:id', updateIncidentValidator, asyncHandler(IncidentController.updateIncident));
+router.delete('/:id', asyncHandler(IncidentController.deleteIncident));
 
-// Incident forms
-router.post('/:id/forms', asyncHandler(ReportController.saveIncidentForm));
-router.put('/:id/forms/:formType', asyncHandler(ReportController.saveIncidentForm));
+// Simple form submission endpoints (like signup forms)
+router.post('/:id/patient-info', asyncHandler(IncidentController.submitPatientInfoForm));
+router.post('/:id/health-insurance', asyncHandler(IncidentController.submitHealthInsuranceForm));
+router.post('/:id/pain-description-form', asyncHandler(IncidentController.submitPainDescriptionFormNew));
+router.post('/:id/pain-assessment-form', asyncHandler(IncidentController.submitPainAssessmentFormNew));
+router.post('/:id/medical-history-form', asyncHandler(IncidentController.submitMedicalHistoryFormNew));
+router.post('/:id/lifestyle-impact-form', asyncHandler(IncidentController.submitLifestyleImpactFormNew));
+router.get('/:id/available-forms', asyncHandler(IncidentController.getAvailableIncidentForms));
 
 // Incident notes
-router.post('/:id/notes', asyncHandler(ReportController.addIncidentNote));
+router.post('/:id/notes', incidentNoteValidator, asyncHandler(IncidentController.addIncidentNote));
 
 module.exports = router; 

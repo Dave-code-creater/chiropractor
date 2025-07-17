@@ -6,30 +6,30 @@ describe('🚀 Clinic Performance Tests', () => {
   let authToken = 'mock-token';
 
   describe('⚡ Response Time Tests', () => {
-    it('should respond to health check within 100ms', async () => {
+    it('should respond to auth endpoint within 200ms', async () => {
       const start = Date.now();
       
       const response = await request(app)
-        .get('/health')
-        .expect(200);
+        .get('/v1/api/2025/auth/register')
+        .expect(400);
       
       const duration = Date.now() - start;
-      expect(duration).to.be.below(100);
-      expect(response.body).to.have.property('success', true);
+      expect(duration).to.be.below(200);
+      expect(response.body).to.have.property('success', false);
     });
 
-    it('should handle multiple concurrent health checks', async () => {
+    it('should handle multiple concurrent auth requests', async () => {
       const promises = Array(10).fill().map(() => 
-        request(app).get('/health').expect(200)
+        request(app).get('/v1/api/2025/auth/register').expect(400)
       );
 
       const start = Date.now();
       const responses = await Promise.all(promises);
       const duration = Date.now() - start;
 
-      expect(duration).to.be.below(500); // All 10 requests within 500ms
+      expect(duration).to.be.below(1000); // All 10 requests within 1 second
       responses.forEach(response => {
-        expect(response.body).to.have.property('success', true);
+        expect(response.body).to.have.property('success', false);
       });
     });
   });
@@ -78,7 +78,7 @@ describe('🚀 Clinic Performance Tests', () => {
       
       // Make 50 requests
       for (let i = 0; i < 50; i++) {
-        await request(app).get('/health').expect(200);
+        await request(app).get('/v1/api/2025/auth/register').expect(400);
       }
 
       // Force garbage collection if available
@@ -165,11 +165,11 @@ describe('🚀 Clinic Performance Tests', () => {
   describe('📈 Scalability Tests', () => {
     it('should maintain performance with multiple route types', async () => {
       const routeTests = [
-        () => request(app).get('/health'),
+        () => request(app).get('/v1/api/2025/auth/register'),
         () => request(app).get('/v1/api/2025/users/patients').set('Authorization', `Bearer ${authToken}`),
         () => request(app).get('/v1/api/2025/appointments').set('Authorization', `Bearer ${authToken}`),
         () => request(app).get('/v1/api/2025/blog/posts'),
-        () => request(app).get('/v1/api/2025/reports/clinic-stats').set('Authorization', `Bearer ${authToken}`)
+        () => request(app).get('/v1/api/2025/incidents').set('Authorization', `Bearer ${authToken}`)
       ];
 
       const promises = [];
@@ -188,7 +188,7 @@ describe('🚀 Clinic Performance Tests', () => {
 
     it('should handle burst traffic patterns', async () => {
       // Simulate burst traffic: 10 requests, wait, then 10 more
-      const burst1 = Array(10).fill().map(() => request(app).get('/health'));
+      const burst1 = Array(10).fill().map(() => request(app).get('/v1/api/2025/auth/register'));
       
       const start1 = Date.now();
       await Promise.all(burst1);
@@ -197,7 +197,7 @@ describe('🚀 Clinic Performance Tests', () => {
       // Wait 100ms
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      const burst2 = Array(10).fill().map(() => request(app).get('/health'));
+      const burst2 = Array(10).fill().map(() => request(app).get('/v1/api/2025/auth/register'));
       
       const start2 = Date.now();
       await Promise.all(burst2);

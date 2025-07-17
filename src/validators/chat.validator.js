@@ -28,10 +28,10 @@ const sendMessageSchema = Joi.object({
     Joi.number().integer().positive(),
     Joi.string().regex(/^\d+$/),
     Joi.string().regex(/^conv_\d+_[a-z0-9]+$/)
-  ).required(),
+  ).optional(), // Now optional since it comes from URL params
   content: Joi.string().max(2000).required(),
   message_content: Joi.string().max(2000).optional(), // Alias for content
-  sender_type: Joi.string().valid('doctor', 'patient', 'staff', 'admin', 'user').required(),
+  sender_type: Joi.string().valid('doctor', 'patient', 'staff', 'admin', 'user').optional(), // Optional since derived from auth
   sender_id: Joi.number().integer().positive().optional(),
   message_type: Joi.string().valid('text', 'system').default('text')
 });
