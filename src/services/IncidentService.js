@@ -106,6 +106,86 @@ class IncidentService {
   }
 
   /**
+   * Get patient incidents
+   * @param {number} patientId - Patient ID
+   * @param {Object} query - Query parameters
+   * @returns {Array} Patient incidents
+   */
+  static async getPatientIncidents(patientId, query = {}) {
+    try {
+      const userRepo = getUserRepository();
+      
+      const { status, incident_type, page = 1, limit = 20 } = query;
+      const offset = (page - 1) * limit;
+
+      const incidents = await userRepo.getIncidentsByPatientId(patientId, {
+        status,
+        incident_type,
+        limit: parseInt(limit),
+        offset
+      });
+
+      info('Patient incidents retrieved:', { 
+        patient_id: patientId,
+        count: incidents.length 
+      });
+
+      return incidents.map(incident => IncidentService.formatIncidentResponse(incident));
+
+    } catch (error) {
+      logError('Get patient incidents service error:', error);
+      throw new InternalServerError('Failed to retrieve patient incidents', '5017');
+    }
+  }
+
+  /**
+   * Get doctor's patients
+   * @param {number} userId - User ID of the doctor
+   * @param {Object} query - Query parameters
+   * @returns {Array} Doctor's patients with incident counts
+   */
+  static async getDoctorPatients(userId, query = {}) {
+    try {
+      const userRepo = getUserRepository();
+      
+      // First get the doctor record for this user
+      const doctorQuery = `
+        SELECT id FROM doctors 
+        WHERE user_id = $1 AND status = 'active'
+      `;
+      const doctorResult = await userRepo.query(doctorQuery, [userId]);
+      
+      if (!doctorResult.rows.length) {
+        throw new NotFoundError('Doctor record not found', '4041');
+      }
+      
+      const doctorId = doctorResult.rows[0].id;
+      const { page = 1, limit = 20 } = query;
+      const offset = (page - 1) * limit;
+
+      const patients = await userRepo.getDoctorPatients(doctorId, {
+        limit: parseInt(limit),
+        offset
+      });
+
+      info('Doctor patients retrieved:', { 
+        user_id: userId,
+        doctor_id: doctorId,
+        count: patients.length 
+      });
+
+      return patients;
+
+    } catch (error) {
+      logError('Get doctor patients service error:', error);
+      if (error instanceof NotFoundError) {
+        throw error;
+      }
+      throw new InternalServerError('Failed to retrieve doctor patients', '5018');
+    }
+  }
+
+  /**
    * Get incident by ID
    * @param {number} incidentId - Incident ID
    * @param {number} userId - User ID (for authorization)
@@ -120,9 +200,23 @@ class IncidentService {
         throw new NotFoundError('Incident not found', '4042');
       }
 
-      // Check ownership
-      if (incident.user_id !== userId) {
-        throw new BadRequestError('Access denied', '4003');
+      // Get user role and doctor info if applicable
+      const userQuery = `
+        SELECT u.role, d.id as doctor_id 
+        FROM users u 
+        LEFT JOIN doctors d ON u.id = d.user_id 
+        WHERE u.id = $1
+      `;
+      const userResult = await userRepo.query(userQuery, [userId]);
+      const userInfo = userResult.rows[0];
+
+      // Check authorization
+      const isOwner = incident.user_id === userId;
+      const isAssignedDoctor = userInfo.role === 'doctor' && incident.doctor_id === userInfo.doctor_id;
+      const isAdmin = userInfo.role === 'admin';
+
+      if (!isOwner && !isAssignedDoctor && !isAdmin) {
+        throw new BadRequestError('Access denied. You must be the owner, assigned doctor, or admin to view this incident', '4003');
       }
 
       // Get forms and notes
@@ -132,8 +226,15 @@ class IncidentService {
       const response = IncidentService.formatIncidentResponse(incident);
       response.forms = forms;
       response.notes = notes;
+      response.can_edit = isAssignedDoctor || isAdmin; // Add edit permission flag
 
-      info('Incident retrieved:', { incident_id: incidentId });
+      info('Incident retrieved:', { 
+        incident_id: incidentId,
+        accessed_by: userInfo.role,
+        is_owner: isOwner,
+        is_assigned_doctor: isAssignedDoctor,
+        is_admin: isAdmin
+      });
 
       return response;
 
@@ -162,14 +263,51 @@ class IncidentService {
         throw new NotFoundError('Incident not found', '4042');
       }
 
-      // Check ownership
-      if (incident.user_id !== userId) {
-        throw new BadRequestError('Access denied', '4003');
+      // Get user role and doctor info if applicable
+      const userQuery = `
+        SELECT u.role, d.id as doctor_id 
+        FROM users u 
+        LEFT JOIN doctors d ON u.id = d.user_id 
+        WHERE u.id = $1
+      `;
+      const userResult = await userRepo.query(userQuery, [userId]);
+      const userInfo = userResult.rows[0];
+
+      // Check authorization
+      const isOwner = incident.user_id === userId;
+      const isAssignedDoctor = userInfo.role === 'doctor' && incident.doctor_id === userInfo.doctor_id;
+      const isAdmin = userInfo.role === 'admin';
+
+      if (!isAssignedDoctor && !isAdmin && !isOwner) {
+        throw new BadRequestError('Access denied. Only the assigned doctor, admin, or owner can update this incident', '4003');
+      }
+
+      // Add audit trail for doctor/admin edits
+      if (isAssignedDoctor || isAdmin) {
+        updateData.last_edited_by = userId;
+        updateData.last_edited_at = new Date().toISOString();
+        
+        // Add a note about the edit if a reason was provided
+        if (updateData.edit_reason) {
+          await userRepo.addIncidentNote({
+            incident_id: incidentId,
+            user_id: userId,
+            note_text: `Edit reason: ${updateData.edit_reason}`,
+            note_type: 'edit_history'
+          });
+          delete updateData.edit_reason; // Remove from update data
+        }
       }
 
       const updatedIncident = await userRepo.updateIncident(incidentId, updateData);
 
-      info('Incident updated:', { incident_id: incidentId });
+      info('Incident updated:', { 
+        incident_id: incidentId,
+        updated_by: userInfo.role,
+        is_owner: isOwner,
+        is_assigned_doctor: isAssignedDoctor,
+        is_admin: isAdmin
+      });
 
       return IncidentService.formatIncidentResponse(updatedIncident);
 
@@ -349,6 +487,236 @@ class IncidentService {
     return templates[incidentType] || [];
   }
 
+  // ========================================
+  // TREATMENT PLAN METHODS
+  // ========================================
+
+  /**
+   * Create treatment plan for incident
+   * @param {number} incidentId - Incident ID
+   * @param {Object} treatmentData - Treatment plan data
+   * @param {number} userId - User ID (for authorization)
+   * @returns {Object} Created treatment plan
+   */
+  static async createTreatmentPlan(incidentId, treatmentData, userId) {
+    try {
+      const userRepo = getUserRepository();
+      
+      // Check if incident exists and user has access
+      const incident = await userRepo.getIncidentById(incidentId);
+      if (!incident) {
+        throw new NotFoundError('Incident not found', '4042');
+      }
+
+      // Get user role and doctor info
+      const userQuery = `
+        SELECT u.role, d.id as doctor_id 
+        FROM users u 
+        LEFT JOIN doctors d ON u.id = d.user_id 
+        WHERE u.id = $1
+      `;
+      const userResult = await userRepo.query(userQuery, [userId]);
+      const userInfo = userResult.rows[0];
+
+      // Only doctors can create treatment plans
+      if (userInfo.role !== 'doctor') {
+        throw new BadRequestError('Access denied. Only doctors can create treatment plans', '4003');
+      }
+
+      // Check if doctor is assigned to this incident
+      if (incident.doctor_id !== userInfo.doctor_id) {
+        throw new BadRequestError('Access denied. You can only create treatment plans for your assigned patients', '4003');
+      }
+
+      const { patient_id, doctor_id, diagnosis, treatment_goals, additional_notes, treatment_phases } = treatmentData;
+
+      // Create treatment plan
+      const treatmentPlan = await userRepo.createTreatmentPlan({
+        incident_id: incidentId,
+        patient_id: incident.patient_id,
+        doctor_id: userInfo.doctor_id,
+        diagnosis,
+        treatment_goals,
+        additional_notes,
+        created_by: userId,
+        status: 'active'
+      });
+
+      // Create treatment phases
+      if (treatment_phases && treatment_phases.length > 0) {
+        for (let i = 0; i < treatment_phases.length; i++) {
+          const phase = treatment_phases[i];
+          await userRepo.createTreatmentPhase({
+            treatment_plan_id: treatmentPlan.id,
+            phase_number: i + 1,
+            duration: phase.duration,
+            duration_type: phase.duration_type,
+            frequency: phase.frequency,
+            frequency_type: phase.frequency_type,
+            description: phase.description,
+            status: 'pending'
+          });
+        }
+      }
+
+      // Get the complete treatment plan with phases
+      const completeTreatmentPlan = await userRepo.getTreatmentPlanById(treatmentPlan.id);
+
+      info('Treatment plan created:', { 
+        incident_id: incidentId,
+        treatment_plan_id: treatmentPlan.id,
+        created_by: userId
+      });
+
+      return IncidentService.formatTreatmentPlanResponse(completeTreatmentPlan);
+
+    } catch (error) {
+      logError('Create treatment plan service error:', error);
+      if (error instanceof BadRequestError || error instanceof NotFoundError) {
+        throw error;
+      }
+      throw new InternalServerError('Failed to create treatment plan', '5019');
+    }
+  }
+
+  /**
+   * Get treatment plan for incident
+   * @param {number} incidentId - Incident ID
+   * @param {number} userId - User ID (for authorization)
+   * @returns {Object} Treatment plan
+   */
+  static async getTreatmentPlan(incidentId, userId) {
+    try {
+      const userRepo = getUserRepository();
+      
+      // Check if incident exists and user has access
+      const incident = await userRepo.getIncidentById(incidentId);
+      if (!incident) {
+        throw new NotFoundError('Incident not found', '4042');
+      }
+
+      // Check authorization (same as incident access)
+      const userQuery = `
+        SELECT u.role, d.id as doctor_id 
+        FROM users u 
+        LEFT JOIN doctors d ON u.id = d.user_id 
+        WHERE u.id = $1
+      `;
+      const userResult = await userRepo.query(userQuery, [userId]);
+      const userInfo = userResult.rows[0];
+
+      const isOwner = incident.user_id === userId;
+      const isAssignedDoctor = userInfo.role === 'doctor' && incident.doctor_id === userInfo.doctor_id;
+      const isAdmin = userInfo.role === 'admin';
+
+      if (!isOwner && !isAssignedDoctor && !isAdmin) {
+        throw new BadRequestError('Access denied', '4003');
+      }
+
+      // Get treatment plan for this incident
+      const treatmentPlan = await userRepo.getTreatmentPlanByIncidentId(incidentId);
+      
+      if (!treatmentPlan) {
+        return null; // No treatment plan exists yet
+      }
+
+      info('Treatment plan retrieved:', { 
+        incident_id: incidentId,
+        treatment_plan_id: treatmentPlan.id
+      });
+
+      return IncidentService.formatTreatmentPlanResponse(treatmentPlan);
+
+    } catch (error) {
+      logError('Get treatment plan service error:', error);
+      if (error instanceof BadRequestError || error instanceof NotFoundError) {
+        throw error;
+      }
+      throw new InternalServerError('Failed to retrieve treatment plan', '5020');
+    }
+  }
+
+  /**
+   * Update treatment plan
+   * @param {number} treatmentPlanId - Treatment plan ID
+   * @param {Object} updateData - Update data
+   * @param {number} userId - User ID (for authorization)
+   * @returns {Object} Updated treatment plan
+   */
+  static async updateTreatmentPlan(treatmentPlanId, updateData, userId) {
+    try {
+      const userRepo = getUserRepository();
+      
+      const treatmentPlan = await userRepo.getTreatmentPlanById(treatmentPlanId);
+      if (!treatmentPlan) {
+        throw new NotFoundError('Treatment plan not found', '4042');
+      }
+
+      // Get user role and doctor info
+      const userQuery = `
+        SELECT u.role, d.id as doctor_id 
+        FROM users u 
+        LEFT JOIN doctors d ON u.id = d.user_id 
+        WHERE u.id = $1
+      `;
+      const userResult = await userRepo.query(userQuery, [userId]);
+      const userInfo = userResult.rows[0];
+
+      // Only assigned doctor or admin can update
+      const isAssignedDoctor = userInfo.role === 'doctor' && treatmentPlan.doctor_id === userInfo.doctor_id;
+      const isAdmin = userInfo.role === 'admin';
+
+      if (!isAssignedDoctor && !isAdmin) {
+        throw new BadRequestError('Access denied. Only the assigned doctor or admin can update this treatment plan', '4003');
+      }
+
+      const updatedTreatmentPlan = await userRepo.updateTreatmentPlan(treatmentPlanId, updateData);
+
+      info('Treatment plan updated:', { 
+        treatment_plan_id: treatmentPlanId,
+        updated_by: userId
+      });
+
+      return IncidentService.formatTreatmentPlanResponse(updatedTreatmentPlan);
+
+    } catch (error) {
+      logError('Update treatment plan service error:', error);
+      if (error instanceof BadRequestError || error instanceof NotFoundError) {
+        throw error;
+      }
+      throw new InternalServerError('Failed to update treatment plan', '5021');
+    }
+  }
+
+  /**
+   * Format treatment plan response
+   * @param {Object} treatmentPlan - Raw treatment plan data
+   * @returns {Object} Formatted treatment plan
+   */
+  static formatTreatmentPlanResponse(treatmentPlan) {
+    if (!treatmentPlan) return null;
+
+    return {
+      id: treatmentPlan.id,
+      incident_id: treatmentPlan.incident_id,
+      patient_id: treatmentPlan.patient_id,
+      doctor_id: treatmentPlan.doctor_id,
+      diagnosis: treatmentPlan.diagnosis,
+      treatment_goals: treatmentPlan.treatment_goals,
+      additional_notes: treatmentPlan.additional_notes,
+      status: treatmentPlan.status,
+      treatment_phases: treatmentPlan.phases || [],
+      patient_name: treatmentPlan.patient_first_name && treatmentPlan.patient_last_name 
+        ? `${treatmentPlan.patient_first_name} ${treatmentPlan.patient_last_name}`.trim()
+        : null,
+      doctor_name: treatmentPlan.doctor_first_name && treatmentPlan.doctor_last_name
+        ? `${treatmentPlan.doctor_first_name} ${treatmentPlan.doctor_last_name}`.trim()
+        : null,
+      created_at: treatmentPlan.created_at,
+      updated_at: treatmentPlan.updated_at
+    };
+  }
+
   /**
    * Format incident response
    * @param {Object} incident - Raw incident data
@@ -361,6 +729,7 @@ class IncidentService {
       id: incident.id,
       user_id: incident.user_id,
       patient_id: incident.patient_id,
+      doctor_id: incident.doctor_id,
       incident_type: incident.incident_type,
       title: incident.title,
       description: incident.description,
@@ -369,6 +738,9 @@ class IncidentService {
       completion_percentage: 0,
       patient_name: incident.patient_first_name && incident.patient_last_name 
         ? `${incident.patient_first_name} ${incident.patient_last_name}`.trim()
+        : null,
+      doctor_name: incident.doctor_first_name && incident.doctor_last_name
+        ? `${incident.doctor_first_name} ${incident.doctor_last_name}`.trim()
         : null,
       total_forms: incident.total_forms || 0,
       completed_forms: incident.completed_forms || 0,

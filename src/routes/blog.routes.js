@@ -12,7 +12,7 @@ const router = express.Router();
 const optionalAuth = (req, res, next) => {
   // Check if Authorization header is present
   const authHeader = req.headers.authorization;
-  
+
   if (authHeader && authHeader.startsWith('Bearer ')) {
     // If token is present, try to authenticate
     authenticate(req, res, (err) => {
@@ -37,11 +37,11 @@ const optionalAuth = (req, res, next) => {
  * - Great for attracting visitors to the clinic
  * 
  * 🔒 AUTHENTICATED ACCESS - Optional authentication
- * - Admin/Doctor/Staff see ALL posts (draft + published)
+ * - Admin/Doctor see ALL posts (draft + published)
  * - Perfect for content management and preview
  * 
  * 🛡️ PROTECTED ROUTES - Authentication required
- * - Only admin, doctor, staff can manage blog posts
+ * - Only admin, doctor can manage blog posts
  */
 
 // ===============================================
@@ -54,12 +54,12 @@ const optionalAuth = (req, res, next) => {
  * 
  * Access Control:
  * - 🌍 Public (no auth): Only published posts
- * - 🔒 Admin/Doctor/Staff: All posts (draft + published)
+ * - 🔒 Admin/Doctor: All posts (draft + published)
  * 
  * Perfect for:
  * - Clinic website visitors browsing health articles
  * - SEO and attracting new patients
- * - Staff previewing draft content
+ * - 
  */
 router.get('/posts', optionalAuth, asyncHandler(BlogController.getAllPosts));
 
@@ -93,11 +93,11 @@ router.get('/categories', asyncHandler(BlogController.getCategories));
  * Create new blog post (PROTECTED)
  * POST /blog/posts
  * Body: { title, content, excerpt, category, tags, is_published, featured_image, meta_description, slug }
- * Auth: admin, doctor, staff only
+ * Auth: admin, doctor only
  */
-router.post('/posts', 
+router.post('/posts',
   authenticate,
-  authorize(['admin', 'doctor', 'staff']),
+  authorize(['admin', 'doctor']),
   asyncHandler(BlogController.createPost)
 );
 
@@ -105,22 +105,22 @@ router.post('/posts',
  * Update existing blog post (PROTECTED)
  * PUT /blog/posts/:id
  * Body: { title, content, excerpt, category, tags, is_published, featured_image, meta_description }
- * Auth: admin, doctor, staff only
+ * Auth: admin, doctor only
  */
-router.put('/posts/:id', 
+router.put('/posts/:id',
   authenticate,
-  authorize(['admin', 'doctor', 'staff']),
+  authorize(['admin', 'doctor']),
   asyncHandler(BlogController.updatePost)
 );
 
 /**
  * Delete blog post (PROTECTED)
  * DELETE /blog/posts/:id
- * Auth: admin, doctor, staff only
+ * Auth: admin, doctor only
  */
-router.delete('/posts/:id', 
+router.delete('/posts/:id',
   authenticate,
-  authorize(['admin', 'doctor', 'staff']),
+  authorize(['admin', 'doctor']),
   asyncHandler(BlogController.deletePost)
 );
 

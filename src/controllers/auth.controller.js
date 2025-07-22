@@ -13,7 +13,7 @@ const AuthService = require('../services/AuthService');
  */
 class AuthController {
   /**
-   * Register a new user (doctors/staff)
+   * Register a new user (doctors)
    * POST /api/auth/register
    */
   static async register(req, res) {
@@ -35,7 +35,7 @@ class AuthController {
    */
   static async registerPatient(req, res) {
     try {
-      auth.info(' Patient registration request received:', { 
+      auth.info(' Patient registration request received:', {
         email: req.body?.email,
         first_name: req.body?.first_name,
         last_name: req.body?.last_name
@@ -43,7 +43,7 @@ class AuthController {
 
       const result = await AuthService.registerPatient(req.body, req);
 
-      auth.info(' Patient registration successful:', { 
+      auth.info(' Patient registration successful:', {
         user_id: result.data.user.id,
         patient_id: result.data.patient.id,
         email: result.data.user.email,
@@ -179,20 +179,20 @@ class AuthController {
   }
 
   /**
-   * Register a new user (doctors/staff)
+   * Register a new user (doctors)
    * POST /api/auth/register
    */
   static async registerUser(req, res) {
     try {
-      auth.info(' Registration request received:', { 
-        email: req.body?.email, 
+      auth.info(' Registration request received:', {
+        email: req.body?.email,
         role: req.body?.role || 'patient'
       });
 
       // Request has already been validated by validation middleware
       const result = await AuthService.registerUser(req.body, req);
 
-      auth.info(' Registration successful:', { 
+      auth.info(' Registration successful:', {
         user_id: result.user.id,
         role: result.user.role,
         email: result.user.email
@@ -208,11 +208,11 @@ class AuthController {
 
     } catch (error) {
       auth.error('Registration controller error:', error);
-      
+
       if (error instanceof ErrorResponse) {
         return error.send(res);
       }
-      
+
       const errorResponse = new ErrorResponse(
         'Registration failed',
         500,
@@ -235,11 +235,11 @@ class AuthController {
 
     } catch (error) {
       auth.error('Verify account controller error:', error);
-      
+
       if (error instanceof ErrorResponse) {
         return error.send(res);
       }
-      
+
       const errorResponse = new ErrorResponse('Account verification failed', 500, '5000');
       errorResponse.send(res);
     }
@@ -259,11 +259,11 @@ class AuthController {
 
     } catch (error) {
       auth.error('Get all users controller error:', error);
-      
+
       if (error instanceof ErrorResponse) {
         return error.send(res);
       }
-      
+
       const errorResponse = new ErrorResponse('Failed to get users', 500, '5000');
       errorResponse.send(res);
     }
@@ -276,7 +276,7 @@ class AuthController {
   static async verifyEmail(req, res) {
     try {
       const { token } = req.body;
-      
+
       if (!token) {
         throw new ErrorResponse('Verification token is required', 400, '4001');
       }
@@ -288,11 +288,11 @@ class AuthController {
 
     } catch (error) {
       auth.error('Verify email controller error:', error);
-      
+
       if (error instanceof ErrorResponse) {
         return error.send(res);
       }
-      
+
       const errorResponse = new ErrorResponse('Email verification failed', 500, '5000');
       errorResponse.send(res);
     }
@@ -312,7 +312,7 @@ class AuthController {
         message: 'Registration endpoint is working',
         required_fields: ['first_name', 'last_name', 'email', 'password', 'confirm_password', 'phone_number'],
         optional_fields: ['role', 'specialization', 'license_number'],
-        roles: ['patient', 'doctor', 'staff', 'admin']
+        roles: ['patient', 'doctor', 'admin']
       };
 
       const response = new SuccessResponse(
@@ -334,13 +334,13 @@ class AuthController {
    */
   static handleError(error, res) {
     const { BadRequestError, UnauthorizedError, NotFoundError, ConflictError, InternalServerError } = require('../utils/httpResponses');
-const { api, error: logError, info, debug } = require('../utils/logger');
-    
-    if (error instanceof BadRequestError || 
-        error instanceof UnauthorizedError || 
-        error instanceof NotFoundError || 
-        error instanceof ConflictError || 
-        error instanceof InternalServerError) {
+    const { api, error: logError, info, debug } = require('../utils/logger');
+
+    if (error instanceof BadRequestError ||
+      error instanceof UnauthorizedError ||
+      error instanceof NotFoundError ||
+      error instanceof ConflictError ||
+      error instanceof InternalServerError) {
       return error.send(res);
     } else if (error instanceof ErrorResponse) {
       return error.send(res);

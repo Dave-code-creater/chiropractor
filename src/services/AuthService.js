@@ -59,7 +59,7 @@ class AuthService {
 
         // Create corresponding profile
         let profile = null;
-        if (role === 'patient' || role === 'staff') {
+        if (role === 'patient') {
           profile = await patientRepo.createPatient({
             user_id: user.id,
             first_name,
@@ -168,7 +168,7 @@ class AuthService {
       const token = AuthService.generateToken(user, userWithProfile, expiresIn);
 
       // Store API key
-      const expirationTime = rememberMe 
+      const expirationTime = rememberMe
         ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days
         : new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
@@ -288,7 +288,7 @@ class AuthService {
   static async logoutUser(userId, token) {
     try {
       const apiKeyRepo = getApiKeyRepository();
-      
+
       // Deactivate the specific token
       await apiKeyRepo.revokeRefreshToken(userId, token);
       auth.info(' Logout successful for user:', userId);
@@ -307,7 +307,7 @@ class AuthService {
   static async logoutFromAllDevices(userId) {
     try {
       const apiKeyRepo = getApiKeyRepository();
-      
+
       await apiKeyRepo.revokeAllUserTokens(userId);
       auth.info(' Logout from all devices successful for user:', userId);
       return true;
@@ -325,7 +325,7 @@ class AuthService {
   static async getUserProfile(userId) {
     try {
       const userRepo = getUserRepository();
-      
+
       const userProfile = await userRepo.getUserWithProfile(userId);
       if (!userProfile) {
         throw new NotFoundError('User not found', '4041');
@@ -349,7 +349,7 @@ class AuthService {
   static async verifyUserAccount(userId) {
     try {
       const userRepo = getUserRepository();
-      
+
       const user = await userRepo.activateUser(userId);
       if (!user) {
         throw new NotFoundError('User not found', '4042');
@@ -380,13 +380,13 @@ class AuthService {
       // 2. Find user by verification token
       // 3. Update user email verification status
       // 4. Invalidate the token
-      
+
       auth.info(' Email verification (placeholder):', { token: token ? 'provided' : 'missing' });
-      
+
       if (!token) {
         throw new BadRequestError('Verification token is required', '4001');
       }
-      
+
       return {
         verified: true,
         message: 'Email verified successfully (placeholder implementation)'
@@ -408,9 +408,9 @@ class AuthService {
   static async getAllUsers(options = {}) {
     try {
       const userRepo = getUserRepository();
-      
+
       const { page = 1, limit = 10, role, status } = options;
-      
+
       const conditions = {};
       if (role) conditions.role = role;
       if (status) conditions.status = status;
@@ -443,7 +443,7 @@ class AuthService {
     }
   }
 
- 
+
 
   /**
    * Generate JWT access token
@@ -471,7 +471,7 @@ class AuthService {
     return jwt.sign(
       tokenPayload,
       process.env.JWT_SECRET,
-      { 
+      {
         expiresIn,
         issuer: 'chiropractor-clinic',
         audience: 'clinic-users'
@@ -495,7 +495,7 @@ class AuthService {
     return jwt.sign(
       tokenPayload,
       process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET,
-      { 
+      {
         expiresIn,
         issuer: 'chiropractor-clinic',
         audience: 'clinic-users'
@@ -546,7 +546,7 @@ class AuthService {
         license_number: userWithProfile.license_number,
         type: 'doctor'
       };
-    } else if (userWithProfile.role === 'patient' || userWithProfile.role === 'staff') {
+    } else if (userWithProfile.role === 'patient') {
       return {
         id: userWithProfile.patient_id,
         first_name: userWithProfile.patient_first_name,
@@ -592,7 +592,7 @@ class AuthService {
           license_number: profile.license_number,
           type: 'doctor'
         };
-      } else if (user.role === 'patient' || user.role === 'staff') {
+      } else if (user.role === 'patient') {
         baseUser.profile = {
           id: profile.id,
           first_name: profile.first_name,
@@ -669,9 +669,9 @@ class AuthService {
           status: 'active'
         });
 
-        auth.info(' Patient profile created:', { 
-          id: patient.id, 
-          name: `${first_name} ${last_name}` 
+        auth.info(' Patient profile created:', {
+          id: patient.id,
+          name: `${first_name} ${last_name}`
         });
 
         // Generate token pair

@@ -42,7 +42,7 @@ class ChatRepository extends BaseRepository {
         LEFT JOIN patients p ON c.patient_id = p.id
         WHERE c.conversation_id = $1
       `;
-      
+
       const result = await this.query(query, [conversationId]);
       return result.rows[0] || null;
     } catch (error) {
@@ -60,10 +60,10 @@ class ChatRepository extends BaseRepository {
   async getUserConversations(user, options = {}) {
     try {
       const { limit = 20, offset = 0 } = options;
-      
+
       let query = '';
       let params = [];
-      
+
       if (user.role === 'doctor') {
         // Get conversations where user is the doctor
         query = `
@@ -91,7 +91,7 @@ class ChatRepository extends BaseRepository {
         `;
         params = [user.id, limit, offset];
       } else {
-        // Admin/staff can see all conversations
+        // Admin can see all conversations
         query = `
           SELECT c.*, 
                  d.first_name as doctor_first_name, d.last_name as doctor_last_name,
@@ -127,7 +127,7 @@ class ChatRepository extends BaseRepository {
         WHERE conversation_id = $2
         RETURNING *
       `;
-      
+
       const result = await this.query(query, [status, conversationId]);
       return result.rows[0] || null;
     } catch (error) {
@@ -145,7 +145,7 @@ class ChatRepository extends BaseRepository {
   async getConversationMessages(conversationId, options = {}) {
     try {
       const { limit = 50, offset = 0 } = options;
-      
+
       const query = `
         SELECT m.*, 
                CASE 
@@ -160,7 +160,7 @@ class ChatRepository extends BaseRepository {
         ORDER BY m.created_at ASC
         LIMIT $2 OFFSET $3
       `;
-      
+
       const result = await this.query(query, [conversationId, limit, offset]);
       return result.rows;
     } catch (error) {
@@ -359,17 +359,17 @@ class ChatRepository extends BaseRepository {
   async getAvailableUsersForChat(user, options = {}) {
     try {
       const { role_filter, limit = 20, search_term = '' } = options;
-      
+
       let query = '';
       let params = [];
-      
+
       // Build search condition for names/emails
-      const searchCondition = search_term ? 
-        `AND (LOWER(first_name) LIKE LOWER($${params.length + 2}) OR LOWER(last_name) LIKE LOWER($${params.length + 2}) OR LOWER(email) LIKE LOWER($${params.length + 2}))` : 
+      const searchCondition = search_term ?
+        `AND (LOWER(first_name) LIKE LOWER($${params.length + 2}) OR LOWER(last_name) LIKE LOWER($${params.length + 2}) OR LOWER(email) LIKE LOWER($${params.length + 2}))` :
         '';
-      
+
       if (user.role === 'doctor') {
-        // Doctors can chat with their patients and other staff
+        // Doctors can chat with their patients and admin
         query = `
           SELECT 
             'patient' as type,
@@ -389,14 +389,14 @@ class ChatRepository extends BaseRepository {
           ${searchCondition}
           UNION ALL
           SELECT 
-            'staff' as type,
+            'admin' as type,
             u.id,
             u.username as first_name,
             '' as last_name,
             u.email,
             u.phone_number as phone
           FROM users u
-          WHERE u.role IN ('staff', 'admin')
+          WHERE u.role IN ('admin')
           AND u.status = 'active'
           AND u.id != $1
           ${searchCondition.replace(`$${params.length + 2}`, `$${params.length + 2}`)}
@@ -405,7 +405,7 @@ class ChatRepository extends BaseRepository {
         `;
         params = search_term ? [user.id, limit, `%${search_term}%`] : [user.id, limit];
       } else if (user.role === 'patient') {
-        // Patients can chat with any doctor, staff, and admin
+        // Patients can chat with any doctor and admin
         query = `
           SELECT 
             'doctor' as type,
@@ -419,14 +419,14 @@ class ChatRepository extends BaseRepository {
           ${searchCondition.replace(`$${params.length + 2}`, '$2')}
           UNION ALL
           SELECT 
-            'staff' as type,
+            'admin' as type,
             u.id,
             u.username as first_name,
             '' as last_name,
             u.email,
             u.phone_number as phone
           FROM users u
-          WHERE u.role IN ('staff', 'admin')
+          WHERE u.role IN ('admin')
           AND u.status = 'active'
           ${searchCondition.replace(`$${params.length + 2}`, '$2')}
           ORDER BY type, first_name, last_name
@@ -434,7 +434,7 @@ class ChatRepository extends BaseRepository {
         `;
         params = search_term ? [limit, `%${search_term}%`] : [limit];
       } else {
-        // Admin/staff can chat with everyone
+        // Admin can chat with everyone
         query = `
           SELECT 
             'doctor' as type,
@@ -459,14 +459,14 @@ class ChatRepository extends BaseRepository {
           ${searchCondition.replace(`$${params.length + 2}`, '$3')}
           UNION ALL
           SELECT 
-            'staff' as type,
+            'admin' as type,
             u.id,
             u.username as first_name,
             '' as last_name,
             u.email,
             u.phone_number as phone
           FROM users u
-          WHERE u.role IN ('staff', 'admin')
+          WHERE u.role IN ('admin')
           AND u.status = 'active'
           AND u.id != $1
           ${searchCondition.replace(`$${params.length + 2}`, '$3')}
@@ -485,14 +485,14 @@ class ChatRepository extends BaseRepository {
   }
 
   /**
-   * Get all staff, admin, and doctors for chat selection
+   * Get all admin and doctors for chat selection
    * @param {Object} options - Query options
-   * @returns {Object} Staff, admin, and doctors
+   * @returns {Object} Admin and doctors
    */
-  async getAllStaffAdminDoctors(options = {}) {
+  async getAllAdminDoctors(options = {}) {
     try {
       const { limit = 100 } = options;
-      
+
       const query = `
         SELECT 
           'doctor' as type,
@@ -506,7 +506,7 @@ class ChatRepository extends BaseRepository {
         WHERE d.status = 'active'
         UNION ALL
         SELECT 
-          'staff' as type,
+          'admin' as type,
           u.id,
           u.username as first_name,
           '' as last_name,
@@ -514,39 +514,39 @@ class ChatRepository extends BaseRepository {
           u.phone_number as phone,
           u.role::text as specialization
         FROM users u
-        WHERE u.role IN ('staff', 'admin')
+        WHERE u.role = 'admin'
         AND u.status = 'active'
         ORDER BY type, first_name, last_name
         LIMIT $1
       `;
-      
+
       const result = await this.query(query, [limit]);
       return result.rows;
     } catch (error) {
-      api.error('Error getting all staff admin doctors:', error);
+      api.error('Error getting all admin doctors:', error);
       throw error;
     }
   }
 
   /**
    * Get users by specific role for chat selection
-   * @param {string} role - Role to filter by (doctor, staff, admin)
+   * @param {string} role - Role to filter by (doctor, admin)
    * @param {Object} options - Query options
    * @returns {Array} Users with the specified role
    */
   async getUsersByRole(role, options = {}) {
     try {
       const { limit = 100, search = '' } = options;
-      
+
       let query;
       let params;
-      
+
       // Build search condition - handle both 'search' and 'search_term' for compatibility
       const searchTerm = search || options.search_term || '';
-      const searchCondition = searchTerm ? 
-        `AND (LOWER(first_name) LIKE LOWER($2) OR LOWER(last_name) LIKE LOWER($2) OR LOWER(email) LIKE LOWER($2))` : 
+      const searchCondition = searchTerm ?
+        `AND (LOWER(first_name) LIKE LOWER($2) OR LOWER(last_name) LIKE LOWER($2) OR LOWER(email) LIKE LOWER($2))` :
         '';
-      
+
       if (role === 'doctor') {
         query = `
           SELECT 
@@ -566,8 +566,8 @@ class ChatRepository extends BaseRepository {
           LIMIT $1
         `;
         params = searchTerm ? [limit, `%${searchTerm}%`] : [limit];
-        
-      } else if (role === 'staff' || role === 'admin') {
+
+      } else if (role === 'admin') {
         query = `
           SELECT 
             u.id,
@@ -587,11 +587,11 @@ class ChatRepository extends BaseRepository {
           LIMIT $1
         `;
         params = searchTerm ? [limit, role, `%${searchTerm}%`] : [limit, role];
-        
+
       } else {
         throw new Error(`Invalid role: ${role}`);
       }
-      
+
       const result = await this.query(query, params);
       return result.rows;
     } catch (error) {
@@ -608,14 +608,14 @@ class ChatRepository extends BaseRepository {
   async getConversationsByConditions(conditions = {}) {
     try {
       const whereConditions = {};
-      
+
       if (conditions.doctor_id) whereConditions.doctor_id = conditions.doctor_id;
       if (conditions.patient_id) whereConditions.patient_id = conditions.patient_id;
       if (conditions.participant_type) whereConditions.participant_type = conditions.participant_type;
       if (conditions.status) whereConditions.status = conditions.status;
 
       const whereClause = this.buildWhereClause(whereConditions);
-      
+
       const query = `
         SELECT c.*, 
                d.first_name as doctor_first_name, d.last_name as doctor_last_name,
@@ -655,7 +655,7 @@ class ChatRepository extends BaseRepository {
         )
         LIMIT 1
       `;
-      
+
       const result = await this.query(query, [userId1, userId2]);
       return result.rows[0] || null;
     } catch (error) {
@@ -673,13 +673,13 @@ class ChatRepository extends BaseRepository {
     try {
       // Delete messages first
       await this.query('DELETE FROM messages WHERE conversation_id = $1', [conversationId]);
-      
+
       // Delete conversation
       const result = await this.query(
         'DELETE FROM conversations WHERE conversation_id = $1 RETURNING id',
         [conversationId]
       );
-      
+
       return result.rows.length > 0;
     } catch (error) {
       api.error('Error deleting conversation:', error);

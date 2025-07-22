@@ -17,7 +17,7 @@ const patientRegisterSchema = Joi.object({
       'string.empty': 'First name is required',
       'any.required': 'First name is required'
     }),
-  
+
   last_name: Joi.string()
     .min(2)
     .max(50)
@@ -28,7 +28,7 @@ const patientRegisterSchema = Joi.object({
       'string.empty': 'Last name is required',
       'any.required': 'Last name is required'
     }),
-  
+
   phone_number: Joi.string()
     .min(10)
     .max(20)
@@ -39,7 +39,7 @@ const patientRegisterSchema = Joi.object({
       'string.empty': 'Phone number is required',
       'any.required': 'Phone number is required'
     }),
-  
+
   email: Joi.string()
     .email({ tlds: { allow: false } })
     .lowercase()
@@ -49,7 +49,7 @@ const patientRegisterSchema = Joi.object({
       'string.empty': 'Email address is required',
       'any.required': 'Email address is required'
     }),
-  
+
   password: Joi.string()
     .min(8)
     .max(128)
@@ -61,7 +61,7 @@ const patientRegisterSchema = Joi.object({
       'string.empty': 'Password is required',
       'any.required': 'Password is required'
     }),
-  
+
   confirm_password: Joi.string()
     .valid(Joi.ref('password'))
     .required()
@@ -72,11 +72,11 @@ const patientRegisterSchema = Joi.object({
     })
 });
 
-// General registration schema (for doctors and staff)
+// General registration schema (for doctors)
 const registerSchema = Joi.object({
   email: Joi.string().email().required(),
   password: Joi.string().min(8).required(),
-  role: Joi.string().valid('patient', 'doctor', 'staff', 'admin').default('patient'),
+  role: Joi.string().valid('patient', 'doctor', 'admin').default('patient'),
   first_name: Joi.string().min(2).max(50).required(),
   last_name: Joi.string().min(2).max(50).required(),
   phone_number: Joi.string().min(10).max(20).optional(),
@@ -95,7 +95,7 @@ const loginSchema = Joi.object({
     .messages({
       'string.email': 'Please provide a valid email address'
     }),
-  
+
   password: Joi.string()
     .required()
     .messages({

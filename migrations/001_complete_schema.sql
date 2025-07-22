@@ -13,7 +13,7 @@
 
 -- User and demographic enums
 CREATE TYPE gender_enum AS ENUM ('male','female','other');
-CREATE TYPE role_enum AS ENUM ('patient','doctor','staff','admin');
+CREATE TYPE role_enum AS ENUM ('patient','doctor','admin');
 CREATE TYPE marriage_status AS ENUM ('Single','Married','Divorced','Widowed','Other');
 CREATE TYPE race AS ENUM ('White','Black','Asian','Hispanic','Caucasian','Other');
 CREATE TYPE insurance_type AS ENUM ('Private','Medicare','Medicaid','Self-pay','Other');
@@ -393,11 +393,14 @@ CREATE TABLE incidents (
   id SERIAL PRIMARY KEY,
   user_id INT REFERENCES users(id) ON DELETE CASCADE,
   patient_id INT REFERENCES patients(id) ON DELETE CASCADE,
+  doctor_id INT REFERENCES doctors(id) ON DELETE SET NULL,
   incident_type incident_type_enum NOT NULL,
   title TEXT NOT NULL,
   description TEXT,
   date_occurred DATE,
   status incident_status_enum DEFAULT 'active',
+  last_edited_by INT REFERENCES users(id) ON DELETE SET NULL,
+  last_edited_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -423,6 +426,38 @@ CREATE TABLE incident_notes (
   note_text TEXT NOT NULL,
   note_type TEXT DEFAULT 'general',
   created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Treatment plans (associated with incidents)
+CREATE TABLE treatment_plans (
+  id SERIAL PRIMARY KEY,
+  incident_id INT REFERENCES incidents(id) ON DELETE CASCADE,
+  patient_id INT REFERENCES patients(id) ON DELETE CASCADE,
+  doctor_id INT REFERENCES doctors(id) ON DELETE CASCADE,
+  diagnosis TEXT NOT NULL,
+  treatment_goals TEXT NOT NULL,
+  additional_notes TEXT,
+  status TEXT DEFAULT 'active' CHECK (status IN ('active', 'completed', 'paused', 'cancelled')),
+  created_by INT REFERENCES users(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Treatment phases (part of treatment plans)
+CREATE TABLE treatment_phases (
+  id SERIAL PRIMARY KEY,
+  treatment_plan_id INT REFERENCES treatment_plans(id) ON DELETE CASCADE,
+  phase_number INT NOT NULL,
+  duration INT NOT NULL,
+  duration_type TEXT NOT NULL CHECK (duration_type IN ('days', 'weeks', 'months')),
+  frequency INT NOT NULL,
+  frequency_type TEXT NOT NULL CHECK (frequency_type IN ('per_day', 'per_week', 'per_month')),
+  description TEXT,
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'active', 'completed', 'cancelled')),
+  start_date DATE,
+  end_date DATE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- ========================================
@@ -547,8 +582,17 @@ CREATE INDEX idx_messages_sender_id ON messages(sender_id);
 -- Incident indexes
 CREATE INDEX idx_incidents_user_id ON incidents(user_id);
 CREATE INDEX idx_incidents_patient_id ON incidents(patient_id);
+CREATE INDEX idx_incidents_doctor_id ON incidents(doctor_id);
 CREATE INDEX idx_incidents_type ON incidents(incident_type);
 CREATE INDEX idx_incidents_status ON incidents(status);
+
+-- Treatment plan indexes
+CREATE INDEX idx_treatment_plans_incident_id ON treatment_plans(incident_id);
+CREATE INDEX idx_treatment_plans_patient_id ON treatment_plans(patient_id);
+CREATE INDEX idx_treatment_plans_doctor_id ON treatment_plans(doctor_id);
+CREATE INDEX idx_treatment_plans_status ON treatment_plans(status);
+CREATE INDEX idx_treatment_phases_treatment_plan_id ON treatment_phases(treatment_plan_id);
+CREATE INDEX idx_treatment_phases_status ON treatment_phases(status);
 CREATE INDEX idx_incident_forms_incident_id ON incident_forms(incident_id);
 CREATE INDEX idx_incident_forms_type ON incident_forms(form_type);
 

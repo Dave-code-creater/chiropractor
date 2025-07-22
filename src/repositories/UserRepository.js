@@ -89,8 +89,8 @@ class UserRepository extends BaseRepository {
    * @returns {Object|null} Updated user record
    */
   async updateLastLogin(userId) {
-    return await this.updateById(userId, { 
-      last_login_at: new Date() 
+    return await this.updateById(userId, {
+      last_login_at: new Date()
     });
   }
 
@@ -113,7 +113,7 @@ class UserRepository extends BaseRepository {
   async updatePassword(userId, newPassword) {
     const saltRounds = parseInt(process.env.BCRYPT_ROUNDS) || 12;
     const password_hash = await bcrypt.hash(newPassword, saltRounds);
-    
+
     return await this.updateById(userId, { password_hash });
   }
 
@@ -133,9 +133,9 @@ class UserRepository extends BaseRepository {
    * @returns {Object|null} Updated user record
    */
   async activateUser(userId) {
-    return await this.updateById(userId, { 
+    return await this.updateById(userId, {
       status: 'active',
-      is_verified: true 
+      is_verified: true
     });
   }
 
@@ -196,11 +196,11 @@ class UserRepository extends BaseRepository {
         d.id as doctor_id, d.first_name as doctor_first_name, d.last_name as doctor_last_name,
         d.specialization
       FROM users u
-      LEFT JOIN patients p ON u.id = p.user_id AND u.role IN ('patient', 'staff')
+      LEFT JOIN patients p ON u.id = p.user_id AND u.role = 'patient'
       LEFT JOIN doctors d ON u.id = d.user_id AND u.role = 'doctor'
       WHERE u.id = $1
     `;
-    
+
     const result = await this.query(query, [userId]);
     return result.rows[0] || null;
   }
@@ -222,7 +222,7 @@ class UserRepository extends BaseRepository {
       LEFT JOIN doctors d ON u.id = d.user_id
       WHERE u.status = $1
     `;
-    
+
     const values = [options.status || 'active'];
     let paramCount = 2;
 
@@ -280,12 +280,12 @@ class UserRepository extends BaseRepository {
         COUNT(CASE WHEN status = 'inactive' THEN 1 END) as inactive_users,
         COUNT(CASE WHEN role = 'patient' THEN 1 END) as patients,
         COUNT(CASE WHEN role = 'doctor' THEN 1 END) as doctors,
-        COUNT(CASE WHEN role = 'staff' THEN 1 END) as staff,
+        COUNT(CASE WHEN role = 'admin' THEN 1 END) as admin,
         COUNT(CASE WHEN is_verified = true THEN 1 END) as verified_users,
         COUNT(CASE WHEN phone_verified = true THEN 1 END) as phone_verified_users
       FROM ${this.tableName}
     `;
-    
+
     const result = await this.query(query);
     return result.rows[0];
   }
@@ -320,7 +320,7 @@ class UserRepository extends BaseRepository {
       AND a.status NOT IN ('cancelled', 'no-show')
       ORDER BY a.appointment_time
     `;
-    
+
     const result = await this.query(query, [doctorId, date]);
     return result.rows;
   }
@@ -339,7 +339,7 @@ class UserRepository extends BaseRepository {
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW())
       RETURNING *
     `;
-    
+
     const values = [
       appointmentData.doctor_id,
       appointmentData.patient_id,
@@ -351,7 +351,7 @@ class UserRepository extends BaseRepository {
       appointmentData.status || 'scheduled',
       appointmentData.created_by
     ];
-    
+
     const result = await this.query(query, values);
     return result.rows[0];
   }
@@ -377,7 +377,7 @@ class UserRepository extends BaseRepository {
       LEFT JOIN doctors d ON a.doctor_id = d.id
       WHERE a.id = $1
     `;
-    
+
     const result = await this.query(query, [appointmentId]);
     return result.rows[0] || null;
   }
@@ -435,7 +435,7 @@ class UserRepository extends BaseRepository {
       AND appointment_time = $3
       AND status NOT IN ('cancelled', 'no-show')
     `;
-    
+
     const values = [
       doctorId,
       appointmentDateTime.toISOString().split('T')[0], // Date part
@@ -475,15 +475,15 @@ class UserRepository extends BaseRepository {
       LEFT JOIN doctors d ON a.doctor_id = d.id
       WHERE 1=1
     `;
-    
+
     const values = [];
     let paramCount = 1;
 
     // Add conditions (excluding patient-related fields which we handle specially)
     Object.keys(conditions).forEach(key => {
-      if (conditions[key] !== undefined && 
-          key !== 'date_range' && 
-          key !== 'patient_id') {
+      if (conditions[key] !== undefined &&
+        key !== 'date_range' &&
+        key !== 'patient_id') {
         query += ` AND a.${key} = $${paramCount}`;
         values.push(conditions[key]);
         paramCount++;
@@ -538,15 +538,15 @@ class UserRepository extends BaseRepository {
       FROM appointments a
       WHERE 1=1
     `;
-    
+
     const values = [];
     let paramCount = 1;
 
     // Add conditions (excluding patient-related fields which we handle specially)
     Object.keys(conditions).forEach(key => {
-      if (conditions[key] !== undefined && 
-          key !== 'date_range' && 
-          key !== 'patient_id') {
+      if (conditions[key] !== undefined &&
+        key !== 'date_range' &&
+        key !== 'patient_id') {
         query += ` AND a.${key} = $${paramCount}`;
         values.push(conditions[key]);
         paramCount++;
@@ -597,7 +597,7 @@ class UserRepository extends BaseRepository {
       ORDER BY c.created_at DESC
       LIMIT 1
     `;
-    
+
     const result = await this.query(query, [patientUserId, doctorUserId]);
     return result.rows[0] || null;
   }
@@ -614,7 +614,7 @@ class UserRepository extends BaseRepository {
       ) VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING *
     `;
-    
+
     const values = [
       conversationData.conversation_id,
       conversationData.patient_id,
@@ -624,7 +624,7 @@ class UserRepository extends BaseRepository {
       conversationData.participant_type || 'patient-doctor',
       conversationData.status || 'active'
     ];
-    
+
     const result = await this.query(query, values);
     return result.rows[0];
   }
@@ -647,7 +647,7 @@ class UserRepository extends BaseRepository {
       LEFT JOIN doctors d ON c.doctor_id = d.id
       WHERE c.conversation_id = $1
     `;
-    
+
     const result = await this.query(query, [conversationId]);
     return result.rows[0] || null;
   }
@@ -665,7 +665,7 @@ class UserRepository extends BaseRepository {
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
       RETURNING *
     `;
-    
+
     const values = [
       messageData.conversation_id,
       messageData.sender_id,
@@ -675,7 +675,7 @@ class UserRepository extends BaseRepository {
       messageData.attachment_url,
       messageData.attachment_type
     ];
-    
+
     const result = await this.query(query, values);
     return result.rows[0];
   }
@@ -691,7 +691,7 @@ class UserRepository extends BaseRepository {
       SET last_message_at = NOW(), updated_at = NOW()
       WHERE conversation_id = $1
     `;
-    
+
     await this.query(query, [conversationId]);
   }
 
@@ -702,7 +702,7 @@ class UserRepository extends BaseRepository {
    */
   async findConversationMessages(params) {
     const { conversation_id, limit, offset } = params;
-    
+
     const messagesQuery = `
       SELECT 
         m.*,
@@ -717,16 +717,16 @@ class UserRepository extends BaseRepository {
       ORDER BY m.sent_at DESC
       LIMIT $2 OFFSET $3
     `;
-    
+
     const countQuery = `
       SELECT COUNT(*) as total FROM messages WHERE conversation_id = $1
     `;
-    
+
     const [messagesResult, countResult] = await Promise.all([
       this.query(messagesQuery, [conversation_id, limit, offset]),
       this.query(countQuery, [conversation_id])
     ]);
-    
+
     return {
       messages: messagesResult.rows,
       total: parseInt(countResult.rows[0].total)
@@ -745,7 +745,7 @@ class UserRepository extends BaseRepository {
       SET is_read = true, updated_at = NOW()
       WHERE conversation_id = $1 AND sender_id != $2 AND is_read = false
     `;
-    
+
     await this.query(query, [conversationId, userId]);
   }
 
@@ -756,11 +756,11 @@ class UserRepository extends BaseRepository {
    */
   async findUserConversations(params) {
     const { user_id, user_role, status, conversation_type, limit, offset } = params;
-    
+
     let whereConditions = ['c.status = $1'];
     let queryParams = [status];
     let paramIndex = 2;
-    
+
     // Role-based filtering - need to map user_id to patient_id/doctor_id
     if (user_role === 'patient') {
       whereConditions.push(`p.user_id = $${paramIndex}`);
@@ -772,26 +772,26 @@ class UserRepository extends BaseRepository {
       paramIndex++;
     }
     // admin and staff can see all conversations
-    
+
     if (conversation_type) {
       whereConditions.push(`c.participant_type = $${paramIndex}`);
       queryParams.push(conversation_type);
       paramIndex++;
     }
-    
+
     // Store the count of parameters for the WHERE clause (for count query)
     const whereParamsCount = queryParams.length;
-    
+
     // Add user_id for unread count subquery
     const unreadCountParam = paramIndex;
     queryParams.push(user_id);
     paramIndex++;
-    
+
     // Add limit and offset
     const limitParam = paramIndex;
     const offsetParam = paramIndex + 1;
     queryParams.push(limit, offset);
-    
+
     const conversationsQuery = `
       SELECT 
         c.*,
@@ -808,7 +808,7 @@ class UserRepository extends BaseRepository {
       ORDER BY c.last_message_at DESC, c.updated_at DESC
       LIMIT $${limitParam} OFFSET $${offsetParam}
     `;
-    
+
     const countQuery = `
       SELECT COUNT(*) as total
       FROM conversations c
@@ -816,15 +816,15 @@ class UserRepository extends BaseRepository {
       LEFT JOIN doctors d ON c.doctor_id = d.id
       WHERE ${whereConditions.join(' AND ')}
     `;
-    
+
     // Use only the parameters needed for WHERE clause in count query
     const countQueryParams = queryParams.slice(0, whereParamsCount);
-    
+
     const [conversationsResult, countResult] = await Promise.all([
       this.query(conversationsQuery, queryParams),
       this.query(countQuery, countQueryParams)
     ]);
-    
+
     return {
       conversations: conversationsResult.rows,
       total: parseInt(countResult.rows[0].total)
@@ -878,7 +878,7 @@ class UserRepository extends BaseRepository {
   async isUserParticipantByUserId(userId, conversationId, userRole, profileId = null) {
     // Debug: Log the parameters
     console.log('isUserParticipantByUserId called with:', { userId, conversationId, userRole, profileId });
-    
+
     // Check if user has sent messages in this conversation (most reliable way)
     const messageQuery = `
       SELECT 1 FROM messages WHERE conversation_id = $1 AND sender_id = $2 LIMIT 1
@@ -888,7 +888,7 @@ class UserRepository extends BaseRepository {
       console.log('User has sent messages in this conversation, allowing access');
       return true;
     }
-    
+
     // Use profile_id from JWT if available (most efficient)
     if (profileId) {
       if (userRole === 'patient') {
@@ -911,7 +911,7 @@ class UserRepository extends BaseRepository {
         }
       }
     }
-    
+
     // Check if user is a participant based on patient_id/doctor_id (primary method)
     if (userRole === 'patient') {
       const query = `
@@ -939,7 +939,7 @@ class UserRepository extends BaseRepository {
       // Admin and staff can access all conversations
       return true;
     }
-    
+
     // Check if user can see this conversation in their conversation list (fallback)
     const userConversationQuery = `
       SELECT 1 FROM conversations c
@@ -956,7 +956,7 @@ class UserRepository extends BaseRepository {
       console.log('User can see this conversation in their list, allowing access');
       return true;
     }
-    
+
     return false;
   }
 
@@ -1000,7 +1000,7 @@ class UserRepository extends BaseRepository {
       FROM reports r
       ${whereClause}
     `;
-    
+
     const countResult = await this.query(countQuery, queryParams);
     const total = parseInt(countResult.rows[0].total);
 
@@ -1090,7 +1090,7 @@ class UserRepository extends BaseRepository {
       FROM reports r
       ${whereClause}
     `;
-    
+
     const countResult = await this.query(countQuery, queryParams);
     const total = parseInt(countResult.rows[0].total);
 
@@ -1139,7 +1139,7 @@ class UserRepository extends BaseRepository {
       LEFT JOIN doctors d ON r.doctor_id = d.id
       WHERE r.id = $1
     `;
-    
+
     const result = await this.query(query, [reportId]);
     return result.rows[0] || null;
   }
@@ -1156,7 +1156,7 @@ class UserRepository extends BaseRepository {
       ) VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
       RETURNING *
     `;
-    
+
     const values = [
       reportData.patient_id,
       reportData.doctor_id,
@@ -1164,7 +1164,7 @@ class UserRepository extends BaseRepository {
       reportData.report_type,
       reportData.report_data
     ];
-    
+
     const result = await this.query(query, values);
     return result.rows[0];
   }
@@ -1182,7 +1182,7 @@ class UserRepository extends BaseRepository {
       WHERE id = $1
       RETURNING *
     `;
-    
+
     const result = await this.query(query, [reportId, updateData.report_data]);
     return result.rows[0] || null;
   }
@@ -1197,23 +1197,34 @@ class UserRepository extends BaseRepository {
    * @returns {Object} Created incident
    */
   async createIncident(incidentData) {
+    // Get the first active doctor from the database
+    const doctorQuery = `
+      SELECT id FROM doctors 
+      WHERE status = 'active' 
+      ORDER BY id ASC 
+      LIMIT 1
+    `;
+    const doctorResult = await this.query(doctorQuery);
+    const defaultDoctorId = doctorResult.rows[0]?.id;
+
     const query = `
       INSERT INTO incidents (
-        user_id, patient_id, incident_type, title, description, date_occurred, status, created_at, updated_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
+        user_id, patient_id, doctor_id, incident_type, title, description, date_occurred, status, created_at, updated_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
       RETURNING *
     `;
-    
+
     const values = [
       incidentData.user_id,
       incidentData.patient_id,
+      defaultDoctorId, // Hardcode the first active doctor
       incidentData.incident_type,
       incidentData.title,
       incidentData.description,
       incidentData.incident_date || incidentData.date_occurred,
       incidentData.status || 'active'
     ];
-    
+
     const result = await this.query(query, values);
     return result.rows[0];
   }
@@ -1226,9 +1237,101 @@ class UserRepository extends BaseRepository {
    */
   async getUserIncidents(userId, options = {}) {
     const { status, incident_type, limit = 50, offset = 0 } = options;
-    
-    let whereConditions = ['i.user_id = $1'];
-    let queryParams = [userId];
+
+    let whereConditions = [];
+    let queryParams = [];
+    let paramIndex = 1;
+
+    // Check if user is a doctor
+    const doctorQuery = `SELECT id FROM doctors WHERE user_id = $1 AND status = 'active'`;
+    const doctorResult = await this.query(doctorQuery, [userId]);
+    const isDoctor = doctorResult.rows.length > 0;
+    const doctorId = doctorResult.rows[0]?.id;
+
+    if (isDoctor) {
+      // If user is a doctor, show incidents assigned to them
+      whereConditions.push(`i.doctor_id = $${paramIndex}`);
+      queryParams.push(doctorId);
+      paramIndex++;
+    } else {
+      // If user is not a doctor, show only their own incidents
+      whereConditions.push(`i.user_id = $${paramIndex}`);
+      queryParams.push(userId);
+      paramIndex++;
+    }
+
+    if (status) {
+      whereConditions.push(`i.status = $${paramIndex}`);
+      queryParams.push(status);
+      paramIndex++;
+    }
+
+    if (incident_type) {
+      whereConditions.push(`i.incident_type = $${paramIndex}`);
+      queryParams.push(incident_type);
+      paramIndex++;
+    }
+
+    const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+
+    const query = `
+      SELECT 
+        i.*,
+        p.first_name as patient_first_name,
+        p.last_name as patient_last_name,
+        d.first_name as doctor_first_name,
+        d.last_name as doctor_last_name,
+        COUNT(if.id) as total_forms,
+        COUNT(CASE WHEN if.is_completed = true THEN 1 END) as completed_forms
+      FROM incidents i
+      LEFT JOIN patients p ON i.patient_id = p.id
+      LEFT JOIN doctors d ON i.doctor_id = d.id
+      LEFT JOIN incident_forms if ON i.id = if.incident_id
+      ${whereClause}
+      GROUP BY i.id, p.first_name, p.last_name, d.first_name, d.last_name
+      ORDER BY i.created_at DESC
+      LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+    `;
+
+    queryParams.push(limit, offset);
+    const result = await this.query(query, queryParams);
+    return result.rows;
+  }
+
+  /**
+   * Get incident by ID
+   * @param {number} incidentId - Incident ID
+   * @returns {Object|null} Incident with forms and notes
+   */
+  async getIncidentById(incidentId) {
+    const query = `
+      SELECT 
+        i.*,
+        p.first_name as patient_first_name,
+        p.last_name as patient_last_name,
+        d.first_name as doctor_first_name,
+        d.last_name as doctor_last_name
+      FROM incidents i
+      LEFT JOIN patients p ON i.patient_id = p.id
+      LEFT JOIN doctors d ON i.doctor_id = d.id
+      WHERE i.id = $1
+    `;
+
+    const result = await this.query(query, [incidentId]);
+    return result.rows[0] || null;
+  }
+
+  /**
+   * Get incidents by patient ID
+   * @param {number} patientId - Patient ID
+   * @param {Object} options - Query options
+   * @returns {Array} Patient incidents
+   */
+  async getIncidentsByPatientId(patientId, options = {}) {
+    const { status, incident_type, limit = 50, offset = 0 } = options;
+
+    let whereConditions = ['i.patient_id = $1'];
+    let queryParams = [patientId];
     let paramIndex = 2;
 
     if (status) {
@@ -1250,13 +1353,16 @@ class UserRepository extends BaseRepository {
         i.*,
         p.first_name as patient_first_name,
         p.last_name as patient_last_name,
+        d.first_name as doctor_first_name,
+        d.last_name as doctor_last_name,
         COUNT(if.id) as total_forms,
         COUNT(CASE WHEN if.is_completed = true THEN 1 END) as completed_forms
       FROM incidents i
       LEFT JOIN patients p ON i.patient_id = p.id
+      LEFT JOIN doctors d ON i.doctor_id = d.id
       LEFT JOIN incident_forms if ON i.id = if.incident_id
       ${whereClause}
-      GROUP BY i.id, p.first_name, p.last_name
+      GROUP BY i.id, p.first_name, p.last_name, d.first_name, d.last_name
       ORDER BY i.created_at DESC
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `;
@@ -1267,23 +1373,50 @@ class UserRepository extends BaseRepository {
   }
 
   /**
-   * Get incident by ID
-   * @param {number} incidentId - Incident ID
-   * @returns {Object|null} Incident with forms and notes
+   * Get doctor's patients with incident counts
+   * @param {number} doctorId - Doctor ID
+   * @param {Object} options - Query options
+   * @returns {Array} Doctor's patients
    */
-  async getIncidentById(incidentId) {
+  async getDoctorPatients(doctorId, options = {}) {
+    const { limit = 50, offset = 0 } = options;
+
     const query = `
+      WITH doctor_patients AS (
+        SELECT DISTINCT p.id
+        FROM patients p
+        INNER JOIN incidents i ON p.id = i.patient_id
+        WHERE i.doctor_id = $1
+      )
       SELECT 
-        i.*,
-        p.first_name as patient_first_name,
-        p.last_name as patient_last_name
-      FROM incidents i
-      LEFT JOIN patients p ON i.patient_id = p.id
-      WHERE i.id = $1
+        p.id as patient_id,
+        p.user_id,
+        p.first_name,
+        p.last_name,
+        p.email,
+        p.phone,
+        p.status,
+        p.created_at as patient_created_at,
+        COUNT(i.id) as total_incidents,
+        COUNT(CASE WHEN i.status = 'active' THEN 1 END) as active_incidents,
+        MAX(i.created_at) as last_incident_date,
+        json_agg(json_build_object(
+          'id', i.id,
+          'title', i.title,
+          'incident_type', i.incident_type,
+          'status', i.status,
+          'created_at', i.created_at
+        ) ORDER BY i.created_at DESC) as recent_incidents
+      FROM doctor_patients dp
+      INNER JOIN patients p ON p.id = dp.id
+      LEFT JOIN incidents i ON p.id = i.patient_id AND i.doctor_id = $1
+      GROUP BY p.id, p.user_id, p.first_name, p.last_name, p.email, p.phone, p.status, p.created_at
+      ORDER BY MAX(i.created_at) DESC NULLS LAST
+      LIMIT $2 OFFSET $3
     `;
-    
-    const result = await this.query(query, [incidentId]);
-    return result.rows[0] || null;
+
+    const result = await this.query(query, [doctorId, limit, offset]);
+    return result.rows;
   }
 
   /**
@@ -1329,8 +1462,8 @@ class UserRepository extends BaseRepository {
   async createOrUpdateIncidentForm(formData) {
     try {
       // Ensure form_data is properly serialized for JSONB
-      const serializedFormData = typeof formData.form_data === 'string' 
-        ? formData.form_data 
+      const serializedFormData = typeof formData.form_data === 'string'
+        ? formData.form_data
         : JSON.stringify(formData.form_data || {});
 
       console.log('💾 Saving form data to DB:', {
@@ -1342,7 +1475,7 @@ class UserRepository extends BaseRepository {
 
       // First check if the form already exists
       const existingForm = await this.getIncidentFormByType(formData.incident_id, formData.form_type);
-      
+
       if (existingForm) {
         console.log('📝 Updating existing form:', existingForm.id);
         // Update existing form
@@ -1352,14 +1485,14 @@ class UserRepository extends BaseRepository {
           WHERE incident_id = $3 AND form_type = $4
           RETURNING *
         `;
-        
+
         const updateValues = [
           serializedFormData,
           formData.is_completed || false,
           formData.incident_id,
           formData.form_type
         ];
-        
+
         const result = await this.query(updateQuery, updateValues);
         console.log('✅ Form updated successfully:', result.rows[0]?.id);
         return result.rows[0];
@@ -1372,7 +1505,7 @@ class UserRepository extends BaseRepository {
           ) VALUES ($1, $2, $3::jsonb, $4, $5, NOW(), NOW())
           RETURNING *
         `;
-        
+
         const insertValues = [
           formData.incident_id,
           formData.form_type,
@@ -1380,7 +1513,7 @@ class UserRepository extends BaseRepository {
           formData.is_completed || false,
           formData.is_required !== undefined ? formData.is_required : true
         ];
-        
+
         const result = await this.query(insertQuery, insertValues);
         console.log('✅ Form created successfully:', result.rows[0]?.id);
         return result.rows[0];
@@ -1407,7 +1540,7 @@ class UserRepository extends BaseRepository {
       WHERE incident_id = $1 
       ORDER BY created_at ASC
     `;
-    
+
     const result = await this.query(query, [incidentId]);
     return result.rows;
   }
@@ -1423,7 +1556,7 @@ class UserRepository extends BaseRepository {
       SELECT * FROM incident_forms 
       WHERE incident_id = $1 AND form_type = $2
     `;
-    
+
     const result = await this.query(query, [incidentId, formType]);
     return result.rows[0] || null;
   }
@@ -1440,14 +1573,14 @@ class UserRepository extends BaseRepository {
       ) VALUES ($1, $2, $3, $4, NOW())
       RETURNING *
     `;
-    
+
     const values = [
       noteData.incident_id,
       noteData.user_id,
       noteData.note_text,
       noteData.note_type || 'progress'
     ];
-    
+
     const result = await this.query(query, values);
     return result.rows[0];
   }
@@ -1468,9 +1601,186 @@ class UserRepository extends BaseRepository {
       WHERE n.incident_id = $1 
       ORDER BY n.created_at DESC
     `;
-    
+
     const result = await this.query(query, [incidentId]);
     return result.rows;
+  }
+
+  // ========================================
+  // TREATMENT PLAN METHODS
+  // ========================================
+
+  /**
+   * Create treatment plan
+   * @param {Object} treatmentData - Treatment plan data
+   * @returns {Object} Created treatment plan
+   */
+  async createTreatmentPlan(treatmentData) {
+    const query = `
+      INSERT INTO treatment_plans (
+        incident_id, patient_id, doctor_id, diagnosis, treatment_goals, 
+        additional_notes, status, created_by, created_at, updated_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
+      RETURNING *
+    `;
+
+    const values = [
+      treatmentData.incident_id,
+      treatmentData.patient_id,
+      treatmentData.doctor_id,
+      treatmentData.diagnosis,
+      treatmentData.treatment_goals,
+      treatmentData.additional_notes,
+      treatmentData.status,
+      treatmentData.created_by
+    ];
+
+    const result = await this.query(query, values);
+    return result.rows[0];
+  }
+
+  /**
+   * Create treatment phase
+   * @param {Object} phaseData - Treatment phase data
+   * @returns {Object} Created treatment phase
+   */
+  async createTreatmentPhase(phaseData) {
+    const query = `
+      INSERT INTO treatment_phases (
+        treatment_plan_id, phase_number, duration, duration_type, 
+        frequency, frequency_type, description, status, created_at, updated_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
+      RETURNING *
+    `;
+
+    const values = [
+      phaseData.treatment_plan_id,
+      phaseData.phase_number,
+      phaseData.duration,
+      phaseData.duration_type,
+      phaseData.frequency,
+      phaseData.frequency_type,
+      phaseData.description,
+      phaseData.status
+    ];
+
+    const result = await this.query(query, values);
+    return result.rows[0];
+  }
+
+  /**
+   * Get treatment plan by ID with phases
+   * @param {number} treatmentPlanId - Treatment plan ID
+   * @returns {Object} Treatment plan with phases
+   */
+  async getTreatmentPlanById(treatmentPlanId) {
+    const query = `
+      SELECT 
+        tp.*,
+        p.first_name as patient_first_name,
+        p.last_name as patient_last_name,
+        d.first_name as doctor_first_name,
+        d.last_name as doctor_last_name,
+        json_agg(
+          json_build_object(
+            'id', ph.id,
+            'phase_number', ph.phase_number,
+            'duration', ph.duration,
+            'duration_type', ph.duration_type,
+            'frequency', ph.frequency,
+            'frequency_type', ph.frequency_type,
+            'description', ph.description,
+            'status', ph.status,
+            'start_date', ph.start_date,
+            'end_date', ph.end_date,
+            'created_at', ph.created_at,
+            'updated_at', ph.updated_at
+          ) ORDER BY ph.phase_number
+        ) as phases
+      FROM treatment_plans tp
+      LEFT JOIN patients p ON tp.patient_id = p.id
+      LEFT JOIN doctors d ON tp.doctor_id = d.id
+      LEFT JOIN treatment_phases ph ON tp.id = ph.treatment_plan_id
+      WHERE tp.id = $1
+      GROUP BY tp.id, p.first_name, p.last_name, d.first_name, d.last_name
+    `;
+
+    const result = await this.query(query, [treatmentPlanId]);
+    return result.rows[0] || null;
+  }
+
+  /**
+   * Get treatment plan by incident ID
+   * @param {number} incidentId - Incident ID
+   * @returns {Object} Treatment plan with phases
+   */
+  async getTreatmentPlanByIncidentId(incidentId) {
+    const query = `
+      SELECT 
+        tp.*,
+        p.first_name as patient_first_name,
+        p.last_name as patient_last_name,
+        d.first_name as doctor_first_name,
+        d.last_name as doctor_last_name,
+        json_agg(
+          json_build_object(
+            'id', ph.id,
+            'phase_number', ph.phase_number,
+            'duration', ph.duration,
+            'duration_type', ph.duration_type,
+            'frequency', ph.frequency,
+            'frequency_type', ph.frequency_type,
+            'description', ph.description,
+            'status', ph.status,
+            'start_date', ph.start_date,
+            'end_date', ph.end_date,
+            'created_at', ph.created_at,
+            'updated_at', ph.updated_at
+          ) ORDER BY ph.phase_number
+        ) as phases
+      FROM treatment_plans tp
+      LEFT JOIN patients p ON tp.patient_id = p.id
+      LEFT JOIN doctors d ON tp.doctor_id = d.id
+      LEFT JOIN treatment_phases ph ON tp.id = ph.treatment_plan_id
+      WHERE tp.incident_id = $1
+      GROUP BY tp.id, p.first_name, p.last_name, d.first_name, d.last_name
+    `;
+
+    const result = await this.query(query, [incidentId]);
+    return result.rows[0] || null;
+  }
+
+  /**
+   * Update treatment plan
+   * @param {number} treatmentPlanId - Treatment plan ID
+   * @param {Object} updateData - Update data
+   * @returns {Object} Updated treatment plan
+   */
+  async updateTreatmentPlan(treatmentPlanId, updateData) {
+    const fields = [];
+    const values = [];
+    let paramIndex = 1;
+
+    Object.keys(updateData).forEach(key => {
+      if (updateData[key] !== undefined) {
+        fields.push(`${key} = $${paramIndex}`);
+        values.push(updateData[key]);
+        paramIndex++;
+      }
+    });
+
+    fields.push(`updated_at = NOW()`);
+    values.push(treatmentPlanId);
+
+    const query = `
+      UPDATE treatment_plans 
+      SET ${fields.join(', ')}
+      WHERE id = $${paramIndex}
+      RETURNING *
+    `;
+
+    const result = await this.query(query, values);
+    return result.rows[0];
   }
 
   /**
@@ -1493,7 +1803,7 @@ class UserRepository extends BaseRepository {
       WHERE id = $1
       RETURNING *
     `;
-    
+
     const result = await this.query(query, [incidentId]);
     return result.rows[0] || null;
   }
@@ -1526,7 +1836,7 @@ class UserRepository extends BaseRepository {
         $13, $14, $15, $16, $17, $18
       ) RETURNING *
     `;
-    
+
     const values = [
       userId,
       data.first_name,
@@ -1547,7 +1857,7 @@ class UserRepository extends BaseRepository {
       data.emergency_contact_phone,
       data.emergency_contact_relationship
     ];
-    
+
     const result = await this.query(query, values);
     return result.rows[0];
   }
@@ -1699,14 +2009,14 @@ class UserRepository extends BaseRepository {
     }
 
     const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
-    
+
     // Validate sort_by field to prevent SQL injection
     const allowedSortFields = ['created_at', 'updated_at', 'published_at', 'title', 'view_count'];
     const safeSortBy = allowedSortFields.includes(sort_by) ? sort_by : 'created_at';
     const safeSortOrder = sort_order.toLowerCase() === 'asc' ? 'ASC' : 'DESC';
-    
+
     // Handle NULL values for published_at when sorting
-    const orderBy = safeSortBy === 'published_at' 
+    const orderBy = safeSortBy === 'published_at'
       ? `ORDER BY bp.${safeSortBy} ${safeSortOrder} NULLS LAST`
       : `ORDER BY bp.${safeSortBy} ${safeSortOrder}`;
 
@@ -1752,10 +2062,10 @@ class UserRepository extends BaseRepository {
    */
   async updateBlogPost(id, updateData) {
     const allowedFields = [
-      'title', 'slug', 'content', 'excerpt', 'category', 'tags', 
+      'title', 'slug', 'content', 'excerpt', 'category', 'tags',
       'status', 'featured_image_url', 'meta_description', 'published_at'
     ];
-    
+
     const updates = [];
     const values = [];
     let paramCount = 1;
@@ -1763,7 +2073,7 @@ class UserRepository extends BaseRepository {
     for (const [key, value] of Object.entries(updateData)) {
       if (allowedFields.includes(key) && value !== undefined) {
         updates.push(`${key} = $${paramCount}`);
-        
+
         if (key === 'content' || key === 'tags') {
           values.push(JSON.stringify(value));
         } else {

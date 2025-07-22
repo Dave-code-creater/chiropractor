@@ -4,11 +4,11 @@ const AuthController = require('../controllers/auth.controller');
 const UserController = require('../controllers/user.controller');
 const PasswordResetController = require('../controllers/password-reset.controller');
 const { authenticate, authorize, authenticateForLogout } = require('../middleware/auth.middleware');
-const { 
-  signUpValidator, 
-  signInValidator, 
+const {
+  signUpValidator,
+  signInValidator,
   patientRegisterValidator,
-  refreshTokenValidator 
+  refreshTokenValidator
 } = require('../validators');
 
 const router = express.Router();
@@ -30,11 +30,11 @@ const router = express.Router();
 // ===============================================
 
 /**
- * Register new doctor/staff/admin user
+ * Register new doctor/admin user
  * POST /auth/register
  * Body: { email, password, first_name, last_name, role, ... }
  */
-router.post('/register', 
+router.post('/register',
   signUpValidator,
   asyncHandler(AuthController.register)
 );
@@ -44,7 +44,7 @@ router.post('/register',
  * POST /auth/register-patient
  * Body: { email, password, first_name, last_name, phone, ... }
  */
-router.post('/register-patient', 
+router.post('/register-patient',
   patientRegisterValidator,
   asyncHandler(AuthController.registerPatient)
 );
@@ -55,7 +55,7 @@ router.post('/register-patient',
  * Body: { email, password }
  * Returns: JWT access token and refresh token in HTTP-only cookies
  */
-router.post('/login', 
+router.post('/login',
   signInValidator,
   asyncHandler(AuthController.login)
 );

@@ -25,33 +25,33 @@ const router = express.Router();
  * Create new patient
  * POST /users/patients
  * Body: { first_name, last_name, email, phone, ... }
- * Auth: doctor, admin, staff
+ * Auth: doctor, admin
  */
-router.post('/patients', 
-  authenticate, 
-  authorize(['doctor', 'admin', 'staff']), 
+router.post('/patients',
+  authenticate,
+  authorize(['doctor', 'admin']),
   asyncHandler(UserController.createPatient)
 );
 
 /**
  * Get all patients
- * GET /users/patients?page=1&limit=10&search=john
- * Auth: doctor, admin, staff
+ * GET /users/patients
+ * Auth: doctor, admin
  */
-router.get('/patients', 
-  authenticate, 
-  authorize(['doctor', 'admin', 'staff']), 
+router.get('/patients',
+  authenticate,
+  authorize(['doctor', 'admin']),
   asyncHandler(UserController.getAllPatients)
 );
 
 /**
  * Get specific patient by ID
  * GET /users/patients/:id
- * Auth: doctor, admin, staff, patient (own data only)
+ * Auth: doctor, admin, patient (own data only)
  */
-router.get('/patients/:id', 
-  authenticate, 
-  authorize(['doctor', 'admin', 'staff', 'patient']), 
+router.get('/patients/:id',
+  authenticate,
+  authorize(['doctor', 'admin', 'patient']),
   asyncHandler(UserController.getPatientById)
 );
 
@@ -59,11 +59,11 @@ router.get('/patients/:id',
  * Update patient information
  * PUT /users/patients/:id
  * Body: { first_name, last_name, phone, address, ... }
- * Auth: doctor, admin, staff
+ * Auth: doctor, admin
  */
-router.put('/patients/:id', 
-  authenticate, 
-  authorize(['doctor', 'admin', 'staff']), 
+router.put('/patients/:id',
+  authenticate,
+  authorize(['doctor', 'admin']),
   asyncHandler(UserController.updatePatient)
 );
 
@@ -75,22 +75,22 @@ router.put('/patients/:id',
  * Add clinical notes for patient
  * POST /users/patients/:id/clinical-notes
  * Body: { notes, diagnosis, treatment_plan, ... }
- * Auth: doctor, admin, staff
+ * Auth: doctor, admin
  */
-router.post('/patients/:id/clinical-notes', 
-  authenticate, 
-  authorize(['doctor', 'admin', 'staff']), 
+router.post('/patients/:id/clinical-notes',
+  authenticate,
+  authorize(['doctor', 'admin']),
   asyncHandler(UserController.addClinicalNotes)
 );
 
 /**
- * Get patient's clinical notes
- * GET /users/patients/:id/clinical-notes?date_from=2025-01-01&date_to=2025-12-31
- * Auth: doctor, admin, staff, patient (own data only)
+ * Get clinical notes for patient
+ * GET /users/patients/:id/clinical-notes  
+ * Auth: doctor, admin, patient (own data only)
  */
-router.get('/patients/:id/clinical-notes', 
-  authenticate, 
-  authorize(['doctor', 'admin', 'staff', 'patient']), 
+router.get('/patients/:id/clinical-notes',
+  authenticate,
+  authorize(['doctor', 'admin', 'patient']),
   asyncHandler(UserController.getClinicalNotes)
 );
 
@@ -98,22 +98,22 @@ router.get('/patients/:id/clinical-notes',
  * Record patient vitals
  * POST /users/patients/:id/vitals
  * Body: { blood_pressure, heart_rate, temperature, weight, ... }
- * Auth: doctor, admin, staff
+ * Auth: doctor, admin
  */
-router.post('/patients/:id/vitals', 
-  authenticate, 
-  authorize(['doctor', 'admin', 'staff']), 
+router.post('/patients/:id/vitals',
+  authenticate,
+  authorize(['doctor', 'admin']),
   asyncHandler(UserController.recordVitals)
 );
 
 /**
  * Get patient's vitals history
  * GET /users/patients/:id/vitals?date_from=2025-01-01&limit=50
- * Auth: doctor, admin, staff, patient (own data only)
+ * Auth: doctor, admin, patient (own data only)
  */
-router.get('/patients/:id/vitals', 
-  authenticate, 
-  authorize(['doctor', 'admin', 'staff', 'patient']), 
+router.get('/patients/:id/vitals',
+  authenticate,
+  authorize(['doctor', 'admin', 'patient']),
   asyncHandler(UserController.getVitalsHistory)
 );
 
@@ -126,8 +126,8 @@ router.get('/patients/:id/vitals',
  * GET /users/profile
  * Auth: All authenticated users
  */
-router.get('/profile', 
-  authenticate, 
+router.get('/profile',
+  authenticate,
   asyncHandler(UserController.getProfile)
 );
 
@@ -137,8 +137,8 @@ router.get('/profile',
  * Body: { first_name, last_name, date_of_birth, gender, ... }
  * Auth: All authenticated users
  */
-router.put('/profile', 
-  authenticate, 
+router.put('/profile',
+  authenticate,
   asyncHandler(UserController.updateProfile)
 );
 

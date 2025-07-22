@@ -1,8 +1,8 @@
-const { 
-  AppointmentCreatedSuccess, 
-  AppointmentsRetrievedSuccess, 
-  SuccessResponse, 
-  ErrorResponse 
+const {
+  AppointmentCreatedSuccess,
+  AppointmentsRetrievedSuccess,
+  SuccessResponse,
+  ErrorResponse
 } = require('../utils/httpResponses');
 const { getPostgreSQLPool } = require('../config/database');
 const { appointmentCreateSchema, appointmentUpdateSchema } = require('../validators');
@@ -22,7 +22,7 @@ const { getDoctorRepository } = require('../repositories');
  * Flow: [Routing] -> [Controller] -> [Service] -> [Repository] -> [Database]
  */
 class AppointmentController {
-  
+
   // ===============================================
   // APPOINTMENT BOOKING ENDPOINTS
   // ===============================================
@@ -36,7 +36,7 @@ class AppointmentController {
   static async createAppointment(req, res) {
     try {
       api.info(' Creating new appointment:', req.body);
-      
+
       const appointmentData = {
         ...req.body,
         // Map frontend fields to backend expected fields
@@ -46,21 +46,21 @@ class AppointmentController {
       };
 
       const appointment = await AppointmentService.createAppointment(appointmentData, req);
-      
+
       api.info(' Appointment created successfully:', appointment.id);
-      
-      return new AppointmentCreatedSuccess({ 
+
+      return new AppointmentCreatedSuccess({
         appointment,
         message: 'Appointment booked successfully! You will receive a confirmation email shortly.'
       }).send(res);
-      
+
     } catch (error) {
       api.error(' Appointment creation error:', error);
-      
+
       if (error instanceof ErrorResponse) {
         return error.send(res);
       }
-      
+
       return new ErrorResponse(
         'Failed to book appointment. Please try again or contact our office.',
         500,
@@ -83,7 +83,7 @@ class AppointmentController {
       const { getPatientRepository } = require('../repositories');
       const patientRepo = getPatientRepository();
       const patient = await patientRepo.findByUserId(user.id);
-      
+
       if (!patient) {
         return new ErrorResponse(
           'Patient profile not found. Please complete your patient registration first.',
@@ -104,9 +104,9 @@ class AppointmentController {
       };
 
       const appointment = await AppointmentService.createAppointment(appointmentData, req);
-      
+
       api.info(' Patient self-booking successful:', appointment.id);
-      
+
       return new SuccessResponse(
         'Appointment booked successfully! You will receive a confirmation email shortly.',
         201,
@@ -125,14 +125,14 @@ class AppointmentController {
           }
         }
       ).send(res);
-      
+
     } catch (error) {
       api.error(' Patient self-booking error:', error);
-      
+
       if (error instanceof ErrorResponse) {
         return error.send(res);
       }
-      
+
       return new ErrorResponse(
         'Failed to book appointment. Please try again or contact our office.',
         500,
@@ -155,11 +155,11 @@ class AppointmentController {
 
       // Use the same service method as getAllAppointments but with specific user filtering
       const appointments = await AppointmentService.getAllAppointments(req.query, req.user);
-      
-      api.info(' Service returned my appointments:', { 
+
+      api.info(' Service returned my appointments:', {
         count: appointments.appointments?.length || 0,
         hasData: !!appointments.appointments,
-        pagination: appointments.pagination 
+        pagination: appointments.pagination
       });
 
       // Add cache-busting headers
@@ -179,7 +179,7 @@ class AppointmentController {
         location: appointment.location,
         reason_for_visit: appointment.reason_for_visit,
         additional_notes: appointment.additional_notes,
-        
+
         // Nested doctor object
         doctor: {
           id: appointment.doctor_id,
@@ -189,7 +189,7 @@ class AppointmentController {
           phone_number: appointment.doctor_phone,
           email: appointment.doctor_email
         },
-        
+
         // Nested patient object
         patient: {
           id: appointment.patient_id,
@@ -198,11 +198,11 @@ class AppointmentController {
           phone: appointment.patient_phone,
           email: appointment.patient_email
         },
-        
+
         // Metadata
         created_at: appointment.created_at,
         updated_at: appointment.updated_at,
-        
+
         // Status information
         is_upcoming: new Date(appointment.appointment_datetime) > new Date(),
         can_cancel: appointment.status === 'scheduled' && new Date(appointment.appointment_datetime) > new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours notice
@@ -233,17 +233,17 @@ class AppointmentController {
 
     } catch (error) {
       api.error(' Get my appointments error:', error);
-      
+
       if (error instanceof ErrorResponse) {
         return error.send(res);
       }
-      
+
       return new ErrorResponse('Failed to retrieve your appointments', 500, '5000').send(res);
     }
   }
 
   /**
-   * Get all appointments (admin/staff view with role-based filtering)
+   * Get all appointments (admin view with role-based filtering)
    * GET /appointments
    */
   static async getAllAppointments(req, res) {
@@ -251,13 +251,13 @@ class AppointmentController {
       api.info('📋 Getting all appointments for user:', req.user?.role);
 
       const appointments = await AppointmentService.getAllAppointments(req.query, req.user);
-      
-      api.info(' Service returned appointments:', { 
+
+      api.info(' Service returned appointments:', {
         count: appointments.appointments?.length || 0,
         hasData: !!appointments.appointments,
-        pagination: appointments.pagination 
+        pagination: appointments.pagination
       });
-      
+
       // Add cache-busting headers
       res.set({
         'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -275,7 +275,7 @@ class AppointmentController {
         location: appointment.location,
         reason_for_visit: appointment.reason_for_visit,
         additional_notes: appointment.additional_notes,
-        
+
         // Nested doctor object
         doctor: {
           id: appointment.doctor_id,
@@ -285,7 +285,7 @@ class AppointmentController {
           phone_number: appointment.doctor_phone,
           email: appointment.doctor_email
         },
-        
+
         // Nested patient object
         patient: {
           id: appointment.patient_id,
@@ -294,7 +294,7 @@ class AppointmentController {
           phone: appointment.patient_phone,
           email: appointment.patient_email
         },
-        
+
         // Metadata
         created_at: appointment.created_at,
         updated_at: appointment.updated_at,
@@ -309,14 +309,14 @@ class AppointmentController {
         filters_applied: req.query,
         user_role: req.user?.role
       }).send(res);
-      
+
     } catch (error) {
       api.error(' Get all appointments error:', error);
-      
+
       if (error instanceof ErrorResponse) {
         return error.send(res);
       }
-      
+
       return new ErrorResponse('Failed to retrieve appointments', 500, '5003').send(res);
     }
   }
@@ -328,10 +328,10 @@ class AppointmentController {
   static async getAppointmentById(req, res) {
     try {
       const appointmentId = req.params.id;
-  
-      
+
+
       const appointment = await AppointmentService.getAppointmentById(appointmentId);
-      
+
       // Add additional context for the appointment
       const enhancedAppointment = {
         ...appointment,
@@ -340,16 +340,16 @@ class AppointmentController {
         time_until_appointment: new Date(appointment.appointment_datetime) - new Date(),
         is_past: new Date(appointment.appointment_datetime) < new Date()
       };
-      
+
       return new SuccessResponse('Appointment retrieved successfully', 200, enhancedAppointment).send(res);
-      
+
     } catch (error) {
       api.error(' Get appointment by ID error:', error);
-      
+
       if (error instanceof ErrorResponse) {
         return error.send(res);
       }
-      
+
       return new ErrorResponse('Failed to retrieve appointment', 500, '5003').send(res);
     }
   }
@@ -366,27 +366,27 @@ class AppointmentController {
     try {
       const appointmentId = req.params.id;
       api.info('✏️ Updating appointment:', appointmentId, req.body);
-      
+
       const updateData = {
         ...req.body,
         updated_by: req.user?.id,
         updated_at: new Date()
       };
-      
+
       const appointment = await AppointmentService.updateAppointment(appointmentId, updateData);
-      
+
       return new SuccessResponse('Appointment updated successfully', 200, {
         appointment,
         message: 'Appointment has been updated. Confirmation email sent to patient.'
       }).send(res);
-      
+
     } catch (error) {
       api.error(' Update appointment error:', error);
-      
+
       if (error instanceof ErrorResponse) {
         return error.send(res);
       }
-      
+
       return new ErrorResponse('Failed to update appointment', 500, '5004').send(res);
     }
   }
@@ -399,28 +399,28 @@ class AppointmentController {
     try {
       const appointmentId = req.params.id;
       const { reason, notify_patient = true } = req.body;
-      
+
       api.info('❌ Cancelling appointment:', appointmentId, { reason, notify_patient });
-      
+
       const appointment = await AppointmentService.cancelAppointment(appointmentId, reason, {
         cancelled_by: req.user?.id,
         notify_patient
       });
-      
+
       return new SuccessResponse('Appointment cancelled successfully', 200, {
         appointment,
-        message: notify_patient 
+        message: notify_patient
           ? 'Appointment cancelled. Patient has been notified via email.'
           : 'Appointment cancelled.'
       }).send(res);
-      
+
     } catch (error) {
       api.error(' Cancel appointment error:', error);
-      
+
       if (error instanceof ErrorResponse) {
         return error.send(res);
       }
-      
+
       return new ErrorResponse('Failed to cancel appointment', 500, '5005').send(res);
     }
   }
@@ -433,28 +433,28 @@ class AppointmentController {
     try {
       const appointmentId = req.params.id;
       const { new_date, new_time, reason } = req.body;
-      
+
       api.info('🔄 Rescheduling appointment:', appointmentId, { new_date, new_time, reason });
-      
+
       const appointment = await AppointmentService.rescheduleAppointment(appointmentId, {
         new_date,
         new_time,
         reason,
         rescheduled_by: req.user?.id
       });
-      
+
       return new SuccessResponse('Appointment rescheduled successfully', 200, {
         appointment,
         message: 'Appointment has been rescheduled. Confirmation email sent to patient.'
       }).send(res);
-      
+
     } catch (error) {
       api.error(' Reschedule appointment error:', error);
-      
+
       if (error instanceof ErrorResponse) {
         return error.send(res);
       }
-      
+
       return new ErrorResponse('Failed to reschedule appointment', 500, '5006').send(res);
     }
   }
@@ -470,13 +470,13 @@ class AppointmentController {
   static async getAllDoctors(req, res) {
     try {
       api.info('👨‍⚕️ Getting all doctors with filters:', req.query);
-      
+
       const { getDoctorRepository } = require('../repositories');
       const doctorRepo = getDoctorRepository();
-      
+
       // Get query parameters for filtering
       const { is_available, specialization, limit, offset, page, date } = req.query;
-      
+
       // Build options object for pagination
       const options = {};
       if (limit) options.limit = parseInt(limit);
@@ -484,20 +484,20 @@ class AppointmentController {
       if (page && limit) {
         options.offset = (parseInt(page) - 1) * parseInt(limit);
       }
-      
+
       let doctors;
-      
+
       // If filtering by specialization
       if (specialization) {
         doctors = await doctorRepo.getDoctorsBySpecialization(specialization, options);
       } else {
         doctors = await doctorRepo.getActiveDoctors(options);
       }
-      
+
       // If checking availability for a specific date, filter further
       if (date && is_available === 'true') {
         const availableDoctors = [];
-        
+
         for (const doctor of doctors) {
           const availability = await AppointmentService.getDoctorAvailability(doctor.id, date);
           if (availability && availability.available_slots && availability.available_slots.length > 0) {
@@ -508,17 +508,17 @@ class AppointmentController {
             });
           }
         }
-        
+
         doctors = availableDoctors;
       }
-      
+
       // Format the response for frontend - supporting multiple field name formats
       const formattedDoctors = doctors.map(doctor => ({
         // Multiple ID formats for frontend compatibility
         id: doctor.id,
         userID: doctor.user_id,
         user_id: doctor.user_id,
-        
+
         // Name formats
         firstName: doctor.first_name,
         lastName: doctor.last_name,
@@ -526,33 +526,33 @@ class AppointmentController {
         last_name: doctor.last_name,
         full_name: `Dr. ${doctor.first_name} ${doctor.last_name}`,
         display_name: `Dr. ${doctor.first_name} ${doctor.last_name}`,
-        
+
         // Professional information
         specialization: doctor.specialization,
         specialty: doctor.specialization,
         years_of_experience: doctor.years_of_experience,
-        
+
         // Contact information
         email: doctor.email,
         phone: doctor.phone,
         office_phone: doctor.phone,
-        
+
         // Status and availability
         is_active: doctor.is_active,
         isActive: doctor.is_active,
         status: doctor.is_active ? 'active' : 'inactive',
-        
+
         // Schedule information
 
         available_slots: doctor.available_slots || [],
         next_available: doctor.next_available || null,
-        
+
         // Metadata
         created_at: doctor.created_at,
         updated_at: doctor.updated_at
       }));
 
-      api.info(' Returning doctors:', { 
+      api.info(' Returning doctors:', {
         count: formattedDoctors.length,
         filters: { is_available, specialization, date }
       });
@@ -570,14 +570,14 @@ class AppointmentController {
         filters_applied: req.query,
         available_specializations: [...new Set(formattedDoctors.map(d => d.specialization).filter(Boolean))]
       }).send(res);
-      
+
     } catch (error) {
       api.error(' Get doctors error:', error);
-      
+
       if (error instanceof ErrorResponse) {
         return error.send(res);
       }
-      
+
       return new ErrorResponse('Failed to retrieve doctors', 500, '5007').send(res);
     }
   }
@@ -590,20 +590,20 @@ class AppointmentController {
     try {
       const { doctor_id } = req.params;
       const { date, days_ahead = 30 } = req.query;
-      
+
       api.info(' Getting doctor availability:', { doctor_id, date, days_ahead });
 
       const doctorRepo = getDoctorRepository();
-      
+
       // Get doctor's weekly schedule, create default if doesn't exist
       let weeklySchedule = await doctorRepo.getDoctorWeeklySchedule(doctor_id);
-      
+
       // If no schedule exists, create default schedules
       if (weeklySchedule.length === 0) {
         api.info(' No schedule found for doctor, creating default schedules:', { doctor_id });
         weeklySchedule = await doctorRepo.createDefaultSchedules(doctor_id);
       }
-      
+
       // Convert schedule to frontend format
       const workingHours = {
         monday: { start: "00:00", end: "00:00", enabled: false },
@@ -636,11 +636,11 @@ class AppointmentController {
           accepts_walkin: schedule.accepts_walkin
         };
       });
-      
+
       if (date) {
         // Get availability for specific date
         const availability = await AppointmentService.getDoctorAvailability(doctor_id, date);
-        
+
         // Add cache-busting headers
         res.set({
           'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -667,7 +667,7 @@ class AppointmentController {
         doctor_id,
         workingHours
       }).send(res);
-      
+
     } catch (error) {
       api.error('Get doctor availability error:', error);
       return new ErrorResponse(
@@ -689,9 +689,9 @@ class AppointmentController {
   static async getPatientAppointments(req, res) {
     try {
       const { patient_id } = req.params;
-  
+
       const appointments = await AppointmentService.getPatientAppointments(patient_id, req.query);
-      
+
       // Format appointments with nested object structure
       const formattedAppointments = (appointments.data || appointments || []).map(appointment => ({
         id: appointment.id,
@@ -702,7 +702,7 @@ class AppointmentController {
         location: appointment.location,
         reason_for_visit: appointment.reason_for_visit,
         additional_notes: appointment.additional_notes,
-        
+
         // Nested doctor object
         doctor: {
           id: appointment.doctor_id,
@@ -712,7 +712,7 @@ class AppointmentController {
           phone_number: appointment.doctor_phone,
           email: appointment.doctor_email
         },
-        
+
         // Nested patient object
         patient: {
           id: appointment.patient_id,
@@ -721,26 +721,26 @@ class AppointmentController {
           phone: appointment.patient_phone,
           email: appointment.patient_email
         },
-        
+
         // Metadata
         created_at: appointment.created_at,
         updated_at: appointment.updated_at
       }));
-      
+
       return new SuccessResponse('Patient appointments retrieved successfully', 200, {
         patient_id,
         appointments: formattedAppointments,
         pagination: appointments.pagination,
         summary: appointments.summary
       }).send(res);
-      
+
     } catch (error) {
       api.error(' Get patient appointments error:', error);
-      
+
       if (error instanceof ErrorResponse) {
         return error.send(res);
       }
-      
+
       return new ErrorResponse('Failed to retrieve patient appointments', 500, '5009').send(res);
     }
   }
@@ -756,32 +756,32 @@ class AppointmentController {
   static async checkAvailability(req, res) {
     try {
       const { doctor_id, date, time } = req.body;
-      
+
       const availability = await AppointmentService.checkSlotAvailability(
-        doctor_id, 
-        date, 
+        doctor_id,
+        date,
         time,
         30 // Fixed 30-minute duration
       );
-      
+
       return new SuccessResponse('Availability checked successfully', 200, {
         doctor_id,
         requested_slot: { date, time, duration_minutes: 30 },
         is_available: availability.available,
         conflicts: availability.conflicts || [],
         alternative_slots: availability.alternatives || [],
-        message: availability.available 
+        message: availability.available
           ? 'Time slot is available for booking'
           : 'Time slot is not available. Please choose an alternative time.'
       }).send(res);
 
-      } catch (error) {
+    } catch (error) {
       api.error(' Check availability error:', error);
-      
+
       if (error instanceof ErrorResponse) {
         return error.send(res);
       }
-      
+
       return new ErrorResponse('Failed to check availability', 500, '5010').send(res);
     }
   }
@@ -793,22 +793,22 @@ class AppointmentController {
   static async getAppointmentStats(req, res) {
     try {
       api.info('📊 Getting appointment statistics for user:', req.user?.role);
-      
+
       const stats = await AppointmentService.getAppointmentStatistics(req.user, req.query);
-      
+
       return new SuccessResponse('Appointment statistics retrieved successfully', 200, {
         ...stats,
         generated_at: new Date(),
         user_role: req.user?.role
       }).send(res);
-      
+
     } catch (error) {
       api.error(' Get appointment stats error:', error);
-      
+
       if (error instanceof ErrorResponse) {
         return error.send(res);
       }
-      
+
       return new ErrorResponse('Failed to retrieve appointment statistics', 500, '5011').send(res);
     }
   }

@@ -1,8 +1,8 @@
-const { 
-  ConversationCreatedSuccess, 
-  MessageSentSuccess, 
-  SuccessResponse, 
-  ErrorResponse 
+const {
+  ConversationCreatedSuccess,
+  MessageSentSuccess,
+  SuccessResponse,
+  ErrorResponse
 } = require('../utils/httpResponses');
 const { getPostgreSQLPool } = require('../config/database');
 const { createConversationSchema, doctorPatientConversationSchema, sendMessageSchema } = require('../validators').schemas;
@@ -27,16 +27,16 @@ class ChatController {
         user_id: req.user?.id,
         user_role: req.user?.role
       });
-      
+
       const conversation = await ChatService.createConversation(req.body, req);
-      
+
       api.info('✅ ChatController.createConversation successful:', {
         conversation_id: conversation?.id
       });
-      
+
       return new SuccessResponse(
-        'Conversation created successfully', 
-        201, 
+        'Conversation created successfully',
+        201,
         conversation
       ).send(res);
     } catch (error) {
@@ -61,12 +61,12 @@ class ChatController {
         ...req.body,
         conversation_id: req.params.conversationId
       };
-      
+
       const message = await ChatService.sendMessage(messageData, req);
-      
+
       return new SuccessResponse(
-        'Message sent successfully', 
-        201, 
+        'Message sent successfully',
+        201,
         message
       ).send(res);
     } catch (error) {
@@ -81,10 +81,10 @@ class ChatController {
   static async pollForNewMessages(req, res) {
     try {
       const { conversationId } = req.params;
-      const { 
-        last_message_timestamp, 
+      const {
+        last_message_timestamp,
         timeout_seconds = 30,
-        max_messages = 50 
+        max_messages = 50
       } = req.query;
 
       // Validate conversation access
@@ -132,9 +132,9 @@ class ChatController {
   static async getMessageStatus(req, res) {
     try {
       const { conversationId, messageId } = req.params;
-      
+
       const messageStatus = await ChatService.getMessageStatus(messageId, conversationId, req.user);
-      
+
       const meta = {
         conversation_id: conversationId,
         message_id: messageId,
@@ -168,7 +168,7 @@ class ChatController {
    */
   static async getUserConversations(req, res) {
     const conversations = await ChatService.getUserConversations(req.user, req.query);
-    
+
     // Extract pagination info for meta using snake_case
     const { page = 1, per_page = 10 } = req.query;
     const meta = {
@@ -178,11 +178,11 @@ class ChatController {
         total_count: conversations.length
       }
     };
-    
+
     return new SuccessResponse(
-      'Conversations retrieved successfully', 
-      200, 
-      conversations, 
+      'Conversations retrieved successfully',
+      200,
+      conversations,
       meta
     ).send(res);
   }
@@ -203,7 +203,7 @@ class ChatController {
   static async getAvailableUsers(req, res) {
     try {
       const { role } = req.query;
-      
+
       // If role is specified, filter by that role (replaces the old staff-admin-doctors endpoint)
       if (role) {
         // Validate role parameter
@@ -211,22 +211,22 @@ class ChatController {
         if (!validRoles.includes(role)) {
           throw new ErrorResponse('Invalid role parameter. Must be one of: doctor, staff, admin', 400, '4001');
         }
-        
+
         const users = await ChatService.getUsersByRole(role, req.query);
-        
+
         const meta = {
           roles: [role],
           total_count: users.length
         };
-        
+
         return new SuccessResponse(
-          `${role.charAt(0).toUpperCase() + role.slice(1)}s retrieved successfully`, 
-          200, 
-          users, 
+          `${role.charAt(0).toUpperCase() + role.slice(1)}s retrieved successfully`,
+          200,
+          users,
           meta
         ).send(res);
       }
-      
+
       // Default behavior - get all available users
       const users = await ChatService.getAvailableUsersForChat(req.user, req.query);
       return new SuccessResponse('Available users retrieved successfully', 200, users).send(res);
@@ -242,21 +242,21 @@ class ChatController {
   static async getConversationUsers(req, res) {
     try {
       const { role } = req.query;
-      
+
       // Validate role parameter is provided
       if (!role) {
         throw new ErrorResponse('Role parameter is required. Must be one of: doctor, staff, admin', 400, '4001');
       }
-      
+
       // Validate role parameter value
       const validRoles = ['doctor', 'staff', 'admin'];
       if (!validRoles.includes(role)) {
         throw new ErrorResponse('Invalid role parameter. Must be one of: doctor, staff, admin', 400, '4001');
       }
-      
+
       // Get users by role for conversation creation
       const users = await ChatService.getUsersForConversations(role, req.query, req.user);
-      
+
       // Extract pagination info using snake_case
       const { per_page = 100, search_term = '' } = req.query;
       const meta = {
@@ -266,14 +266,14 @@ class ChatController {
         search_applied: !!search_term,
         context: 'conversation_creation'
       };
-      
-      const roleDisplayName = role === 'doctor' ? 'doctors' : 
-                             role === 'staff' ? 'staff members' : 'administrators';
-      
+
+      const roleDisplayName = role === 'doctor' ? 'doctors' :
+        role === 'staff' ? 'staff members' : 'administrators';
+
       return new SuccessResponse(
-        `Available ${roleDisplayName} for conversations retrieved successfully`, 
-        200, 
-        users, 
+        `Available ${roleDisplayName} for conversations retrieved successfully`,
+        200,
+        users,
         meta
       ).send(res);
     } catch (error) {
@@ -285,8 +285,8 @@ class ChatController {
    * Get all staff, admin, and doctors for chat selection (DEPRECATED - use /users?role=X instead)
    * GET /chat/staff-admin-doctors
    */
-  static async getAllStaffAdminDoctors(req, res) {
-    const result = await ChatService.getAllStaffAdminDoctors(req.query);
+  static async getAllAdminDoctors(req, res) {
+    const result = await ChatService.getAllAdminDoctors(req.query);
     return new SuccessResponse('Staff, admin, and doctors retrieved successfully', 200, result).send(res);
   }
 
@@ -305,7 +305,7 @@ class ChatController {
       // Delegate to service layer
       const result = await ChatService.createDoctorPatientConversation(value, req);
 
-      api.info('Doctor-patient conversation created successfully:', { 
+      api.info('Doctor-patient conversation created successfully:', {
         conversation_id: result.conversation.conversation_id
       });
 

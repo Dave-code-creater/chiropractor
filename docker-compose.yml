@@ -1,32 +1,18 @@
-
+version: '3.8'
 
 services:
   # Main Application - Chiropractor Clinic Management System
   app:
     build: .
     container_name: chiropractor-clinic-app
+    env_file:
+      - .env
     environment:
-      - NODE_ENV=development
-      - PORT=3000
+      # Only override Docker-specific hostnames
       - DB_HOST=postgres
-      - DB_PORT=5432
-      - DB_USER=postgres
-      - DB_PASS=password
-      - DB_NAME=chiropractor_clinic
-
       - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - REDIS_PASSWORD=
-      - JWT_SECRET=chiropractor-jwt-secret-key-dev-only
-      - JWT_REFRESH_SECRET=chiropractor-jwt-refresh-secret-key-dev-only
-      - JWT_EXPIRES_IN=15m
-      - JWT_REFRESH_EXPIRES_IN=7d
-      - BCRYPT_ROUNDS=12
-      - CORS_ORIGIN=http://localhost:5173
-      - RATE_LIMIT_WINDOW_MS=900000
-      - RATE_LIMIT_MAX_REQUESTS=1000
     ports:
-      - "3000:3000"
+      - "${PORT:-3000}:3000"
     depends_on:
       postgres:
         condition: service_healthy
@@ -43,12 +29,12 @@ services:
     image: postgres:15-alpine
     container_name: chiropractor-postgres-db
     environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=password
-      - POSTGRES_DB=chiropractor_clinic
+      - POSTGRES_USER=${DB_USER:-postgres}
+      - POSTGRES_PASSWORD=${DB_PASS:-password}
+      - POSTGRES_DB=${DB_NAME:-chiropractor_clinic}
       - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --lc-collate=C --lc-ctype=C
     ports:
-      - "5432:5432"
+      - "${DB_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./migrations:/docker-entrypoint-initdb.d:ro
@@ -56,7 +42,7 @@ services:
       - clinic-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d chiropractor_clinic"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-chiropractor_clinic}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -67,7 +53,7 @@ services:
     image: redis:7-alpine
     container_name: chiropractor-redis-cache
     ports:
-      - "6379:6379"
+      - "${REDIS_PORT:-6379}:6379"
     volumes:
       - redis_data:/data
     networks:
@@ -81,41 +67,9 @@ services:
       retries: 5
       start_period: 20s
 
-  # mongo-express removed - using PostgreSQL only
-
-  # Test Runner Service
-  test-runner:
-    build: .
-    container_name: chiropractor-test-runner
-    environment:
-      - NODE_ENV=test
-      - DB_HOST=postgres
-      - DB_PORT=5432
-      - DB_USER=postgres
-      - DB_PASS=password
-      - DB_NAME=chiropractor_clinic_test
-
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - JWT_SECRET=test-jwt-secret-key
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    volumes:
-      - .:/app
-      - /app/node_modules
-    networks:
-      - clinic-network
-    command: npm test
-    profiles:
-      - test
-
 volumes:
   postgres_data:
     driver: local
-
   redis_data:
     driver: local
 

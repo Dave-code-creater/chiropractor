@@ -33,7 +33,7 @@ class ChatService {
       } = conversationData;
 
       const currentUser = req.user;
-      
+
 
 
       // Enforce role-based conversation rules
@@ -107,41 +107,41 @@ class ChatService {
           patient_id,
           doctor_id
         });
-      } else if (currentUser.role === 'patient' && (targetUser.role === 'staff' || targetUser.role === 'admin')) {
-        // Patient creating conversation with staff/admin
+      } else if (currentUser.role === 'patient' && targetUser.role === 'admin') {
+        // Patient creating conversation with admin
         patient_id = currentUserPatientId;
-        // For staff/admin conversations, we don't set doctor_id as they're not doctors
-        chat.info('Patient creating conversation with staff/admin:', {
+        // For admin conversations, we don't set doctor_id as they're not doctors
+        chat.info('Patient creating conversation with admin:', {
           current_user_role: currentUser.role,
           target_user_role: targetUser.role,
           patient_id,
           doctor_id
         });
-      } else if ((currentUser.role === 'staff' || currentUser.role === 'admin') && targetUser.role === 'patient') {
-        // Staff/admin creating conversation with patient
+      } else if (currentUser.role === 'admin' && targetUser.role === 'patient') {
+        // Admin creating conversation with patient
         patient_id = await ChatService.getPatientIdByUserId(target_user_id);
-        // For staff/admin conversations, we don't set doctor_id as they're not doctors
-        chat.info('Staff/admin creating conversation with patient:', {
+        // For admin conversations, we don't set doctor_id as they're not doctors
+        chat.info('Admin creating conversation with patient:', {
           current_user_role: currentUser.role,
           target_user_role: targetUser.role,
           patient_id,
           doctor_id
         });
-      } else if (currentUser.role === 'doctor' && (targetUser.role === 'staff' || targetUser.role === 'admin')) {
-        // Doctor creating conversation with staff/admin
+      } else if (currentUser.role === 'doctor' && targetUser.role === 'admin') {
+        // Doctor creating conversation with admin
         doctor_id = currentUserDoctorId;
-        // For staff/admin conversations, we don't set patient_id as they're not patients
-        chat.info('Doctor creating conversation with staff/admin:', {
+        // For admin conversations, we don't set patient_id as they're not patients
+        chat.info('Doctor creating conversation with admin:', {
           current_user_role: currentUser.role,
           target_user_role: targetUser.role,
           patient_id,
           doctor_id
         });
-      } else if ((currentUser.role === 'staff' || currentUser.role === 'admin') && targetUser.role === 'doctor') {
-        // Staff/admin creating conversation with doctor
+      } else if (currentUser.role === 'admin' && targetUser.role === 'doctor') {
+        // Admin creating conversation with doctor
         doctor_id = await ChatService.getDoctorIdByUserId(target_user_id);
-        // For staff/admin conversations, we don't set patient_id as they're not patients
-        chat.info('Staff/admin creating conversation with doctor:', {
+        // For admin conversations, we don't set patient_id as they're not patients
+        chat.info('Admin creating conversation with doctor:', {
           current_user_role: currentUser.role,
           target_user_role: targetUser.role,
           patient_id,
@@ -164,7 +164,7 @@ class ChatService {
       const existingConversation = await chatRepo.findConversationBetweenParticipants(
         currentUser.id, target_user_id
       );
-      
+
       if (existingConversation && existingConversation.status === 'active') {
         chat.info(' Existing conversation found:', { conversation_id: existingConversation.id });
         return ChatService.formatConversationResponse(existingConversation);
@@ -181,7 +181,7 @@ class ChatService {
         status: 'active'
       });
 
-      chat.info(' Conversation created:', { 
+      chat.info(' Conversation created:', {
         conversation_id: conversation.id,
         patient_id,
         doctor_id,
@@ -249,15 +249,15 @@ class ChatService {
       // Update conversation last activity
       await chatRepo.updateConversationTimestamp(conversation_id);
 
-      chat.info('✅ Message sent:', { 
+      chat.info('✅ Message sent:', {
         message_id: message.id,
         conversation_id,
-        sender_id: req.user.id 
+        sender_id: req.user.id
       });
 
       // Format response for Long-Polling clients
       const formattedMessage = ChatService.formatMessageResponse(message);
-      
+
       return {
         ...formattedMessage,
         sent_timestamp: message.sent_at,
@@ -505,9 +505,9 @@ class ChatService {
       // Mark messages as read for current user
       await userRepo.markMessagesAsRead(conversationId, user.id);
 
-      chat.info('✅ Messages retrieved:', { 
+      chat.info('✅ Messages retrieved:', {
         conversation_id: conversationId,
-        count: result.messages.length 
+        count: result.messages.length
       });
 
       return {
@@ -555,13 +555,13 @@ class ChatService {
         status
       });
 
-      chat.info('✅ User conversations retrieved:', { 
+      chat.info('✅ User conversations retrieved:', {
         user_id: user.id,
-        count: conversations.length 
+        count: conversations.length
       });
 
       return {
-        conversations: conversations.map(conversation => 
+        conversations: conversations.map(conversation =>
           ChatService.formatConversationResponse(conversation)
         ),
         pagination: {
@@ -596,16 +596,16 @@ class ChatService {
         throw new NotFoundError('Conversation not found', '4043');
       }
 
-      // Only doctors and staff can close conversations
-      if (status === 'closed' && !['doctor', 'admin', 'staff'].includes(user.role)) {
+      // Only doctors and admin can close conversations
+      if (status === 'closed' && !['doctor', 'admin'].includes(user.role)) {
         throw new ForbiddenError('You are not authorized to close conversations', '4033');
       }
 
       const updatedConversation = await chatRepo.updateConversationStatus(conversationId, status);
 
-      chat.info(' Conversation status updated:', { 
+      chat.info(' Conversation status updated:', {
         conversation_id: conversationId,
-        status 
+        status
       });
 
       return ChatService.formatConversationResponse(updatedConversation);
@@ -628,7 +628,7 @@ class ChatService {
   static async validateConversationRules(currentUser, targetUserId) {
     const userRepo = getUserRepository();
     const targetUser = await userRepo.findById(targetUserId);
-    
+
     if (!targetUser) {
       throw new NotFoundError('Target user not found', '4044');
     }
@@ -641,16 +641,16 @@ class ChatService {
       target_role: targetRole
     });
 
-    // Rule 1: Patients can only chat with doctors, staff, or admin
+    // Rule 1: Patients can only chat with doctors or admin
     if (currentRole === 'patient') {
-      if (!['doctor', 'staff', 'admin'].includes(targetRole)) {
-        throw new ForbiddenError('Patients can only start conversations with doctors, staff, or administrators', '4031');
+      if (!['doctor', 'admin'].includes(targetRole)) {
+        throw new ForbiddenError('Patients can only start conversations with doctors or administrators', '4031');
       }
     }
 
-    // Rule 2: Doctors and staff can chat with patients, other doctors/staff, or admin
-    if (['doctor', 'staff'].includes(currentRole)) {
-      if (!['patient', 'doctor', 'staff', 'admin'].includes(targetRole)) {
+    // Rule 2: Doctors can chat with patients, other doctors, or admin
+    if (['doctor'].includes(currentRole)) {
+      if (!['patient', 'doctor', 'admin'].includes(targetRole)) {
         throw new ForbiddenError('Invalid conversation target', '4032');
       }
     }
@@ -701,16 +701,16 @@ class ChatService {
   static async getConversations(query, user) {
     try {
       const { doctor_id, patient_id, participant_type } = query;
-      
+
       const chatRepo = getChatRepository();
-      
+
       // Build conditions based on query parameters and user role
       const conditions = {};
-      
+
       if (doctor_id) conditions.doctor_id = parseInt(doctor_id);
       if (patient_id) conditions.patient_id = parseInt(patient_id);
       if (participant_type) conditions.participant_type = participant_type;
-      
+
       // Add role-based filtering
       if (user.role === 'doctor') {
         const doctorRepo = getDoctorRepository();
@@ -725,14 +725,14 @@ class ChatService {
           conditions.patient_id = patient.id;
         }
       }
-      // Admin and staff can see all conversations (no additional filtering)
-      
+      // Admin can see all conversations (no additional filtering)
+
       const conversations = await chatRepo.getConversationsByConditions(conditions);
-      
-      return conversations.map(conversation => 
+
+      return conversations.map(conversation =>
         ChatService.formatConversationResponse(conversation)
       );
-      
+
     } catch (error) {
       chat.error('Get conversations service error:', error);
       throw new InternalServerError('Failed to retrieve conversations', '5010');
@@ -784,11 +784,11 @@ class ChatService {
   }
 
   /**
-   * Get staff, admin, and doctors for chat selection with role filtering
+   * Get admin and doctors for chat selection with role filtering
    * @param {Object} query - Query parameters
    * @returns {Object} Users organized by role or filtered by specific role
    */
-  static async getAllStaffAdminDoctors(query = {}) {
+  static async getAllAdminDoctors(query = {}) {
     try {
       const chatRepo = getChatRepository();
       const { per_page = 100 } = query;
@@ -798,14 +798,14 @@ class ChatService {
       });
 
       // Get healthcare professionals from repository
-      const users = await chatRepo.getAllStaffAdminDoctors({
+      const users = await chatRepo.getAllAdminDoctors({
         limit: parseInt(per_page)
       });
 
       // Organize users by type
       const organizedUsers = {
         doctors: [],
-        staff: []
+        admin: []
       };
 
       users.forEach(user => {
@@ -824,17 +824,17 @@ class ChatService {
           case 'doctor':
             organizedUsers.doctors.push(userInfo);
             break;
-          case 'staff':
-            organizedUsers.staff.push(userInfo);
+          case 'admin':
+            organizedUsers.admin.push(userInfo);
             break;
         }
       });
 
-      const totalCount = organizedUsers.doctors.length + organizedUsers.staff.length;
+      const totalCount = organizedUsers.doctors.length + organizedUsers.admin.length;
 
-      chat.info('✅ Healthcare professionals found:', { 
+      chat.info('✅ Healthcare professionals found:', {
         doctors: organizedUsers.doctors.length,
-        staff: organizedUsers.staff.length,
+        admin: organizedUsers.admin.length,
         total: totalCount
       });
 
@@ -842,7 +842,7 @@ class ChatService {
         data: organizedUsers,
         summary: {
           total_doctors: organizedUsers.doctors.length,
-          total_staff: organizedUsers.staff.length,
+          total_admin: organizedUsers.admin.length,
           total_count: totalCount
         }
       };
@@ -855,7 +855,7 @@ class ChatService {
 
   /**
    * Get users by specific role for chat selection
-   * @param {string} role - Role to filter by (doctor, staff, admin)
+   * @param {string} role - Role to filter by (doctor, admin)
    * @param {Object} query - Query parameters
    * @returns {Array} Users with the specified role
    */
@@ -890,7 +890,7 @@ class ChatService {
         status: user.status || 'active'
       }));
 
-      chat.info('✅ Users by role retrieved:', { 
+      chat.info('✅ Users by role retrieved:', {
         role,
         count: formattedUsers.length,
         search_applied: !!search_term
@@ -906,7 +906,7 @@ class ChatService {
 
   /**
    * Get users for conversation creation with enhanced information
-   * @param {string} role - Role to filter by (doctor, staff, admin)
+   * @param {string} role - Role to filter by (doctor, admin)
    * @param {Object} query - Query parameters
    * @param {Object} currentUser - Current authenticated user
    * @returns {Array} Users formatted for conversation creation
@@ -952,10 +952,6 @@ class ChatService {
           if (user.specialization) {
             baseUser.display_name += ` (${user.specialization})`;
           }
-        } else if (role === 'staff') {
-          baseUser.department = user.specialization || 'General Staff';
-          baseUser.title = 'Staff';
-          baseUser.display_name = `${baseUser.full_name} - Staff`;
         } else if (role === 'admin') {
           baseUser.department = 'Administration';
           baseUser.title = 'Admin';
@@ -968,7 +964,7 @@ class ChatService {
       // Filter out current user from the list (users shouldn't chat with themselves)
       const filteredUsers = formattedUsers.filter(user => user.user_id !== currentUser.id);
 
-      chat.info('✅ Users for conversations retrieved:', { 
+      chat.info('✅ Users for conversations retrieved:', {
         role,
         total_found: formattedUsers.length,
         available_after_filter: filteredUsers.length,
@@ -993,7 +989,7 @@ class ChatService {
   static async createDoctorPatientConversation(conversationData, req) {
     try {
       const { doctor_id, patient_id, title, initial_message } = conversationData;
-      
+
       // Validate doctor exists
       const doctorRepo = getDoctorRepository();
       const doctor = await doctorRepo.findById(doctor_id);
@@ -1077,14 +1073,14 @@ class ChatService {
   static async isUserParticipant(userId, conversationId, userRole, profileId = null) {
     try {
       const userRepo = getUserRepository();
-      
+
       // Debug: Check if conversation exists
       const conversation = await userRepo.findConversationById(conversationId);
       if (!conversation) {
         chat.error('Conversation not found:', { conversationId, userId, userRole });
         return false;
       }
-      
+
       chat.debug('Checking user participant:', {
         userId,
         conversationId,
@@ -1093,9 +1089,9 @@ class ChatService {
         conversation_patient_id: conversation.patient_id,
         conversation_doctor_id: conversation.doctor_id
       });
-      
+
       const isParticipant = await userRepo.isUserParticipantByUserId(userId, conversationId, userRole, profileId);
-      
+
       chat.debug('User participant result:', {
         userId,
         conversationId,
@@ -1103,7 +1099,7 @@ class ChatService {
         profileId,
         isParticipant
       });
-      
+
       return isParticipant;
     } catch (error) {
       chat.error('Check user participant error:', error);
@@ -1139,7 +1135,7 @@ class ChatService {
         status: 'deleted'
       });
 
-      chat.info(' Conversation deleted:', { 
+      chat.info(' Conversation deleted:', {
         conversation_id: conversationId,
         deleted_by: userId
       });
@@ -1215,7 +1211,7 @@ class ChatService {
       conversation_id: message.conversation_id,
       sender_id: message.sender_id,
       sender_type: message.sender_type,
-      sender_name: message.sender_name || 
+      sender_name: message.sender_name ||
         `${message.sender_first_name} ${message.sender_last_name}`,
       message_content: message.content,
       message_type: message.message_type,

@@ -41,7 +41,7 @@ class BlogService {
       }
 
       // Validate content structure
-      const isValidContent = content.every(item => 
+      const isValidContent = content.every(item =>
         item && typeof item === 'object' && item.type && item.text
       );
       if (!isValidContent) {
@@ -74,7 +74,7 @@ class BlogService {
         author_id: req.user?.id
       });
 
-      info(' Blog post created:', { 
+      info(' Blog post created:', {
         post_id: blogPost.id,
         title,
         author_id: req.user?.id,
@@ -101,7 +101,7 @@ class BlogService {
   static async getAllBlogPosts(query = {}, user = null) {
     try {
       const userRepo = getUserRepository();
-      
+
       const {
         page = 1,
         limit = 10,
@@ -116,9 +116,9 @@ class BlogService {
 
       // Determine allowed statuses based on user role
       let finalStatus;
-      
-      if (user && ['admin', 'doctor', 'staff'].includes(user.role)) {
-        // Authenticated staff can see all posts or filter by specific status
+
+      if (user && ['admin', 'doctor'].includes(user.role)) {
+        // Authenticated doctor/admin can see all posts or filter by specific status
         if (status === 'all') {
           finalStatus = null; // Show all statuses
         } else {
@@ -143,10 +143,10 @@ class BlogService {
         offset
       });
 
-      info(' Blog posts retrieved:', { 
+      info(' Blog posts retrieved:', {
         count: result.posts.length,
         total: result.total,
-        page 
+        page
       });
 
       return {
@@ -175,9 +175,9 @@ class BlogService {
   static async getBlogPost(identifier) {
     try {
       const userRepo = getUserRepository();
-      
+
       let blogPost;
-      
+
       // Check if identifier is numeric (ID) or string (slug)
       if (/^\d+$/.test(identifier)) {
         blogPost = await userRepo.findBlogPostById(parseInt(identifier));
@@ -214,7 +214,7 @@ class BlogService {
   static async updateBlogPost(postId, updateData) {
     try {
       const userRepo = getUserRepository();
-      
+
       const existingPost = await userRepo.findBlogPostById(postId);
       if (!existingPost) {
         throw new NotFoundError('Blog post not found', '4041');
@@ -235,7 +235,7 @@ class BlogService {
       // Update slug if title is being changed
       if (updateData.title && updateData.title !== existingPost.title) {
         updateData.slug = BlogService.generateSlug(updateData.title);
-        
+
         // Check if new slug already exists
         const existingSlug = await userRepo.findBlogPostBySlug(updateData.slug);
         if (existingSlug && existingSlug.id !== postId) {
@@ -249,7 +249,7 @@ class BlogService {
           throw new BadRequestError('Content must be a non-empty array', '4002');
         }
 
-        const isValidContent = updateData.content.every(item => 
+        const isValidContent = updateData.content.every(item =>
           item && typeof item === 'object' && item.type && item.text
         );
         if (!isValidContent) {
@@ -290,7 +290,7 @@ class BlogService {
   static async deleteBlogPost(postId) {
     try {
       const userRepo = getUserRepository();
-      
+
       const existingPost = await userRepo.findBlogPostById(postId);
       if (!existingPost) {
         throw new NotFoundError('Blog post not found', '4041');
@@ -318,7 +318,7 @@ class BlogService {
   static async getBlogCategories() {
     try {
       const userRepo = getUserRepository();
-      
+
       const categories = await userRepo.findBlogCategories();
 
       info(' Blog categories retrieved:', { count: categories.length });
@@ -338,7 +338,7 @@ class BlogService {
   static async getBlogTags() {
     try {
       const userRepo = getUserRepository();
-      
+
       const tags = await userRepo.findBlogTags();
 
       info(' Blog tags retrieved:', { count: tags.length });
@@ -373,18 +373,18 @@ class BlogService {
    */
   static generateExcerpt(content, maxLength = 160) {
     if (!content) return '';
-    
+
     // Remove HTML tags and get plain text
     const plainText = content.replace(/<[^>]*>/g, '').trim();
-    
+
     if (plainText.length <= maxLength) {
       return plainText;
     }
-    
+
     // Cut at word boundary
     const truncated = plainText.substring(0, maxLength);
     const lastSpace = truncated.lastIndexOf(' ');
-    
+
     return lastSpace > 0 ? truncated.substring(0, lastSpace) + '...' : truncated + '...';
   }
 
@@ -396,21 +396,21 @@ class BlogService {
    */
   static generateExcerptFromContent(content, maxLength = 160) {
     if (!content || !Array.isArray(content) || content.length === 0) return '';
-    
+
     // Extract text from all content blocks
     const plainText = content
       .map(item => item.text || '')
       .join(' ')
       .trim();
-    
+
     if (plainText.length <= maxLength) {
       return plainText;
     }
-    
+
     // Cut at word boundary
     const truncated = plainText.substring(0, maxLength);
     const lastSpace = truncated.lastIndexOf(' ');
-    
+
     return lastSpace > 0 ? truncated.substring(0, lastSpace) + '...' : truncated + '...';
   }
 
@@ -451,15 +451,15 @@ class BlogService {
     try {
       // If data is null or undefined, return null
       if (!data) return null;
-      
+
       // If data is already an object or array, return it as-is
       if (typeof data === 'object') return data;
-      
+
       // If data is a string, try to parse it
       if (typeof data === 'string') {
         return JSON.parse(data);
       }
-      
+
       // For any other type, return null
       return null;
     } catch (error) {

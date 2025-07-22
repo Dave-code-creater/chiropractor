@@ -30,8 +30,26 @@ class IncidentController {
    * GET /api/incidents
    */
   static async getUserIncidents(req, res) {
+    // Check if patient_id query parameter is provided
+    if (req.query.patient_id) {
+      const incidents = await IncidentService.getPatientIncidents(req.query.patient_id, req.query);
+      return new SuccessResponse('Patient incidents retrieved successfully', 200, incidents).send(res);
+    }
+    
     const incidents = await IncidentService.getUserIncidents(req.user.id, req.query);
     return new SuccessResponse('Incidents retrieved successfully', 200, incidents).send(res);
+  }
+
+  /**
+   * Get doctor's patients
+   * GET /api/incidents/doctor/patients
+   */
+  static async getDoctorPatients(req, res) {
+    if (req.user.role !== 'doctor') {
+      return new ErrorResponse('Access denied. Only doctors can access this endpoint.', 403, '4003').send(res);
+    }
+    const patients = await IncidentService.getDoctorPatients(req.user.id, req.query);
+    return new SuccessResponse('Doctor patients retrieved successfully', 200, patients).send(res);
   }
 
   /**
@@ -653,6 +671,92 @@ class IncidentController {
         return error.send(res);
       }
       return new ErrorResponse('Failed to add incident note', 500, '5009').send(res);
+    }
+  }
+
+  // ========================================
+  // TREATMENT PLANS
+  // ========================================
+
+  /**
+   * Create treatment plan for incident
+   * POST /api/incidents/:id/treatment-plan
+   */
+  static async createTreatmentPlan(req, res) {
+    try {
+      const incidentId = parseInt(req.params.id);
+      
+      if (!incidentId || isNaN(incidentId)) {
+        return new ErrorResponse('Invalid incident ID', 400, '4001').send(res);
+      }
+
+      const treatmentPlan = await IncidentService.createTreatmentPlan(incidentId, req.body, req.user.id);
+
+      return new SuccessResponse('Treatment plan created successfully', 201, {
+        treatment_plan: treatmentPlan,
+        message: 'Treatment plan created successfully'
+      }).send(res);
+
+    } catch (error) {
+      logError('Create treatment plan error:', error);
+      if (error instanceof ErrorResponse) {
+        return error.send(res);
+      }
+      return new ErrorResponse('Failed to create treatment plan', 500, '5010').send(res);
+    }
+  }
+
+  /**
+   * Get treatment plan for incident
+   * GET /api/incidents/:id/treatment-plan
+   */
+  static async getTreatmentPlan(req, res) {
+    try {
+      const incidentId = parseInt(req.params.id);
+      
+      if (!incidentId || isNaN(incidentId)) {
+        return new ErrorResponse('Invalid incident ID', 400, '4001').send(res);
+      }
+
+      const treatmentPlan = await IncidentService.getTreatmentPlan(incidentId, req.user.id);
+
+      return new SuccessResponse('Treatment plan retrieved successfully', 200, treatmentPlan).send(res);
+
+    } catch (error) {
+      logError('Get treatment plan error:', error);
+      if (error instanceof ErrorResponse) {
+        return error.send(res);
+      }
+      return new ErrorResponse('Failed to get treatment plan', 500, '5011').send(res);
+    }
+  }
+
+  /**
+   * Update treatment plan
+   * PUT /api/incidents/:id/treatment-plan/:treatmentPlanId
+   */
+  static async updateTreatmentPlan(req, res) {
+    try {
+      const incidentId = parseInt(req.params.id);
+      const treatmentPlanId = parseInt(req.params.treatmentPlanId);
+      
+      if (!incidentId || isNaN(incidentId) || !treatmentPlanId || isNaN(treatmentPlanId)) {
+        return new ErrorResponse('Invalid incident ID or treatment plan ID', 400, '4001').send(res);
+      }
+
+      const treatmentPlan = await IncidentService.updateTreatmentPlan(treatmentPlanId, req.body, req.user.id);
+
+      return new SuccessResponse('Treatment plan updated successfully', 200, {
+        treatment_plan: treatmentPlan,
+        message: 'Treatment plan updated successfully'
+      }).send(res);
+
+    } catch (error) {
+      logError('Update treatment plan error:', error);
+      if (error instanceof ErrorResponse) {
+        return error.send(res);
+      }
+      return new ErrorResponse('Failed to update treatment plan', 500, '5012').send(res);
     }
   }
 }

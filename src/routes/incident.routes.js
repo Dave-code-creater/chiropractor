@@ -12,6 +12,11 @@ router.use(authenticate);
 // Incident CRUD operations
 router.post('/', createIncidentValidator, asyncHandler(IncidentController.createIncident));
 router.get('/', asyncHandler(IncidentController.getUserIncidents));
+
+// Doctor-specific endpoints
+router.get('/doctor/patients', asyncHandler(IncidentController.getDoctorPatients));
+
+// Single incident details
 router.get('/:id', asyncHandler(IncidentController.getIncidentById));
 router.put('/:id', updateIncidentValidator, asyncHandler(IncidentController.updateIncident));
 router.delete('/:id', asyncHandler(IncidentController.deleteIncident));
@@ -27,5 +32,10 @@ router.get('/:id/available-forms', asyncHandler(IncidentController.getAvailableI
 
 // Incident notes
 router.post('/:id/notes', incidentNoteValidator, asyncHandler(IncidentController.addIncidentNote));
+
+// Treatment plans
+router.post('/:id/treatment-plan', asyncHandler(IncidentController.createTreatmentPlan));
+router.get('/:id/treatment-plan', asyncHandler(IncidentController.getTreatmentPlan));
+router.put('/:id/treatment-plan/:treatmentPlanId', asyncHandler(IncidentController.updateTreatmentPlan));
 
 module.exports = router; 

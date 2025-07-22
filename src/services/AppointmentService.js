@@ -17,7 +17,7 @@ class AppointmentService {
    */
   static async createAppointment(appointmentData, req) {
     const {
-      doctor_id, patient_id, appointment_date, appointment_time, 
+      doctor_id, patient_id, appointment_date, appointment_time,
       location, reason_for_visit, additional_notes, status
     } = appointmentData;
 
@@ -43,7 +43,7 @@ class AppointmentService {
 
       // Parse and validate appointment datetime
       const appointmentDateTime = AppointmentService.parseAppointmentDateTime(appointment_date, appointment_time);
-      
+
       // Check for scheduling conflicts
       const appointmentRepo = getAppointmentRepository();
       const hasConflict = await appointmentRepo.checkSchedulingConflict(doctor_id, appointmentDateTime);
@@ -67,11 +67,11 @@ class AppointmentService {
       api.info('📝 Creating appointment record:', appointmentRecord);
       const appointment = await appointmentRepo.createAppointment(appointmentRecord);
 
-      api.info(' Appointment created:', { 
-        id: appointment.id, 
-        doctor_id, 
+      api.info(' Appointment created:', {
+        id: appointment.id,
+        doctor_id,
         patient_id,
-        datetime: appointmentDateTime 
+        datetime: appointmentDateTime
       });
 
       return AppointmentService.formatAppointmentResponse(appointment, doctor, patient);
@@ -92,9 +92,9 @@ class AppointmentService {
    */
   static async getAllAppointments(options = {}, user = null) {
     try {
-      const { 
-        page = 1, limit = 10, doctor_id, patient_id, status, 
-        start_date, end_date, location 
+      const {
+        page = 1, limit = 10, doctor_id, patient_id, status,
+        start_date, end_date, location
       } = options;
 
       const conditions = {};
@@ -123,7 +123,7 @@ class AppointmentService {
           // Find patient record by user_id
           const patientRepo = getPatientRepository();
           const patient = await patientRepo.findByUserId(user.id);
-          
+
           if (patient) {
             api.info(' Found patient record:', { patient_id: patient.id, user_id: user.id });
             conditions.patient_id = patient.id;
@@ -136,7 +136,7 @@ class AppointmentService {
             };
           }
         }
-        // Admin and staff can see all appointments (no additional filtering)
+        // Admin can see all appointments (no additional filtering)
       }
 
       // Date range filtering
@@ -202,13 +202,13 @@ class AppointmentService {
       // Parse new datetime if provided
       if (updateData.appointment_date && updateData.appointment_time) {
         const appointmentDateTime = AppointmentService.parseAppointmentDateTime(
-          updateData.appointment_date, 
+          updateData.appointment_date,
           updateData.appointment_time
         );
 
         // Check for conflicts if changing datetime
         const hasConflict = await AppointmentService.checkSchedulingConflict(
-          existingAppointment.doctor_id, 
+          existingAppointment.doctor_id,
           appointmentDateTime,
           appointmentId // Exclude current appointment
         );
@@ -285,13 +285,13 @@ class AppointmentService {
       const [time, period] = appointment_time.split(' ');
       const [hours, minutes] = time.split(':');
       let hour24 = parseInt(hours);
-      
+
       if (period === 'PM' && hour24 !== 12) {
         hour24 += 12;
       } else if (period === 'AM' && hour24 === 12) {
         hour24 = 0;
       }
-      
+
       parsedTime = `${hour24.toString().padStart(2, '0')}:${minutes}:00`;
     } else {
       parsedTime = appointment_time.includes(':') ? `${appointment_time}:00` : appointment_time;
@@ -344,7 +344,7 @@ class AppointmentService {
       location: appointment.location,
       reason_for_visit: appointment.reason_for_visit,
       additional_notes: appointment.additional_notes,
-      
+
       // Nested patient object
       patient: patient ? {
         id: patient.id,
@@ -359,7 +359,7 @@ class AppointmentService {
         email: null,
         phone: null
       },
-      
+
       // Nested doctor object
       doctor: doctor ? {
         id: doctor.id,
@@ -376,7 +376,7 @@ class AppointmentService {
         phone_number: null,
         email: null
       },
-      
+
       created_at: appointment.created_at,
       updated_at: appointment.updated_at
     };
@@ -525,7 +525,7 @@ class AppointmentService {
     // Generate slots
     for (let minutes = startMinutes; minutes < endMinutes; minutes += slotDuration) {
       // Check if this slot is already booked
-      const isBooked = bookedSlots.some(bookedMinutes => 
+      const isBooked = bookedSlots.some(bookedMinutes =>
         Math.abs(minutes - bookedMinutes) < slotDuration
       );
 
@@ -533,7 +533,7 @@ class AppointmentService {
         const hour = Math.floor(minutes / 60);
         const minute = minutes % 60;
         const timeStr = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
-        
+
         // Convert to 12-hour format for display
         const displayHour = hour > 12 ? hour - 12 : (hour === 0 ? 12 : hour);
         const period = hour >= 12 ? 'PM' : 'AM';
@@ -562,7 +562,7 @@ class AppointmentService {
   static async checkSlotAvailability(doctorId, date, time, duration = 30) {
     try {
       const availability = await AppointmentService.getDoctorAvailability(doctorId, date);
-      
+
       if (!availability.is_available) {
         return {
           available: false,
@@ -573,7 +573,7 @@ class AppointmentService {
 
       // Check if the specific time slot is available
       const requestedSlot = availability.available_slots.find(slot => slot.time === time);
-      
+
       if (requestedSlot) {
         return {
           available: true,
