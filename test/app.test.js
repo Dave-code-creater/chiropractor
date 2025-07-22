@@ -113,10 +113,3 @@ describe('Database Connection Handling', () => {
     expect(true).to.be.true;
   });
 });
-
-describe('Socket.IO Integration', () => {
-  it('should have socket.io available', () => {
-    expect(app.locals).to.have.property('io');
-    expect(app.locals.io).to.be.an('object');
-  });
-}); 

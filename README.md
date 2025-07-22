@@ -10,7 +10,7 @@ This application consolidates all previously separate microservices into a singl
 - **Patient Management**: Complete patient records, intake forms, medical history
 - **Appointment Scheduling**: Doctor-patient appointment booking and management
 - **Clinical Notes & Vitals**: Medical documentation and vital signs tracking
-- **Real-time Chat**: Socket.IO-based communication system
+- **Chat System**: Long-polling based messaging system
 - **Blog Management**: Content management for clinic blog/news
 - **Analytics & Reporting**: Practice analytics and patient reports
 - **Application Monitoring**: Comprehensive application monitoring
@@ -20,7 +20,6 @@ This application consolidates all previously separate microservices into a singl
 - **Backend**: Node.js, Express.js
 - **Database**: PostgreSQL
 - **Authentication**: JWT tokens
-- **Real-time**: Socket.IO
 - **Caching**: Redis (optional)
 - **Containerization**: Docker & Docker Compose
 
@@ -93,7 +92,6 @@ chiropractor-monolith/
 │   ├── middleware/             # Express middleware
 │   ├── models/                 # Database models (to be implemented)
 │   ├── services/               # Business services (to be implemented)
-│   ├── socket/                 # Socket.IO handlers
 │   └── utils/                  # Utility functions
 ├── migrations/                 # Database migration files
 ├── scripts/                    # Utility scripts
@@ -270,7 +268,7 @@ This monolithic version consolidates the following services:
 | User Service | `src/routes/user.routes.js` | Patient management |
 | Appointment Service | `src/routes/appointment.routes.js` | Scheduling |
 | Blog Service | `src/routes/blog.routes.js` | Content management |
-| Chat Service | `src/routes/chat.routes.js` + `src/socket/` | Real-time communication |
+| Chat Service | `src/routes/chat.routes.js` | Long-polling based messaging |
 | Report Service | `src/routes/report.routes.js` | Analytics |
 
 ### Benefits of Monolithic Architecture:

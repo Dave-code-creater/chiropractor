@@ -4,8 +4,6 @@ const morgan = require('morgan');
 const helmet = require('helmet');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
-const http = require('http');
-const socketIo = require('socket.io');
 const cookieParser = require('cookie-parser');
 
 // Load environment variables
@@ -32,24 +30,7 @@ const errorMiddleware = require('./middleware/error.middleware');
 // Import logger
 const { info, warn, error: logError } = require('./utils/logger');
 
-
-
-// Import socket handlers
-const socketHandler = require('./socket/socket.handler');
-
 const app = express();
-const server = http.createServer(app);
-
-// Initialize Socket.IO
-const io = socketIo(server, {
-  cors: {
-    origin: process.env.CORS_ORIGIN || "http://localhost:5173",
-    methods: ["GET", "POST"]
-  }
-});
-
-// Make io available to routes through app.locals
-app.locals.io = io;
 
 // Basic middleware
 app.use(express.json({ limit: '10mb' }));
@@ -112,11 +93,6 @@ apiV1.use('/incidents', incidentRoutes);
 // Mount API routes
 app.use('/api/v1/2025', apiV1);
 
-
-
-// Socket.IO connection handling
-socketHandler(io);
-
 // Error handling middleware (must be last)
 app.use(errorMiddleware);
 
@@ -138,7 +114,7 @@ async function startServer() {
     info('Database initialization completed successfully');
     
     const PORT = process.env.PORT || 3000;
-    server.listen(PORT, () => {
+    app.listen(PORT, () => {
       info(`Chiropractor Monolith Server running on port ${PORT}`);
       info(`CORS origin: ${process.env.CORS_ORIGIN || 'http://localhost:5173'}`);
       info('Server startup completed successfully');
@@ -156,18 +132,14 @@ async function startServer() {
 // Graceful shutdown
 process.on('SIGTERM', () => {
   info('SIGTERM received, shutting down gracefully');
-  server.close(() => {
-    info('Process terminated');
-  });
+  process.exit(0);
 });
 
 process.on('SIGINT', () => {
   info('SIGINT received, shutting down gracefully');
-  server.close(() => {
-    info('Process terminated');
-  });
+  process.exit(0);
 });
 
 startServer();
 
-module.exports = { app, server, io }; 
+module.exports = { app }; 
