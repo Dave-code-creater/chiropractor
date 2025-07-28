@@ -1,4 +1,4 @@
-const BaseRepository = require('./BaseRepository');
+const BaseRepository = require('./base.repository');
 
 /**
  * Doctor Repository Class
@@ -50,7 +50,7 @@ class DoctorRepository extends BaseRepository {
       JOIN users u ON d.user_id = u.id
       WHERE d.id = $1
     `;
-    
+
     const result = await this.query(query, [doctorId]);
     return result.rows[0] || null;
   }
@@ -73,7 +73,7 @@ class DoctorRepository extends BaseRepository {
       ${options.limit ? `LIMIT ${options.limit}` : ''}
       ${options.offset ? `OFFSET ${options.offset}` : ''}
     `;
-    
+
     const result = await this.query(query);
     return result.rows;
   }
@@ -98,7 +98,7 @@ class DoctorRepository extends BaseRepository {
       ${options.limit ? `LIMIT ${options.limit}` : ''}
       ${options.offset ? `OFFSET ${options.offset}` : ''}
     `;
-    
+
     const result = await this.query(query, [`%${specialization}%`]);
     return result.rows;
   }
@@ -127,7 +127,7 @@ class DoctorRepository extends BaseRepository {
       ${options.limit ? `LIMIT ${options.limit}` : ''}
       ${options.offset ? `OFFSET ${options.offset}` : ''}
     `;
-    
+
     const result = await this.query(query);
     return result.rows;
   }
@@ -154,7 +154,7 @@ class DoctorRepository extends BaseRepository {
       ORDER BY slot_time ASC
       LIMIT 1
     `;
-    
+
     const result = await this.query(query, [doctorId, fromDate]);
     return result.rows[0] || null;
   }
@@ -176,7 +176,7 @@ class DoctorRepository extends BaseRepository {
       JOIN doctors d ON d.id = ds.doctor_id
       WHERE ds.doctor_id = $1 AND ds.day_of_week = $2
     `;
-    
+
     const result = await this.query(query, [doctorId, dayOfWeek]);
     return result.rows[0] || null;
   }
@@ -198,7 +198,7 @@ class DoctorRepository extends BaseRepository {
       WHERE ds.doctor_id = $1
       ORDER BY ds.day_of_week
     `;
-    
+
     const result = await this.query(query, [doctorId]);
     return result.rows;
   }
@@ -235,7 +235,7 @@ class DoctorRepository extends BaseRepository {
         VALUES ($1, $2, $3, $4, $5, $6)
         RETURNING *
       `;
-      
+
       const values = [
         doctorId,
         schedule.day_of_week,
@@ -244,7 +244,7 @@ class DoctorRepository extends BaseRepository {
         schedule.is_available,
         schedule.accepts_walkin
       ];
-      
+
       const result = await this.query(query, values);
       createdSchedules.push(result.rows[0]);
     }
@@ -271,7 +271,7 @@ class DoctorRepository extends BaseRepository {
       WHERE doctor_id = $5 AND day_of_week = $6
       RETURNING *
     `;
-    
+
     const values = [
       scheduleData.start_time,
       scheduleData.end_time,
@@ -280,7 +280,7 @@ class DoctorRepository extends BaseRepository {
       doctorId,
       dayOfWeek
     ];
-    
+
     const result = await this.query(query, values);
     return result.rows[0];
   }

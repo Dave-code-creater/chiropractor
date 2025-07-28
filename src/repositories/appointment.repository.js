@@ -1,4 +1,4 @@
-const BaseRepository = require('./BaseRepository');
+const BaseRepository = require('./base.repository');
 const { api, error: logError, info } = require('../utils/logger');
 
 /**
@@ -66,10 +66,10 @@ class AppointmentRepository extends BaseRepository {
   async getAppointmentsByConditions(conditions = {}, options = {}) {
     try {
       const { limit, offset, orderBy = 'appointment_datetime DESC' } = options;
-      
+
       // Build where clause for complex conditions
       const whereConditions = {};
-      
+
       if (conditions.doctor_id) whereConditions.doctor_id = conditions.doctor_id;
       if (conditions.patient_id) whereConditions.patient_id = conditions.patient_id;
       if (conditions.status) whereConditions.status = conditions.status;
@@ -130,7 +130,7 @@ class AppointmentRepository extends BaseRepository {
   async countAppointmentsByConditions(conditions = {}) {
     try {
       const whereConditions = {};
-      
+
       if (conditions.doctor_id) whereConditions.doctor_id = conditions.doctor_id;
       if (conditions.status) whereConditions.status = conditions.status;
       if (conditions.location) whereConditions.location = conditions.location;
@@ -188,7 +188,7 @@ class AppointmentRepository extends BaseRepository {
         AND appointment_datetime < $2
         AND appointment_datetime + INTERVAL '30 minutes' > $3
       `;
-      
+
       let params = [doctorId, endTime, startTime];
 
       if (excludeAppointmentId) {
@@ -238,7 +238,7 @@ class AppointmentRepository extends BaseRepository {
   async getPatientAppointments(patientId, options = {}) {
     try {
       const { limit = 10, offset = 0 } = options;
-      
+
       const query = `
         SELECT a.*, 
                d.first_name as doctor_first_name, d.last_name as doctor_last_name
@@ -270,7 +270,7 @@ class AppointmentRepository extends BaseRepository {
       if (filters.end_date) whereConditions.appointment_date = { $lte: filters.end_date };
 
       const whereClause = this.buildWhereClause(whereConditions);
-      
+
       const query = `
         SELECT 
           COUNT(*) as total_appointments,

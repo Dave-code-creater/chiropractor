@@ -1,4 +1,4 @@
-const BaseRepository = require('./BaseRepository');
+const BaseRepository = require('./base.repository');
 const bcrypt = require('bcryptjs');
 const { database, error: logError, info, debug } = require('../utils/logger');
 
@@ -63,7 +63,7 @@ class ApiKeyRepository extends BaseRepository {
     if (activeOnly) {
       conditions.status = true;
     }
-    
+
     return await this.findBy(conditions, '*', { orderBy: 'created_at DESC' });
   }
 
@@ -75,14 +75,14 @@ class ApiKeyRepository extends BaseRepository {
    */
   async findActiveKeyByUserId(userId, key) {
     const keys = await this.findByUserId(userId, true);
-    
+
     for (const keyRecord of keys) {
       const isValid = await bcrypt.compare(key, keyRecord.key);
       if (isValid && this.isKeyValid(keyRecord)) {
         return keyRecord;
       }
     }
-    
+
     return null;
   }
 
@@ -99,23 +99,23 @@ class ApiKeyRepository extends BaseRepository {
         WHERE status = true
         ORDER BY created_at DESC
       `;
-      
+
       const result = await this.query(query);
       const keys = result.rows;
-      
+
       for (const keyRecord of keys) {
         // Check if it's a direct match (for JWT tokens)
         if (keyRecord.key === key && this.isKeyValid(keyRecord)) {
           return keyRecord;
         }
-        
+
         // Check if it's a hashed match (for custom API keys)
         const isHashedMatch = await bcrypt.compare(key, keyRecord.key);
         if (isHashedMatch && this.isKeyValid(keyRecord)) {
           return keyRecord;
         }
       }
-      
+
       return null;
     } catch (error) {
       database.error('Error finding API key:', error);
@@ -168,7 +168,7 @@ class ApiKeyRepository extends BaseRepository {
     const conditions = {
       expires_at: { operator: '<', value: new Date() }
     };
-    
+
     return await this.deleteBy(conditions);
   }
 
@@ -190,7 +190,7 @@ class ApiKeyRepository extends BaseRepository {
       FROM ${this.tableName}
       WHERE user_id = $1
     `;
-    
+
     const result = await this.query(query, [userId]);
     return result.rows[0];
   }
@@ -214,7 +214,7 @@ class ApiKeyRepository extends BaseRepository {
       GROUP BY device_type, platform, browser
       ORDER BY last_used DESC NULLS LAST, last_created DESC
     `;
-    
+
     const result = await this.query(query, [userId]);
     return result.rows;
   }
@@ -228,11 +228,11 @@ class ApiKeyRepository extends BaseRepository {
     if (!keyRecord.status) {
       return false;
     }
-    
+
     if (keyRecord.expires_at && new Date(keyRecord.expires_at) < new Date()) {
       return false;
     }
-    
+
     return true;
   }
 
@@ -257,7 +257,7 @@ class ApiKeyRepository extends BaseRepository {
    */
   async revokeRefreshToken(userId, token) {
     const refreshTokens = await this.getRefreshTokens(userId);
-    
+
     for (const tokenRecord of refreshTokens) {
       const isValid = await bcrypt.compare(token, tokenRecord.key);
       if (isValid) {
@@ -265,7 +265,7 @@ class ApiKeyRepository extends BaseRepository {
         return true;
       }
     }
-    
+
     return false;
   }
 
@@ -277,7 +277,7 @@ class ApiKeyRepository extends BaseRepository {
   async getKeysExpiringIn(hours = 24) {
     const expirationTime = new Date();
     expirationTime.setHours(expirationTime.getHours() + hours);
-    
+
     const query = `
       SELECT ak.*, u.email, u.username
       FROM ${this.tableName} ak
@@ -287,7 +287,7 @@ class ApiKeyRepository extends BaseRepository {
         AND ak.expires_at BETWEEN NOW() AND $1
       ORDER BY ak.expires_at ASC
     `;
-    
+
     const result = await this.query(query, [expirationTime]);
     return result.rows;
   }
@@ -309,7 +309,7 @@ class ApiKeyRepository extends BaseRepository {
         AVG(EXTRACT(EPOCH FROM (expires_at - created_at))/3600) as avg_expiry_hours
       FROM ${this.tableName}
     `;
-    
+
     const result = await this.query(query);
     return result.rows[0];
   }

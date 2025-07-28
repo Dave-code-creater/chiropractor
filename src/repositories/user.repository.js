@@ -1,4 +1,4 @@
-const BaseRepository = require('./BaseRepository');
+const BaseRepository = require('./base.repository');
 const bcrypt = require('bcryptjs');
 const { database, error: logError, info } = require('../utils/logger');
 

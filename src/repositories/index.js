@@ -1,10 +1,10 @@
-const BaseRepository = require('./BaseRepository');
-const UserRepository = require('./UserRepository');
-const PatientRepository = require('./PatientRepository');
-const DoctorRepository = require('./DoctorRepository');
-const ApiKeyRepository = require('./ApiKeyRepository');
-const AppointmentRepository = require('./AppointmentRepository');
-const ChatRepository = require('./ChatRepository');
+const BaseRepository = require('./base.repository');
+const UserRepository = require('./user.repository');
+const PatientRepository = require('./patient.repository');
+const DoctorRepository = require('./doctor.repository');
+const ApiKeyRepository = require('./api-key.repository');
+const AppointmentRepository = require('./appointment.repository');
+const ChatRepository = require('./chat.repository');
 
 /**
  * Repository Factory
@@ -52,7 +52,7 @@ class RepositoryFactory {
           throw new Error(`Repository '${repositoryName}' not found`);
       }
     }
-    
+
     return this._instances.get(repositoryName);
   }
 
@@ -119,7 +119,7 @@ const repositoryFactory = new RepositoryFactory();
 module.exports = {
   // Base repository
   BaseRepository,
-  
+
   // Specific repositories
   UserRepository,
   PatientRepository,
@@ -127,10 +127,10 @@ module.exports = {
   ApiKeyRepository,
   AppointmentRepository,
   ChatRepository,
-  
+
   // Factory instance
   repositoryFactory,
-  
+
   // Convenience methods for getting repositories
   getUserRepository: () => repositoryFactory.getUserRepository(),
   getPatientRepository: () => repositoryFactory.getPatientRepository(),
@@ -138,7 +138,7 @@ module.exports = {
   getApiKeyRepository: () => repositoryFactory.getApiKeyRepository(),
   getAppointmentRepository: () => repositoryFactory.getAppointmentRepository(),
   getChatRepository: () => repositoryFactory.getChatRepository(),
-  
+
   // Get repository by name
   getRepository: (name) => repositoryFactory.getRepository(name)
 }; 

@@ -1,4 +1,4 @@
-const BaseRepository = require('./BaseRepository');
+const BaseRepository = require('./base.repository');
 
 /**
  * Patient Repository Class
@@ -97,7 +97,7 @@ class PatientRepository extends BaseRepository {
       FROM ${this.tableName} p
       ${whereClause}
     `;
-    
+
     const countResult = await this.query(countQuery, queryParams);
     const total = parseInt(countResult.rows[0].total);
 
@@ -141,7 +141,7 @@ class PatientRepository extends BaseRepository {
       WHERE v.patient_id = $1
       ORDER BY v.recorded_at DESC
     `;
-    
+
     const result = await this.query(query, [patientId]);
     return result.rows;
   }
@@ -162,7 +162,7 @@ class PatientRepository extends BaseRepository {
       JOIN users u ON p.user_id = u.id
       WHERE p.id = $1
     `;
-    
+
     const result = await this.query(query, [patientId]);
     return result.rows[0] || null;
   }
@@ -183,7 +183,7 @@ class PatientRepository extends BaseRepository {
       JOIN users u ON p.user_id = u.id
       WHERE p.user_id = $1 AND p.status = 'active'
     `;
-    
+
     const result = await this.query(query, [userId]);
     return result.rows[0] || null;
   }
@@ -214,7 +214,7 @@ class PatientRepository extends BaseRepository {
       ${options.limit ? `LIMIT ${options.limit}` : ''}
       ${options.offset ? `OFFSET ${options.offset}` : ''}
     `;
-    
+
     const result = await this.query(query, [`%${searchTerm}%`]);
     return result.rows;
   }
@@ -238,7 +238,7 @@ class PatientRepository extends BaseRepository {
       ${options.limit ? `LIMIT ${options.limit}` : ''}
       ${options.offset ? `OFFSET ${options.offset}` : ''}
     `;
-    
+
     const result = await this.query(query, [minAge, maxAge]);
     return result.rows;
   }
@@ -270,7 +270,7 @@ class PatientRepository extends BaseRepository {
             AND EXTRACT(DOY FROM CURRENT_DATE + INTERVAL '${days} days')
       ORDER BY EXTRACT(DOY FROM p.date_of_birth) ASC
     `;
-    
+
     const result = await this.query(query);
     return result.rows;
   }
@@ -282,8 +282,8 @@ class PatientRepository extends BaseRepository {
    * @returns {Object|null} Updated patient record
    */
   async updateMedicalHistory(patientId, medicalHistory) {
-    return await this.updateById(patientId, { 
-      medical_history: JSON.stringify(medicalHistory) 
+    return await this.updateById(patientId, {
+      medical_history: JSON.stringify(medicalHistory)
     });
   }
 
@@ -294,8 +294,8 @@ class PatientRepository extends BaseRepository {
    * @returns {Object|null} Updated patient record
    */
   async updateInsuranceInfo(patientId, insuranceInfo) {
-    return await this.updateById(patientId, { 
-      insurance_info: JSON.stringify(insuranceInfo) 
+    return await this.updateById(patientId, {
+      insurance_info: JSON.stringify(insuranceInfo)
     });
   }
 
@@ -320,7 +320,7 @@ class PatientRepository extends BaseRepository {
       FROM ${this.tableName}
       WHERE status = 'active'
     `;
-    
+
     const result = await this.query(query);
     return result.rows[0];
   }
@@ -342,7 +342,7 @@ class PatientRepository extends BaseRepository {
       ${options.limit ? `LIMIT ${options.limit}` : ''}
       ${options.offset ? `OFFSET ${options.offset}` : ''}
     `;
-    
+
     const result = await this.query(query, [insuranceType]);
     return result.rows;
   }
@@ -363,7 +363,7 @@ class PatientRepository extends BaseRepository {
       ORDER BY p.created_at DESC
       LIMIT $1
     `;
-    
+
     const result = await this.query(query, [limit]);
     return result.rows;
   }
