@@ -6,7 +6,11 @@ const {
 } = require('../utils/httpResponses');
 const { getPostgreSQLPool } = require('../config/database');
 const { appointmentCreateSchema, appointmentUpdateSchema } = require('../validators');
-const AppointmentService = require('../services/AppointmentService');
+const logger = require('../utils/logger');
+const httpResponses = require('../utils/httpResponses');
+const asyncHandler = require('../utils/asyncHandler');
+
+const AppointmentService = require('../services/appointment.service');
 const { api, error: logError, info } = require('../utils/logger');
 
 const { getDoctorRepository } = require('../repositories');

@@ -3,7 +3,11 @@ const { v4: uuidv4 } = require('uuid');
 const { SuccessResponse, ErrorResponse, SignupSuccess, LoginSuccess, LogoutSuccess, ProfileSuccess } = require('../utils/httpResponses');
 const { getUserRepository, getPatientRepository, getDoctorRepository, getApiKeyRepository } = require('../repositories');
 const { registerSchema, loginSchema } = require('../validators');
-const AuthService = require('../services/AuthService');
+const logger = require('../utils/logger');
+const httpResponses = require('../utils/httpResponses');
+const asyncHandler = require('../utils/asyncHandler');
+
+const AuthService = require('../services/auth.service');
 
 /**
  * Authentication Controller

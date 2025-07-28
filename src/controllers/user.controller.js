@@ -1,9 +1,13 @@
-const { 
-  PatientCreatedSuccess, 
-  PatientsRetrievedSuccess, 
-  SuccessResponse 
+const {
+  PatientCreatedSuccess,
+  PatientsRetrievedSuccess,
+  SuccessResponse
 } = require('../utils/httpResponses');
-const UserService = require('../services/UserService');
+const logger = require('../utils/logger');
+const httpResponses = require('../utils/httpResponses');
+const asyncHandler = require('../utils/asyncHandler');
+
+const UserService = require('../services/user.service');
 
 /**
  * User Controller

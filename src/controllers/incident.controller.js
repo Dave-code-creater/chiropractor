@@ -1,8 +1,8 @@
-const { 
-  SuccessResponse, 
-  ErrorResponse 
+const {
+  SuccessResponse,
+  ErrorResponse
 } = require('../utils/httpResponses');
-const IncidentService = require('../services/IncidentService');
+const IncidentService = require('../services/incident.service');
 const { error: logError, info } = require('../utils/logger');
 
 /**
@@ -35,7 +35,7 @@ class IncidentController {
       const incidents = await IncidentService.getPatientIncidents(req.query.patient_id, req.query);
       return new SuccessResponse('Patient incidents retrieved successfully', 200, incidents).send(res);
     }
-    
+
     const incidents = await IncidentService.getUserIncidents(req.user.id, req.query);
     return new SuccessResponse('Incidents retrieved successfully', 200, incidents).send(res);
   }
@@ -385,7 +385,7 @@ class IncidentController {
 
       // Get all forms for this incident
       const forms = incident.forms || [];
-      
+
       // Build available forms list
       const availableForms = forms.map(form => {
         const displayInfo = formDisplayMapping[form.form_type] || {
@@ -456,7 +456,7 @@ class IncidentController {
   static async submitPatientInfoForm(req, res) {
     try {
       const incidentId = parseInt(req.params.id);
-      
+
       if (!incidentId || isNaN(incidentId)) {
         return new ErrorResponse('Invalid incident ID', 400, '4001').send(res);
       }
@@ -488,7 +488,7 @@ class IncidentController {
   static async submitHealthInsuranceForm(req, res) {
     try {
       const incidentId = parseInt(req.params.id);
-      
+
       if (!incidentId || isNaN(incidentId)) {
         return new ErrorResponse('Invalid incident ID', 400, '4001').send(res);
       }
@@ -520,7 +520,7 @@ class IncidentController {
   static async submitPainDescriptionFormNew(req, res) {
     try {
       const incidentId = parseInt(req.params.id);
-      
+
       if (!incidentId || isNaN(incidentId)) {
         return new ErrorResponse('Invalid incident ID', 400, '4001').send(res);
       }
@@ -552,7 +552,7 @@ class IncidentController {
   static async submitPainAssessmentFormNew(req, res) {
     try {
       const incidentId = parseInt(req.params.id);
-      
+
       if (!incidentId || isNaN(incidentId)) {
         return new ErrorResponse('Invalid incident ID', 400, '4001').send(res);
       }
@@ -584,7 +584,7 @@ class IncidentController {
   static async submitMedicalHistoryFormNew(req, res) {
     try {
       const incidentId = parseInt(req.params.id);
-      
+
       if (!incidentId || isNaN(incidentId)) {
         return new ErrorResponse('Invalid incident ID', 400, '4001').send(res);
       }
@@ -616,7 +616,7 @@ class IncidentController {
   static async submitLifestyleImpactFormNew(req, res) {
     try {
       const incidentId = parseInt(req.params.id);
-      
+
       if (!incidentId || isNaN(incidentId)) {
         return new ErrorResponse('Invalid incident ID', 400, '4001').send(res);
       }
@@ -685,7 +685,7 @@ class IncidentController {
   static async createTreatmentPlan(req, res) {
     try {
       const incidentId = parseInt(req.params.id);
-      
+
       if (!incidentId || isNaN(incidentId)) {
         return new ErrorResponse('Invalid incident ID', 400, '4001').send(res);
       }
@@ -713,7 +713,7 @@ class IncidentController {
   static async getTreatmentPlan(req, res) {
     try {
       const incidentId = parseInt(req.params.id);
-      
+
       if (!incidentId || isNaN(incidentId)) {
         return new ErrorResponse('Invalid incident ID', 400, '4001').send(res);
       }
@@ -739,7 +739,7 @@ class IncidentController {
     try {
       const incidentId = parseInt(req.params.id);
       const treatmentPlanId = parseInt(req.params.treatmentPlanId);
-      
+
       if (!incidentId || isNaN(incidentId) || !treatmentPlanId || isNaN(treatmentPlanId)) {
         return new ErrorResponse('Invalid incident ID or treatment plan ID', 400, '4001').send(res);
       }

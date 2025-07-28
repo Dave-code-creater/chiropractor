@@ -112,7 +112,7 @@ async function startServer() {
     info('Attempting to connect to databases...');
     await initializeDatabases();
     info('Database initialization completed successfully');
-    
+
     const PORT = process.env.PORT || 3000;
     app.listen(PORT, () => {
       info(`Chiropractor Monolith Server running on port ${PORT}`);

@@ -6,7 +6,7 @@ const {
 } = require('../utils/httpResponses');
 const { getPostgreSQLPool } = require('../config/database');
 const { createConversationSchema, doctorPatientConversationSchema, sendMessageSchema } = require('../validators').schemas;
-const ChatService = require('../services/ChatService');
+const ChatService = require('../services/chat.service');
 const { api, error: logError, info, debug } = require('../utils/logger');
 
 /**

@@ -1,4 +1,4 @@
-const BlogService = require('../services/BlogService');
+const BlogService = require('../services/blog.service');
 const { SuccessResponse, ErrorResponse } = require('../utils/httpResponses');
 const { info, error: logError } = require('../utils/logger');
 
