@@ -68,23 +68,6 @@ const clinicalNotesSchema = Joi.object({
   status: Joi.string().valid('draft', 'completed', 'reviewed').default('completed')
 });
 
-const vitalsSchema = Joi.object({
-  patient_id: Joi.number().integer().positive().required(),
-  appointment_id: Joi.number().integer().positive().optional(),
-  blood_pressure: Joi.object({
-    systolic: Joi.number().integer().min(60).max(250).optional(),
-    diastolic: Joi.number().integer().min(30).max(150).optional()
-  }).optional(),
-  heart_rate: Joi.number().integer().min(30).max(200).optional(),
-  temperature: Joi.number().min(90).max(110).optional(),
-  weight: Joi.number().min(50).max(1000).optional(),
-  height: Joi.number().min(36).max(96).optional(),
-  pain_level: Joi.number().integer().min(0).max(10).optional(),
-  pain_location: Joi.string().max(200).optional(),
-  recorded_by: Joi.string().max(100).optional(),
-  notes: Joi.string().max(500).optional()
-});
-
 const profileUpdateSchema = Joi.object({
   first_name: Joi.string().min(2).max(50).optional(),
   middle_name: Joi.string().max(50).optional(),
@@ -113,6 +96,5 @@ module.exports = {
   patientCreateSchema,
   patientUpdateSchema,
   clinicalNotesSchema,
-  vitalsSchema,
   profileUpdateSchema
 }; 

@@ -62,30 +62,12 @@ class UserController {
   }
 
   /**
-   * Record patient vitals
-   * POST /api/users/patients/:id/vitals
-   */
-  static async recordVitals(req, res) {
-    const vitals = await UserService.recordVitals(req.params.id, req.body);
-    return new SuccessResponse('Vitals recorded successfully', 201, vitals).send(res);
-  }
-
-  /**
    * Get clinical notes
    * GET /api/users/patients/:id/clinical-notes
    */
   static async getClinicalNotes(req, res) {
     const notes = await UserService.getClinicalNotes(req.params.id);
     return new SuccessResponse('Clinical notes retrieved successfully', 200, notes).send(res);
-  }
-
-  /**
-   * Get vitals history
-   * GET /api/users/patients/:id/vitals
-   */
-  static async getVitalsHistory(req, res) {
-    const vitals = await UserService.getVitalsHistory(req.params.id);
-    return new SuccessResponse('Vitals history retrieved successfully', 200, vitals).send(res);
   }
 
   /**

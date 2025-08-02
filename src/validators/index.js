@@ -5,10 +5,10 @@
 
 const { validate } = require('../middleware/validation.middleware');
 
-const { 
-  patientRegisterSchema, 
-  registerSchema, 
-  loginSchema, 
+const {
+  patientRegisterSchema,
+  registerSchema,
+  loginSchema,
   refreshTokenSchema,
   changePasswordSchema,
   forgotPasswordSchema,
@@ -19,7 +19,6 @@ const {
   patientCreateSchema,
   patientUpdateSchema,
   clinicalNotesSchema,
-  vitalsSchema,
   profileUpdateSchema
 } = require('./user.validator');
 
@@ -64,7 +63,6 @@ const userCreateValidator = validate(patientCreateSchema);
 const patientCreateValidator = validate(patientCreateSchema);
 const patientUpdateValidator = validate(patientUpdateSchema);
 const clinicalNotesValidator = validate(clinicalNotesSchema);
-const vitalsValidator = validate(vitalsSchema);
 const profileUpdateValidator = validate(profileUpdateSchema);
 
 const appointmentValidator = validate(appointmentCreateSchema);
@@ -99,32 +97,31 @@ module.exports = {
   changePasswordValidator,
   forgotPasswordValidator,
   resetPasswordValidator,
-  
+
   // User validators (middleware functions)
   userCreateValidator,
   patientCreateValidator,
   patientUpdateValidator,
   clinicalNotesValidator,
-  vitalsValidator,
   profileUpdateValidator,
-  
+
   // Appointment validators (middleware functions)
   appointmentValidator,
   appointmentCreateValidator,
   appointmentUpdateValidator,
-  
+
   // Chat validators (middleware functions)
   messageValidator,
   createConversationValidator,
   doctorPatientConversationValidator,
   sendMessageValidator,
-  
+
   // Incident validators (middleware functions)
   createIncidentValidator,
   updateIncidentValidator,
   incidentFormValidator,
   incidentNoteValidator,
-  
+
   // Report validators (middleware functions)
   reportValidator,
   patientIntakeValidator,
@@ -134,7 +131,7 @@ module.exports = {
   workImpactValidator,
   healthConditionValidator,
   doctorInitialReportValidator,
-  
+
   // Raw schemas (for manual validation if needed)
   schemas: {
     patientRegisterSchema,
@@ -147,7 +144,6 @@ module.exports = {
     patientCreateSchema,
     patientUpdateSchema,
     clinicalNotesSchema,
-    vitalsSchema,
     profileUpdateSchema,
     appointmentCreateSchema,
     appointmentUpdateSchema,

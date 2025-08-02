@@ -1,6 +1,6 @@
 const { BadRequestError, NotFoundError, ConflictError, InternalServerError } = require('../utils/httpResponses');
 const { getUserRepository, getPatientRepository, getDoctorRepository } = require('../repositories');
-const { patientCreateSchema, patientUpdateSchema, clinicalNotesSchema, vitalsSchema, profileUpdateSchema } = require('../validators').schemas;
+const { patientCreateSchema, patientUpdateSchema, clinicalNotesSchema, profileUpdateSchema } = require('../validators').schemas;
 const { info, error: logError, debug, warn } = require('../utils/logger');
 
 /**
@@ -37,7 +37,7 @@ class UserService {
       // Use transaction for data consistency
       const result = await userRepo.transaction(async () => {
         let user;
-        
+
         if (user_id) {
           // Link to existing user
           user = await userRepo.findById(user_id);
@@ -70,7 +70,7 @@ class UserService {
         return { user, patient };
       });
 
-      info(' Patient created:', { 
+      info(' Patient created:', {
         patient_id: result.patient.id,
         user_id: result.user.id,
         name: `${first_name} ${last_name}`
@@ -112,7 +112,7 @@ class UserService {
   static async getAllPatients(query = {}) {
     try {
       const patientRepo = getPatientRepository();
-      
+
       const {
         page = 1,
         limit = 10,
@@ -133,10 +133,10 @@ class UserService {
         offset
       });
 
-      info(' Patients retrieved:', { 
+      info(' Patients retrieved:', {
         count: result.patients.length,
         total: result.total,
-        page 
+        page
       });
 
       return {
@@ -177,7 +177,7 @@ class UserService {
   static async getPatientById(patientId) {
     try {
       const patientRepo = getPatientRepository();
-      
+
       const patient = await patientRepo.findPatientById(patientId);
       if (!patient) {
         throw new NotFoundError('Patient not found', '4041');
@@ -203,8 +203,7 @@ class UserService {
         status: patient.status,
         created_at: patient.created_at,
         updated_at: patient.updated_at,
-        clinical_notes: patient.clinical_notes || [],
-        vitals: patient.vitals || []
+        clinical_notes: patient.clinical_notes || []
       };
 
     } catch (error) {
@@ -228,7 +227,7 @@ class UserService {
 
     try {
       const patientRepo = getPatientRepository();
-      
+
       const existingPatient = await patientRepo.findPatientById(patientId);
       if (!existingPatient) {
         throw new NotFoundError('Patient not found', '4041');
@@ -278,7 +277,7 @@ class UserService {
 
     try {
       const patientRepo = getPatientRepository();
-      
+
       const patient = await patientRepo.findPatientById(patientId);
       if (!patient) {
         throw new NotFoundError('Patient not found', '4041');
@@ -307,51 +306,6 @@ class UserService {
   }
 
   /**
-   * Record patient vitals
-   * @param {number} patientId - Patient ID
-   * @param {Object} vitalsData - Vitals data
-   * @returns {Object} Recorded vitals
-   */
-  static async recordVitals(patientId, vitalsData) {
-    const { error } = vitalsSchema.validate(vitalsData);
-    if (error) throw new BadRequestError(error.details[0].message, '4001');
-
-    try {
-      const patientRepo = getPatientRepository();
-      
-      const patient = await patientRepo.findPatientById(patientId);
-      if (!patient) {
-        throw new NotFoundError('Patient not found', '4041');
-      }
-
-      const vitals = await patientRepo.recordVitals(patientId, vitalsData);
-
-      info(' Vitals recorded:', { patient_id: patientId, vitals_id: vitals.id });
-
-      return {
-        id: vitals.id,
-        patient_id: vitals.patient_id,
-        blood_pressure_systolic: vitals.blood_pressure_systolic,
-        blood_pressure_diastolic: vitals.blood_pressure_diastolic,
-        heart_rate: vitals.heart_rate,
-        temperature: vitals.temperature,
-        weight: vitals.weight,
-        height: vitals.height,
-        notes: vitals.notes,
-        recorded_by: vitals.recorded_by,
-        recorded_at: vitals.recorded_at
-      };
-
-    } catch (error) {
-      logError('Record vitals service error:', error);
-      if (error instanceof BadRequestError || error instanceof NotFoundError) {
-        throw error;
-      }
-      throw new InternalServerError('Failed to record vitals', '5006');
-    }
-  }
-
-  /**
    * Get patient's clinical notes
    * @param {number} patientId - Patient ID
    * @returns {Array} Clinical notes
@@ -359,65 +313,30 @@ class UserService {
   static async getClinicalNotes(patientId) {
     try {
       const patientRepo = getPatientRepository();
-      
-      const patient = await patientRepo.findPatientById(patientId);
-      if (!patient) {
-        throw new NotFoundError('Patient not found', '4041');
-      }
 
-      const notes = await patientRepo.getClinicalNotes(patientId);
+      const notes = await patientRepo.findPatientClinicalNotes(patientId);
 
-      info(' Clinical notes retrieved:', { patient_id: patientId, count: notes.length });
-
-      return notes.map(note => ({
-        id: note.id,
-        patient_id: note.patient_id,
-        notes: note.notes,
-        note_type: note.note_type,
-        created_by: note.created_by,
-        doctor_name: note.doctor_name,
-        created_at: note.created_at
-      }));
-
-    } catch (error) {
-      logError('Get clinical notes service error:', error);
-      if (error instanceof NotFoundError) {
-        throw error;
-      }
-      throw new InternalServerError('Failed to retrieve clinical notes', '5007');
-    }
-  }
-
-  /**
-   * Get patient's vitals history
-   * @param {number} patientId - Patient ID
-   * @returns {Object} Vitals history
-   */
-  static async getVitalsHistory(patientId) {
-    try {
-      const patientRepo = getPatientRepository();
-      
-      const vitals = await patientRepo.findPatientVitals(patientId);
-
-      info(' Vitals history retrieved:', { patient_id: patientId, count: vitals.length });
+      info('Clinical notes retrieved:', { patient_id: patientId, count: notes.length });
 
       return {
-        vitals: vitals.map(vital => ({
-          id: vital.id,
-          blood_pressure: vital.blood_pressure,
-          heart_rate: vital.heart_rate,
-          temperature: vital.temperature,
-          weight: vital.weight,
-          height: vital.height,
-          notes: vital.notes,
-          recorded_at: vital.recorded_at,
-          recorded_by: vital.recorded_by
+        notes: notes.map(note => ({
+          id: note.id,
+          note_type: note.note_type,
+          chief_complaint: note.chief_complaint,
+          assessment: note.assessment,
+          treatment: note.treatment,
+          plan: note.plan,
+          created_at: note.created_at,
+          doctor_name: note.doctor_name
         }))
       };
 
     } catch (error) {
-      logError('Get vitals history service error:', error);
-      throw new InternalServerError('Failed to retrieve vitals history', '5006');
+      logError('Get clinical notes service error:', error);
+      if (error instanceof BadRequestError || error instanceof NotFoundError) {
+        throw error;
+      }
+      throw new InternalServerError('Failed to retrieve clinical notes', '5007');
     }
   }
 
@@ -430,7 +349,7 @@ class UserService {
     try {
       const userRepo = getUserRepository();
       const patientRepo = getPatientRepository();
-      
+
       // Get user data
       const user = await userRepo.findById(userId);
       if (!user) {
@@ -439,7 +358,7 @@ class UserService {
 
       // Get patient profile data
       const patient = await patientRepo.findByUserId(userId);
-      
+
       if (!patient) {
         // Return placeholder data if no profile exists
         info('Profile not found, returning placeholder:', { user_id: userId });
@@ -519,7 +438,7 @@ class UserService {
     try {
       const userRepo = getUserRepository();
       const patientRepo = getPatientRepository();
-      
+
       // Get user data
       const user = await userRepo.findById(userId);
       if (!user) {
@@ -541,7 +460,7 @@ class UserService {
       const result = await userRepo.transaction(async () => {
         // Check if patient profile exists
         let patient = await patientRepo.findByUserId(userId);
-        
+
         if (!patient) {
           // Create new patient profile
           patient = await patientRepo.createPatient({

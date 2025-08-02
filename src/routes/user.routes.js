@@ -94,29 +94,6 @@ router.get('/patients/:id/clinical-notes',
   asyncHandler(UserController.getClinicalNotes)
 );
 
-/**
- * Record patient vitals
- * POST /users/patients/:id/vitals
- * Body: { blood_pressure, heart_rate, temperature, weight, ... }
- * Auth: doctor, admin
- */
-router.post('/patients/:id/vitals',
-  authenticate,
-  authorize(['doctor', 'admin']),
-  asyncHandler(UserController.recordVitals)
-);
-
-/**
- * Get patient's vitals history
- * GET /users/patients/:id/vitals?date_from=2025-01-01&limit=50
- * Auth: doctor, admin, patient (own data only)
- */
-router.get('/patients/:id/vitals',
-  authenticate,
-  authorize(['doctor', 'admin', 'patient']),
-  asyncHandler(UserController.getVitalsHistory)
-);
-
 // ===============================================
 // USER PROFILE ROUTES
 // ===============================================
