@@ -30,7 +30,7 @@ class IncidentService {
         if (!user) {
           throw new NotFoundError('User not found', '4041');
         }
-        
+
         // Create basic patient record
         patient = await patientRepo.createPatient({
           user_id: userId,
@@ -55,10 +55,10 @@ class IncidentService {
       // Initialize required forms based on incident type
       await IncidentService.initializeIncidentForms(incident.id, incident_type);
 
-      info('Incident created:', { 
+      info('Incident created:', {
         incident_id: incident.id,
         user_id: userId,
-        incident_type 
+        incident_type
       });
 
       return IncidentService.formatIncidentResponse(incident);
@@ -81,7 +81,7 @@ class IncidentService {
   static async getUserIncidents(userId, query = {}) {
     try {
       const userRepo = getUserRepository();
-      
+
       const { status, incident_type, page = 1, limit = 20 } = query;
       const offset = (page - 1) * limit;
 
@@ -92,9 +92,9 @@ class IncidentService {
         offset
       });
 
-      info('User incidents retrieved:', { 
+      info('User incidents retrieved:', {
         user_id: userId,
-        count: incidents.length 
+        count: incidents.length
       });
 
       return incidents.map(incident => IncidentService.formatIncidentResponse(incident));
@@ -114,7 +114,7 @@ class IncidentService {
   static async getPatientIncidents(patientId, query = {}) {
     try {
       const userRepo = getUserRepository();
-      
+
       const { status, incident_type, page = 1, limit = 20 } = query;
       const offset = (page - 1) * limit;
 
@@ -125,9 +125,9 @@ class IncidentService {
         offset
       });
 
-      info('Patient incidents retrieved:', { 
+      info('Patient incidents retrieved:', {
         patient_id: patientId,
-        count: incidents.length 
+        count: incidents.length
       });
 
       return incidents.map(incident => IncidentService.formatIncidentResponse(incident));
@@ -147,19 +147,14 @@ class IncidentService {
   static async getDoctorPatients(userId, query = {}) {
     try {
       const userRepo = getUserRepository();
-      
-      // First get the doctor record for this user
-      const doctorQuery = `
-        SELECT id FROM doctors 
-        WHERE user_id = $1 AND status = 'active'
-      `;
-      const doctorResult = await userRepo.query(doctorQuery, [userId]);
-      
-      if (!doctorResult.rows.length) {
+
+      // Get the doctor ID for this user
+      const doctorId = await userRepo.getDoctorIdByUserId(userId);
+
+      if (!doctorId) {
         throw new NotFoundError('Doctor record not found', '4041');
       }
-      
-      const doctorId = doctorResult.rows[0].id;
+
       const { page = 1, limit = 20 } = query;
       const offset = (page - 1) * limit;
 
@@ -168,10 +163,10 @@ class IncidentService {
         offset
       });
 
-      info('Doctor patients retrieved:', { 
+      info('Doctor patients retrieved:', {
         user_id: userId,
         doctor_id: doctorId,
-        count: patients.length 
+        count: patients.length
       });
 
       return patients;
@@ -194,21 +189,17 @@ class IncidentService {
   static async getIncidentById(incidentId, userId) {
     try {
       const userRepo = getUserRepository();
-      
+
       const incident = await userRepo.getIncidentById(incidentId);
       if (!incident) {
         throw new NotFoundError('Incident not found', '4042');
       }
 
-      // Get user role and doctor info if applicable
-      const userQuery = `
-        SELECT u.role, d.id as doctor_id 
-        FROM users u 
-        LEFT JOIN doctors d ON u.id = d.user_id 
-        WHERE u.id = $1
-      `;
-      const userResult = await userRepo.query(userQuery, [userId]);
-      const userInfo = userResult.rows[0];
+      // Get user role and doctor info
+      const userInfo = await userRepo.getUserRoleAndDoctorInfo(userId);
+      if (!userInfo) {
+        throw new NotFoundError('User not found', '4041');
+      }
 
       // Check authorization
       const isOwner = incident.user_id === userId;
@@ -228,7 +219,7 @@ class IncidentService {
       response.notes = notes;
       response.can_edit = isAssignedDoctor || isAdmin; // Add edit permission flag
 
-      info('Incident retrieved:', { 
+      info('Incident retrieved:', {
         incident_id: incidentId,
         accessed_by: userInfo.role,
         is_owner: isOwner,
@@ -257,21 +248,17 @@ class IncidentService {
   static async updateIncident(incidentId, updateData, userId) {
     try {
       const userRepo = getUserRepository();
-      
+
       const incident = await userRepo.getIncidentById(incidentId);
       if (!incident) {
         throw new NotFoundError('Incident not found', '4042');
       }
 
-      // Get user role and doctor info if applicable
-      const userQuery = `
-        SELECT u.role, d.id as doctor_id 
-        FROM users u 
-        LEFT JOIN doctors d ON u.id = d.user_id 
-        WHERE u.id = $1
-      `;
-      const userResult = await userRepo.query(userQuery, [userId]);
-      const userInfo = userResult.rows[0];
+      // Get user role and doctor info
+      const userInfo = await userRepo.getUserRoleAndDoctorInfo(userId);
+      if (!userInfo) {
+        throw new NotFoundError('User not found', '4041');
+      }
 
       // Check authorization
       const isOwner = incident.user_id === userId;
@@ -286,7 +273,7 @@ class IncidentService {
       if (isAssignedDoctor || isAdmin) {
         updateData.last_edited_by = userId;
         updateData.last_edited_at = new Date().toISOString();
-        
+
         // Add a note about the edit if a reason was provided
         if (updateData.edit_reason) {
           await userRepo.addIncidentNote({
@@ -301,7 +288,7 @@ class IncidentService {
 
       const updatedIncident = await userRepo.updateIncident(incidentId, updateData);
 
-      info('Incident updated:', { 
+      info('Incident updated:', {
         incident_id: incidentId,
         updated_by: userInfo.role,
         is_owner: isOwner,
@@ -330,7 +317,7 @@ class IncidentService {
   static async createOrUpdateIncidentForm(incidentId, formData, userId) {
     try {
       const userRepo = getUserRepository();
-      
+
       const incident = await userRepo.getIncidentById(incidentId);
       if (!incident) {
         throw new NotFoundError('Incident not found', '4042');
@@ -349,9 +336,9 @@ class IncidentService {
         is_required: formData.is_required
       });
 
-      info('Incident form saved:', { 
+      info('Incident form saved:', {
         incident_id: incidentId,
-        form_type: formData.form_type 
+        form_type: formData.form_type
       });
 
       return form;
@@ -375,7 +362,7 @@ class IncidentService {
   static async addIncidentNote(incidentId, noteData, userId) {
     try {
       const userRepo = getUserRepository();
-      
+
       const incident = await userRepo.getIncidentById(incidentId);
       if (!incident) {
         throw new NotFoundError('Incident not found', '4042');
@@ -393,9 +380,9 @@ class IncidentService {
         note_type: noteData.note_type || 'progress'
       });
 
-      info('Incident note added:', { 
+      info('Incident note added:', {
         incident_id: incidentId,
-        note_id: note.id 
+        note_id: note.id
       });
 
       return note;
@@ -418,7 +405,7 @@ class IncidentService {
   static async deleteIncident(incidentId, userId) {
     try {
       const userRepo = getUserRepository();
-      
+
       const incident = await userRepo.getIncidentById(incidentId);
       if (!incident) {
         throw new NotFoundError('Incident not found', '4042');
@@ -453,9 +440,9 @@ class IncidentService {
    */
   static async initializeIncidentForms(incidentId, incidentType) {
     const userRepo = getUserRepository();
-    
+
     const formTemplates = IncidentService.getFormTemplatesByType(incidentType);
-    
+
     for (const template of formTemplates) {
       await userRepo.createOrUpdateIncidentForm({
         incident_id: incidentId,
@@ -501,7 +488,7 @@ class IncidentService {
   static async createTreatmentPlan(incidentId, treatmentData, userId) {
     try {
       const userRepo = getUserRepository();
-      
+
       // Check if incident exists and user has access
       const incident = await userRepo.getIncidentById(incidentId);
       if (!incident) {
@@ -509,14 +496,10 @@ class IncidentService {
       }
 
       // Get user role and doctor info
-      const userQuery = `
-        SELECT u.role, d.id as doctor_id 
-        FROM users u 
-        LEFT JOIN doctors d ON u.id = d.user_id 
-        WHERE u.id = $1
-      `;
-      const userResult = await userRepo.query(userQuery, [userId]);
-      const userInfo = userResult.rows[0];
+      const userInfo = await userRepo.getUserRoleAndDoctorInfo(userId);
+      if (!userInfo) {
+        throw new NotFoundError('User not found', '4041');
+      }
 
       // Only doctors can create treatment plans
       if (userInfo.role !== 'doctor') {
@@ -562,7 +545,7 @@ class IncidentService {
       // Get the complete treatment plan with phases
       const completeTreatmentPlan = await userRepo.getTreatmentPlanById(treatmentPlan.id);
 
-      info('Treatment plan created:', { 
+      info('Treatment plan created:', {
         incident_id: incidentId,
         treatment_plan_id: treatmentPlan.id,
         created_by: userId
@@ -588,7 +571,7 @@ class IncidentService {
   static async getTreatmentPlan(incidentId, userId) {
     try {
       const userRepo = getUserRepository();
-      
+
       // Check if incident exists and user has access
       const incident = await userRepo.getIncidentById(incidentId);
       if (!incident) {
@@ -596,14 +579,10 @@ class IncidentService {
       }
 
       // Check authorization (same as incident access)
-      const userQuery = `
-        SELECT u.role, d.id as doctor_id 
-        FROM users u 
-        LEFT JOIN doctors d ON u.id = d.user_id 
-        WHERE u.id = $1
-      `;
-      const userResult = await userRepo.query(userQuery, [userId]);
-      const userInfo = userResult.rows[0];
+      const userInfo = await userRepo.getUserRoleAndDoctorInfo(userId);
+      if (!userInfo) {
+        throw new NotFoundError('User not found', '4041');
+      }
 
       const isOwner = incident.user_id === userId;
       const isAssignedDoctor = userInfo.role === 'doctor' && incident.doctor_id === userInfo.doctor_id;
@@ -615,12 +594,12 @@ class IncidentService {
 
       // Get treatment plan for this incident
       const treatmentPlan = await userRepo.getTreatmentPlanByIncidentId(incidentId);
-      
+
       if (!treatmentPlan) {
         return null; // No treatment plan exists yet
       }
 
-      info('Treatment plan retrieved:', { 
+      info('Treatment plan retrieved:', {
         incident_id: incidentId,
         treatment_plan_id: treatmentPlan.id
       });
@@ -646,21 +625,17 @@ class IncidentService {
   static async updateTreatmentPlan(treatmentPlanId, updateData, userId) {
     try {
       const userRepo = getUserRepository();
-      
+
       const treatmentPlan = await userRepo.getTreatmentPlanById(treatmentPlanId);
       if (!treatmentPlan) {
         throw new NotFoundError('Treatment plan not found', '4042');
       }
 
       // Get user role and doctor info
-      const userQuery = `
-        SELECT u.role, d.id as doctor_id 
-        FROM users u 
-        LEFT JOIN doctors d ON u.id = d.user_id 
-        WHERE u.id = $1
-      `;
-      const userResult = await userRepo.query(userQuery, [userId]);
-      const userInfo = userResult.rows[0];
+      const userInfo = await userRepo.getUserRoleAndDoctorInfo(userId);
+      if (!userInfo) {
+        throw new NotFoundError('User not found', '4041');
+      }
 
       // Only assigned doctor or admin can update
       const isAssignedDoctor = userInfo.role === 'doctor' && treatmentPlan.doctor_id === userInfo.doctor_id;
@@ -672,7 +647,7 @@ class IncidentService {
 
       const updatedTreatmentPlan = await userRepo.updateTreatmentPlan(treatmentPlanId, updateData);
 
-      info('Treatment plan updated:', { 
+      info('Treatment plan updated:', {
         treatment_plan_id: treatmentPlanId,
         updated_by: userId
       });
@@ -706,7 +681,7 @@ class IncidentService {
       additional_notes: treatmentPlan.additional_notes,
       status: treatmentPlan.status,
       treatment_phases: treatmentPlan.phases || [],
-      patient_name: treatmentPlan.patient_first_name && treatmentPlan.patient_last_name 
+      patient_name: treatmentPlan.patient_first_name && treatmentPlan.patient_last_name
         ? `${treatmentPlan.patient_first_name} ${treatmentPlan.patient_last_name}`.trim()
         : null,
       doctor_name: treatmentPlan.doctor_first_name && treatmentPlan.doctor_last_name
@@ -736,7 +711,7 @@ class IncidentService {
       incident_date: incident.date_occurred || incident.incident_date,
       status: incident.status,
       completion_percentage: 0,
-      patient_name: incident.patient_first_name && incident.patient_last_name 
+      patient_name: incident.patient_first_name && incident.patient_last_name
         ? `${incident.patient_first_name} ${incident.patient_last_name}`.trim()
         : null,
       doctor_name: incident.doctor_first_name && incident.doctor_last_name

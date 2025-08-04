@@ -277,6 +277,7 @@ CREATE TABLE appointments (
   cancelled_at TIMESTAMPTZ,
   cancellation_reason TEXT,
   created_by INT REFERENCES users(id),
+  updated_by INT REFERENCES users(id),
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -565,6 +566,7 @@ CREATE INDEX idx_appointments_doctor_id ON appointments(doctor_id);
 CREATE INDEX idx_appointments_date ON appointments(appointment_date);
 CREATE INDEX idx_appointments_datetime ON appointments(appointment_datetime);
 CREATE INDEX idx_appointments_status ON appointments(status);
+CREATE INDEX idx_appointments_updated_by ON appointments(updated_by);
 
 -- Clinical data indexes
 CREATE INDEX idx_clinical_notes_patient_id ON clinical_notes(patient_id);

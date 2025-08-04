@@ -71,8 +71,8 @@ class UserService {
       });
 
       info(' Patient created:', {
-        patient_id: result.patient.id,
         user_id: result.user.id,
+        patient_table_id: result.patient.id,
         name: `${first_name} ${last_name}`
       });
 
@@ -85,7 +85,7 @@ class UserService {
           status: result.user.status
         },
         patient: {
-          id: result.patient.id,
+          id: result.user.id, // Use user_id as the main identifier
           first_name: result.patient.first_name,
           last_name: result.patient.last_name,
           full_name: `${result.patient.first_name} ${result.patient.last_name}`,
@@ -118,15 +118,22 @@ class UserService {
         limit = 10,
         search,
         status = 'active',
+        is_active,
         sort_by = 'created_at',
         sort_order = 'desc'
       } = query;
+
+      // Handle is_active parameter for frontend compatibility
+      let finalStatus = status;
+      if (is_active !== undefined) {
+        finalStatus = is_active === 'true' || is_active === true ? 'active' : 'inactive';
+      }
 
       const offset = (page - 1) * limit;
 
       const result = await patientRepo.findAllPatients({
         search,
-        status,
+        status: finalStatus,
         sort_by,
         sort_order,
         limit: parseInt(limit),
@@ -141,7 +148,7 @@ class UserService {
 
       return {
         patients: result.patients.map(patient => ({
-          id: patient.id,
+          id: patient.user_id, // Use user_id as the main identifier
           first_name: patient.first_name,
           last_name: patient.last_name,
           full_name: `${patient.first_name} ${patient.last_name}`,
@@ -170,23 +177,23 @@ class UserService {
   }
 
   /**
-   * Get patient by ID
-   * @param {number} patientId - Patient ID
+   * Get patient by user ID
+   * @param {number} userId - User ID
    * @returns {Object} Patient details
    */
-  static async getPatientById(patientId) {
+  static async getPatientById(userId) {
     try {
       const patientRepo = getPatientRepository();
 
-      const patient = await patientRepo.findPatientById(patientId);
+      const patient = await patientRepo.findByUserId(userId);
       if (!patient) {
         throw new NotFoundError('Patient not found', '4041');
       }
 
-      info(' Patient retrieved:', { patient_id: patientId });
+      info(' Patient retrieved:', { user_id: userId });
 
       return {
-        id: patient.id,
+        id: patient.user_id, // Use user_id as the main identifier
         first_name: patient.first_name,
         last_name: patient.last_name,
         full_name: `${patient.first_name} ${patient.last_name}`,
@@ -217,28 +224,28 @@ class UserService {
 
   /**
    * Update patient information
-   * @param {number} patientId - Patient ID
+   * @param {number} userId - User ID
    * @param {Object} updateData - Patient update data
    * @returns {Object} Updated patient
    */
-  static async updatePatient(patientId, updateData) {
+  static async updatePatient(userId, updateData) {
     const { error } = patientUpdateSchema.validate(updateData);
     if (error) throw new BadRequestError(error.details[0].message, '4001');
 
     try {
       const patientRepo = getPatientRepository();
 
-      const existingPatient = await patientRepo.findPatientById(patientId);
+      const existingPatient = await patientRepo.findByUserId(userId);
       if (!existingPatient) {
         throw new NotFoundError('Patient not found', '4041');
       }
 
-      const updatedPatient = await patientRepo.updatePatient(patientId, updateData);
+      const updatedPatient = await patientRepo.updatePatient(existingPatient.id, updateData);
 
-      info(' Patient updated:', { patient_id: patientId });
+      info(' Patient updated:', { user_id: userId });
 
       return {
-        id: updatedPatient.id,
+        id: updatedPatient.user_id, // Use user_id as the main identifier
         first_name: updatedPatient.first_name,
         last_name: updatedPatient.last_name,
         full_name: `${updatedPatient.first_name} ${updatedPatient.last_name}`,
@@ -267,29 +274,29 @@ class UserService {
 
   /**
    * Add clinical notes for a patient
-   * @param {number} patientId - Patient ID
+   * @param {number} userId - User ID
    * @param {Object} notesData - Clinical notes data
    * @returns {Object} Added notes
    */
-  static async addClinicalNotes(patientId, notesData) {
+  static async addClinicalNotes(userId, notesData) {
     const { error } = clinicalNotesSchema.validate(notesData);
     if (error) throw new BadRequestError(error.details[0].message, '4001');
 
     try {
       const patientRepo = getPatientRepository();
 
-      const patient = await patientRepo.findPatientById(patientId);
+      const patient = await patientRepo.findByUserId(userId);
       if (!patient) {
         throw new NotFoundError('Patient not found', '4041');
       }
 
-      const notes = await patientRepo.addClinicalNotes(patientId, notesData);
+      const notes = await patientRepo.addClinicalNotes(patient.id, notesData);
 
-      info(' Clinical notes added:', { patient_id: patientId, notes_id: notes.id });
+      info(' Clinical notes added:', { user_id: userId, notes_id: notes.id });
 
       return {
         id: notes.id,
-        patient_id: notes.patient_id,
+        patient_id: userId, // Return user_id instead of internal patient_id
         notes: notes.notes,
         note_type: notes.note_type,
         created_by: notes.created_by,
@@ -307,16 +314,22 @@ class UserService {
 
   /**
    * Get patient's clinical notes
-   * @param {number} patientId - Patient ID
+   * @param {number} userId - User ID
    * @returns {Array} Clinical notes
    */
-  static async getClinicalNotes(patientId) {
+  static async getClinicalNotes(userId) {
     try {
       const patientRepo = getPatientRepository();
 
-      const notes = await patientRepo.findPatientClinicalNotes(patientId);
+      // First find the patient by user_id to get the internal patient_id
+      const patient = await patientRepo.findByUserId(userId);
+      if (!patient) {
+        throw new NotFoundError('Patient not found', '4041');
+      }
 
-      info('Clinical notes retrieved:', { patient_id: patientId, count: notes.length });
+      const notes = await patientRepo.findPatientClinicalNotes(patient.id);
+
+      info('Clinical notes retrieved:', { user_id: userId, count: notes.length });
 
       return {
         notes: notes.map(note => ({
@@ -390,7 +403,7 @@ class UserService {
         };
       }
 
-      info('Profile retrieved:', { user_id: userId, patient_id: patient.id });
+      info('Profile retrieved:', { user_id: userId, patient_table_id: patient.id });
 
       return {
         placeholder: false,
@@ -491,7 +504,7 @@ class UserService {
         return patient;
       });
 
-      info('Profile updated:', { user_id: userId, patient_id: result.id });
+      info('Profile updated:', { user_id: userId, patient_table_id: result.id });
 
       return {
         placeholder: false,

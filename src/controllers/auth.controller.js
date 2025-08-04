@@ -39,7 +39,7 @@ class AuthController {
    */
   static async registerPatient(req, res) {
     try {
-      auth.info(' Patient registration request received:', {
+      logger.info(' Patient registration request received:', {
         email: req.body?.email,
         first_name: req.body?.first_name,
         last_name: req.body?.last_name
@@ -47,7 +47,7 @@ class AuthController {
 
       const result = await AuthService.registerPatient(req.body, req);
 
-      auth.info(' Patient registration successful:', {
+      logger.info(' Patient registration successful:', {
         user_id: result.data.user.id,
         patient_id: result.data.patient.id,
         email: result.data.user.email,
@@ -60,7 +60,7 @@ class AuthController {
         ...result
       });
     } catch (error) {
-      auth.error('Patient registration controller error:', error);
+      logger.error('Patient registration controller error:', error);
       return AuthController.handleError(error, res);
     }
   }
@@ -188,7 +188,7 @@ class AuthController {
    */
   static async registerUser(req, res) {
     try {
-      auth.info(' Registration request received:', {
+      logger.info(' Registration request received:', {
         email: req.body?.email,
         role: req.body?.role || 'patient'
       });
@@ -196,7 +196,7 @@ class AuthController {
       // Request has already been validated by validation middleware
       const result = await AuthService.registerUser(req.body, req);
 
-      auth.info(' Registration successful:', {
+      logger.info(' Registration successful:', {
         user_id: result.user.id,
         role: result.user.role,
         email: result.user.email
@@ -211,7 +211,7 @@ class AuthController {
       response.send(res);
 
     } catch (error) {
-      auth.error('Registration controller error:', error);
+      logger.error('Registration controller error:', error);
 
       if (error instanceof ErrorResponse) {
         return error.send(res);
@@ -238,7 +238,7 @@ class AuthController {
       response.send(res);
 
     } catch (error) {
-      auth.error('Verify account controller error:', error);
+      logger.error('Verify account controller error:', error);
 
       if (error instanceof ErrorResponse) {
         return error.send(res);
@@ -262,7 +262,7 @@ class AuthController {
       response.send(res);
 
     } catch (error) {
-      auth.error('Get all users controller error:', error);
+      logger.error('Get all users controller error:', error);
 
       if (error instanceof ErrorResponse) {
         return error.send(res);
@@ -291,7 +291,7 @@ class AuthController {
       response.send(res);
 
     } catch (error) {
-      auth.error('Verify email controller error:', error);
+      logger.error('Verify email controller error:', error);
 
       if (error instanceof ErrorResponse) {
         return error.send(res);
@@ -349,7 +349,7 @@ class AuthController {
     } else if (error instanceof ErrorResponse) {
       return error.send(res);
     } else {
-      auth.error('Unexpected error in AuthController:', error);
+      logger.error('Unexpected error in AuthController:', error);
       const errorResponse = new InternalServerError('Internal server error', '5000');
       return errorResponse.send(res);
     }

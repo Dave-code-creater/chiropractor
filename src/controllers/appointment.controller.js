@@ -32,30 +32,213 @@ class AppointmentController {
   // ===============================================
 
   /**
-   * Create a new appointment booking
+   * Create a new appointment booking (Universal smart routing)
    * POST /appointments
    * 
-   * Supports both registered patients and walk-in bookings
+   * Supports multiple input formats:
+   * - Traditional: { doctor_id, patient_id, ... }
+   * - Sender/Recipient: { sender_id, recipient_id, ... }
+   * 
+   * Universal Logic:
+   * - Automatically determines roles and maps fields
+   * - Handles all user types (patient, doctor, admin, staff)
+   * - Prevents invalid combinations (patient-to-patient)
    */
   static async createAppointment(req, res) {
     try {
-      api.info(' Creating new appointment:', req.body);
+      const user = req.user;
+      const userRole = user?.role;
 
-      const appointmentData = {
+      api.info('🏥 Creating new appointment:', {
+        sender_id: req.body.sender_id,
+        recipient_id: req.body.recipient_id,
+        doctor_id: req.body.doctor_id,
+        patient_id: req.body.patient_id,
+        user_role: userRole,
+        user_id: user?.id,
+        date: req.body.date || req.body.appointment_date,
+        time: req.body.time || req.body.appointment_time
+      });
+
+      let appointmentData = {
         ...req.body,
         // Map frontend fields to backend expected fields
         appointment_date: req.body.date || req.body.appointment_date,
         appointment_time: req.body.time || req.body.appointment_time,
-        created_by: req.user?.id
+        created_by: user?.id
       };
+
+      // UNIVERSAL MAPPING: Handle sender_id/recipient_id OR doctor_id/patient_id
+      if (req.body.sender_id && req.body.recipient_id) {
+        // Get user information to determine roles
+        const { getUserRepository, getPatientRepository } = require('../repositories');
+        const userRepo = getUserRepository();
+        const patientRepo = getPatientRepository();
+
+        const [senderUser, recipientUser] = await Promise.all([
+          userRepo.findById(req.body.sender_id),
+          userRepo.findById(req.body.recipient_id)
+        ]);
+
+        if (!senderUser || !recipientUser) {
+          return new ErrorResponse('Invalid sender_id or recipient_id', 400, '4042').send(res);
+        }
+
+        api.info('🔄 Processing sender/recipient mapping:', {
+          sender: { id: senderUser.id, role: senderUser.role },
+          recipient: { id: recipientUser.id, role: recipientUser.role }
+        });
+
+        // Prevent patient-to-patient appointments
+        if (senderUser.role === 'patient' && recipientUser.role === 'patient') {
+          return new ErrorResponse(
+            'Patient-to-patient appointments are not allowed. Appointments must be between a patient and a medical professional.',
+            400,
+            '4032'
+          ).send(res);
+        }
+
+        // Determine who is the medical professional and who is the patient
+        let medicalProfessionalUser, patientUser;
+
+        if (['doctor', 'admin', 'staff'].includes(senderUser.role)) {
+          medicalProfessionalUser = senderUser;
+          patientUser = recipientUser;
+        } else if (['doctor', 'admin', 'staff'].includes(recipientUser.role)) {
+          medicalProfessionalUser = recipientUser;
+          patientUser = senderUser;
+        } else {
+          return new ErrorResponse(
+            'At least one participant must be a medical professional (doctor, admin, or staff).',
+            400,
+            '4033'
+          ).send(res);
+        }
+
+        // Get patient record (required)
+        const patient = await patientRepo.findByUserId(patientUser.id);
+        if (!patient) {
+          return new ErrorResponse(
+            `Patient profile not found for user ${patientUser.email}. Please complete patient registration first.`,
+            404,
+            '4042'
+          ).send(res);
+        }
+
+        // For doctor_id: Use actual doctor record if exists, otherwise use user_id directly
+        let doctorId;
+        if (medicalProfessionalUser.role === 'doctor') {
+          // Look for doctor record
+          const { getDoctorRepository } = require('../repositories');
+          const doctorRepo = getDoctorRepository();
+          const doctor = await doctorRepo.findByUserId(medicalProfessionalUser.id);
+
+          if (doctor) {
+            doctorId = doctor.id;
+          } else {
+            // Create a temporary doctor record for this user if needed
+            doctorId = medicalProfessionalUser.id; // Use user_id as fallback
+          }
+        } else {
+          // For admin/staff, use user_id directly
+          doctorId = medicalProfessionalUser.id;
+        }
+
+        // Set the mapped values
+        appointmentData.doctor_id = doctorId;
+        appointmentData.patient_id = patient.id;
+
+        api.info('✅ Successfully mapped sender/recipient:', {
+          doctor_id: doctorId,
+          patient_id: patient.id,
+          medical_professional: medicalProfessionalUser.role,
+          patient_user: patientUser.email
+        });
+      }
+
+      // SMART USER ROLE HANDLING: Override for current user if they're a patient
+      if (userRole === 'patient') {
+        // For patients: Find their patient record and force patient_id
+        const { getPatientRepository } = require('../repositories');
+        const patientRepo = getPatientRepository();
+        const patient = await patientRepo.findByUserId(user.id);
+
+        if (!patient) {
+          return new ErrorResponse(
+            'Patient profile not found. Please complete your patient registration first.',
+            404,
+            '4042'
+          ).send(res);
+        }
+
+        // Override patient_id to their own record (security)
+        appointmentData.patient_id = patient.id;
+        appointmentData.status = appointmentData.status || 'scheduled';
+        appointmentData.location = appointmentData.location || 'main_office';
+
+        api.info('👤 Patient self-booking (security override):', {
+          patient_id: patient.id,
+          user_id: user.id,
+          original_patient_id: req.body.patient_id || 'none'
+        });
+      } else {
+        // For medical professionals: Validate required fields
+        if (!appointmentData.doctor_id) {
+          return new ErrorResponse(
+            'doctor_id is required when creating appointments.',
+            400,
+            '4001'
+          ).send(res);
+        }
+
+        if (!appointmentData.patient_id) {
+          return new ErrorResponse(
+            'patient_id is required when creating appointments.',
+            400,
+            '4001'
+          ).send(res);
+        }
+
+        api.info('👨‍⚕️ Medical professional booking:', {
+          doctor_id: appointmentData.doctor_id,
+          patient_id: appointmentData.patient_id,
+          user_role: userRole,
+          user_id: user.id
+        });
+      }
 
       const appointment = await AppointmentService.createAppointment(appointmentData, req);
 
-      api.info(' Appointment created successfully:', appointment.id);
+      api.info('✅ Appointment created successfully:', {
+        appointment_id: appointment.id,
+        booking_type: userRole === 'patient' ? 'self-booking' : 'professional-booking'
+      });
+
+      // Success response
+      const successMessage = userRole === 'patient'
+        ? 'Appointment booked successfully! You will receive a confirmation email shortly.'
+        : `Appointment created successfully. Confirmation notifications will be sent.`;
+
+      const responseData = userRole === 'patient'
+        ? {
+          appointment,
+          next_steps: [
+            'Check your email for appointment confirmation',
+            'Please arrive 15 minutes early for check-in',
+            'Bring a valid ID and insurance card if you have one',
+            'You can reschedule or cancel up to 24 hours before your appointment'
+          ],
+          contact_info: {
+            message: 'If you have any questions, please contact our office',
+            phone: process.env.CLINIC_PHONE || '(555) 123-4567',
+            email: process.env.CLINIC_EMAIL || 'appointments@clinic.com'
+          }
+        }
+        : { appointment };
 
       return new AppointmentCreatedSuccess({
-        appointment,
-        message: 'Appointment booked successfully! You will receive a confirmation email shortly.'
+        ...responseData,
+        message: successMessage
       }).send(res);
 
     } catch (error) {
@@ -73,77 +256,7 @@ class AppointmentController {
     }
   }
 
-  /**
-   * Book appointment for current user (Patient self-booking)
-   * POST /appointments/book
-   * 
-   * Allows patients to book appointments for themselves
-   */
-  static async bookAppointmentForSelf(req, res) {
-    try {
-      const user = req.user;
 
-      // Find the patient record for this user
-      const { getPatientRepository } = require('../repositories');
-      const patientRepo = getPatientRepository();
-      const patient = await patientRepo.findByUserId(user.id);
-
-      if (!patient) {
-        return new ErrorResponse(
-          'Patient profile not found. Please complete your patient registration first.',
-          404,
-          '4042'
-        ).send(res);
-      }
-
-      const appointmentData = {
-        ...req.body,
-        // Map frontend fields to backend expected fields
-        appointment_date: req.body.date || req.body.appointment_date,
-        appointment_time: req.body.time || req.body.appointment_time,
-        patient_id: patient.id,
-        location: req.body.location || 'main_office',
-        status: 'scheduled',
-        created_by: user.id
-      };
-
-      const appointment = await AppointmentService.createAppointment(appointmentData, req);
-
-      api.info(' Patient self-booking successful:', appointment.id);
-
-      return new SuccessResponse(
-        'Appointment booked successfully! You will receive a confirmation email shortly.',
-        201,
-        {
-          appointment,
-          next_steps: [
-            'Check your email for appointment confirmation',
-            'Please arrive 15 minutes early for check-in',
-            'Bring a valid ID and insurance card if you have one',
-            'You can reschedule or cancel up to 24 hours before your appointment'
-          ],
-          contact_info: {
-            message: 'If you have any questions, please contact our office',
-            phone: process.env.CLINIC_PHONE || '(555) 123-4567',
-            email: process.env.CLINIC_EMAIL || 'appointments@clinic.com'
-          }
-        }
-      ).send(res);
-
-    } catch (error) {
-      api.error(' Patient self-booking error:', error);
-
-      if (error instanceof ErrorResponse) {
-        return error.send(res);
-      }
-
-      return new ErrorResponse(
-        'Failed to book appointment. Please try again or contact our office.',
-        500,
-        '5002'
-      ).send(res);
-    }
-  }
 
   // ===============================================
   // APPOINTMENT RETRIEVAL ENDPOINTS
@@ -373,8 +486,7 @@ class AppointmentController {
 
       const updateData = {
         ...req.body,
-        updated_by: req.user?.id,
-        updated_at: new Date()
+        updated_by: req.user?.id
       };
 
       const appointment = await AppointmentService.updateAppointment(appointmentId, updateData);

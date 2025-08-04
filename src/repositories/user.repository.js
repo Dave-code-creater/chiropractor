@@ -2142,6 +2142,56 @@ class UserRepository extends BaseRepository {
     const result = await this.query(query);
     return result.rows.map(row => row.category);
   }
+
+  // ========================================
+  // USER ROLE AND DOCTOR INFO METHODS
+  // ========================================
+
+  /**
+   * Get user role and doctor information by user ID
+   * @param {number} userId - User ID
+   * @returns {Object|null} User role and doctor info
+   */
+  async getUserRoleAndDoctorInfo(userId) {
+    const query = `
+      SELECT u.role, d.id as doctor_id 
+      FROM users u 
+      LEFT JOIN doctors d ON u.id = d.user_id 
+      WHERE u.id = $1
+    `;
+    const result = await this.query(query, [userId]);
+    return result.rows[0] || null;
+  }
+
+  /**
+   * Get doctor ID by user ID
+   * @param {number} userId - User ID
+   * @returns {number|null} Doctor ID or null if not found
+   */
+  async getDoctorIdByUserId(userId) {
+    const query = `
+      SELECT id FROM doctors 
+      WHERE user_id = $1 AND status = 'active'
+    `;
+    const result = await this.query(query, [userId]);
+    return result.rows[0]?.id || null;
+  }
+
+  /**
+   * Check if user is doctor and get doctor ID
+   * @param {number} userId - User ID
+   * @returns {Object|null} Doctor info if user is a doctor
+   */
+  async getDoctorByUserId(userId) {
+    const query = `
+      SELECT d.id as doctor_id, u.role
+      FROM users u 
+      INNER JOIN doctors d ON u.id = d.user_id 
+      WHERE u.id = $1 AND u.role = 'doctor' AND d.status = 'active'
+    `;
+    const result = await this.query(query, [userId]);
+    return result.rows[0] || null;
+  }
 }
 
 module.exports = UserRepository; 

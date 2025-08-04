@@ -29,10 +29,37 @@ class AppointmentService {
       // Extract user info from JWT (if available)
       const currentUser = req?.user;
 
-      // Verify doctor exists
-      const doctor = await doctorRepo.findById(doctor_id);
-      if (!doctor || doctor.status !== 'active') {
-        throw new BadRequestError('Doctor not found or inactive', '4041');
+      // Verify doctor exists (flexible approach for different user types)
+      let doctor;
+      try {
+        doctor = await doctorRepo.findById(doctor_id);
+      } catch (error) {
+        // If doctor not found by ID, try to find by user_id (for admin/staff)
+        try {
+          doctor = await doctorRepo.findByUserId(doctor_id);
+        } catch (secondError) {
+          // If still not found, check if it's a valid user with medical privileges
+          const userRepo = getUserRepository();
+          const doctorUser = await userRepo.findById(doctor_id);
+
+          if (!doctorUser || !['doctor', 'admin', 'staff'].includes(doctorUser.role)) {
+            throw new BadRequestError('Invalid doctor/medical professional specified', '4041');
+          }
+
+          // Create a virtual doctor object for admin/staff
+          doctor = {
+            id: doctor_id,
+            user_id: doctor_id,
+            first_name: doctorUser.username || 'Staff',
+            last_name: '',
+            status: 'active',
+            specialization: doctorUser.role === 'admin' ? 'Administration' : 'Medical Staff'
+          };
+        }
+      }
+
+      if (!doctor || (doctor.status && doctor.status !== 'active')) {
+        throw new BadRequestError('Medical professional not available', '4041');
       }
 
       // Verify patient exists
