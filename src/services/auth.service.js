@@ -2,6 +2,7 @@ const jwt = require('jsonwebtoken');
 const { SignupSuccess, LoginSuccess, LogoutSuccess, ProfileRetrieved, BadRequestError, NotFoundError, ConflictError, UnauthorizedError, InternalServerError } = require('../utils/httpResponses');
 const { getUserRepository, getPatientRepository, getDoctorRepository, getApiKeyRepository } = require('../repositories');
 const { auth, error: logError, info, debug } = require('../utils/logger');
+const { getRealClientIP } = require('../utils/ip');
 
 /**
  * Authentication Service
@@ -88,7 +89,7 @@ class AuthService {
           user_id: user.id,
           session_token: tokens.token,
           event_type: 'login',
-          ip_address: req.ip,
+          ip_address: getRealClientIP(req),
           user_agent: req.headers['user-agent'],
           device_type: req.headers['device-type'],
           device_os: req.headers['device-os'],

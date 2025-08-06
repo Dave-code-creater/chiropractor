@@ -23,14 +23,32 @@ const chatRoutes = require('./routes/chat.routes');
 const incidentRoutes = require('./routes/incident.routes');
 const clinicalNotesRoutes = require('./routes/clinical-notes.routes');
 
+// Import debug routes (development only)
+const debugRoutes = require('./routes/debug.routes');
+
 
 // Import middleware
 const errorMiddleware = require('./middleware/error.middleware');
+const ipResolutionMiddleware = require('./middleware/ip.middleware');
 
 // Import logger
 const { info, warn, error: logError } = require('./utils/logger');
 
 const app = express();
+
+// Trust proxy configuration for reverse proxy support
+// This allows Express to read the correct client IP from proxy headers
+if (process.env.TRUST_PROXY === 'true') {
+  const trustProxyHops = parseInt(process.env.TRUST_PROXY_HOPS) || 1;
+  app.set('trust proxy', trustProxyHops);
+  info(`🔗 Proxy trust enabled for ${trustProxyHops} hop(s)`);
+} else {
+  app.set('trust proxy', false);
+  info('🔗 Proxy trust disabled - direct connections only');
+}
+
+// IP resolution middleware - must be early in the middleware chain
+app.use(ipResolutionMiddleware);
 
 // Basic middleware
 app.use(express.json({ limit: '10mb' }));
@@ -87,8 +105,11 @@ apiV1.use('/chat', chatRoutes);
 
 apiV1.use('/incidents', incidentRoutes);
 
-
-
+// Debug routes (development only)
+if (process.env.NODE_ENV === 'development') {
+  apiV1.use('/debug', debugRoutes);
+  info('🐛 Debug routes enabled for development');
+}
 
 // Mount API routes
 app.use('/api/v1/2025', apiV1);

@@ -1,6 +1,7 @@
 const BlogService = require('../services/blog.service');
 const { SuccessResponse, ErrorResponse } = require('../utils/httpResponses');
 const { info, error: logError } = require('../utils/logger');
+const { getRealClientIP } = require('../utils/ip');
 
 /**
  * Blog Controller
@@ -25,7 +26,7 @@ class BlogController {
         query: req.query,
         user_role: userRole,
         is_authenticated: isAuthenticated,
-        ip: req.ip
+        ip: getRealClientIP(req)
       });
 
       const result = await BlogService.getAllBlogPosts(req.query, req.user);
@@ -58,7 +59,7 @@ class BlogController {
 
       info('📖 Getting blog post:', {
         identifier,
-        ip: req.ip
+        ip: getRealClientIP(req)
       });
 
       const post = await BlogService.getBlogPost(identifier);
@@ -87,7 +88,7 @@ class BlogController {
    */
   static async getCategories(req, res) {
     try {
-      info('📖 Getting blog categories:', { ip: req.ip });
+      info('📖 Getting blog categories:', { ip: getRealClientIP(req) });
 
       const categories = await BlogService.getBlogCategories();
 
