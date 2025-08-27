@@ -268,15 +268,13 @@ class AppointmentController {
    */
   static async getMyAppointments(req, res) {
     try {
-
-
       // Use the same service method as getAllAppointments but with specific user filtering
-      const appointments = await AppointmentService.getAllAppointments(req.query, req.user);
+      const result = await AppointmentService.getAllAppointments(req.query, req.user);
 
       api.info(' Service returned my appointments:', {
-        count: appointments.appointments?.length || 0,
-        hasData: !!appointments.appointments,
-        pagination: appointments.pagination
+        count: result.appointments?.length || 0,
+        hasData: !!result.appointments,
+        pagination: result.pagination
       });
 
       // Add cache-busting headers
@@ -286,52 +284,22 @@ class AppointmentController {
         'Expires': '0'
       });
 
-      // Format appointments with enhanced data for patient view
-      const formattedAppointments = (appointments.appointments || []).map(appointment => ({
-        id: appointment.id,
-        appointment_datetime: appointment.appointment_datetime,
-        appointment_date: appointment.appointment_date,
-        appointment_time: appointment.appointment_time,
-        status: appointment.status,
-        location: appointment.location,
-        reason_for_visit: appointment.reason_for_visit,
-        additional_notes: appointment.additional_notes,
-
-        // Nested doctor object
-        doctor: {
-          id: appointment.doctor_id,
-          first_name: appointment.doctor_first_name,
-          last_name: appointment.doctor_last_name,
-          specialization: appointment.doctor_specialization,
-          phone_number: appointment.doctor_phone,
-          email: appointment.doctor_email
-        },
-
-        // Nested patient object
-        patient: {
-          id: appointment.patient_id,
-          first_name: appointment.patient_first_name,
-          last_name: appointment.patient_last_name,
-          phone: appointment.patient_phone,
-          email: appointment.patient_email
-        },
-
-        // Metadata
-        created_at: appointment.created_at,
-        updated_at: appointment.updated_at,
-
-        // Status information
+      // Enhance appointments with patient-specific information
+      const enhancedAppointments = (result.appointments || []).map(appointment => ({
+        ...appointment, // The appointment is already formatted by the service
+        
+        // Status information for patient view
         is_upcoming: new Date(appointment.appointment_datetime) > new Date(),
         can_cancel: appointment.status === 'scheduled' && new Date(appointment.appointment_datetime) > new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours notice
         can_reschedule: appointment.status === 'scheduled' && new Date(appointment.appointment_datetime) > new Date(Date.now() + 2 * 60 * 60 * 1000) // 2 hours notice
       }));
 
-      const total = appointments.pagination?.total || formattedAppointments.length;
+      const total = result.pagination?.total || enhancedAppointments.length;
       const page = parseInt(req.query.page || 1);
       const limit = parseInt(req.query.limit || 50);
 
       return new SuccessResponse('Your appointments retrieved successfully', 200, {
-        appointments: formattedAppointments,
+        appointments: enhancedAppointments,
         pagination: {
           page,
           limit,
@@ -342,9 +310,9 @@ class AppointmentController {
         },
         summary: {
           total_appointments: total,
-          upcoming_appointments: formattedAppointments.filter(a => a.is_upcoming).length,
-          completed_appointments: formattedAppointments.filter(a => a.status === 'completed').length,
-          cancelled_appointments: formattedAppointments.filter(a => a.status === 'cancelled').length
+          upcoming_appointments: enhancedAppointments.filter(a => a.is_upcoming).length,
+          completed_appointments: enhancedAppointments.filter(a => a.status === 'completed').length,
+          cancelled_appointments: enhancedAppointments.filter(a => a.status === 'cancelled').length
         }
       }).send(res);
 
@@ -367,12 +335,12 @@ class AppointmentController {
     try {
       api.info('📋 Getting all appointments for user:', req.user?.role);
 
-      const appointments = await AppointmentService.getAllAppointments(req.query, req.user);
+      const result = await AppointmentService.getAllAppointments(req.query, req.user);
 
       api.info(' Service returned appointments:', {
-        count: appointments.appointments?.length || 0,
-        hasData: !!appointments.appointments,
-        pagination: appointments.pagination
+        count: result.appointments?.length || 0,
+        hasData: !!result.appointments,
+        pagination: result.pagination
       });
 
       // Add cache-busting headers
@@ -382,59 +350,20 @@ class AppointmentController {
         'Expires': '0'
       });
 
-      // Format appointments with nested object structure
-      const formattedAppointments = (appointments.appointments || []).map(appointment => ({
-        id: appointment.id,
-        appointment_datetime: appointment.appointment_datetime,
-        appointment_date: appointment.appointment_date,
-        appointment_time: appointment.appointment_time,
-        status: appointment.status,
-        location: appointment.location,
-        reason_for_visit: appointment.reason_for_visit,
-        additional_notes: appointment.additional_notes,
-
-        // Nested doctor object
-        doctor: {
-          id: appointment.doctor_id,
-          first_name: appointment.doctor_first_name,
-          last_name: appointment.doctor_last_name,
-          specialization: appointment.doctor_specialization,
-          phone_number: appointment.doctor_phone,
-          email: appointment.doctor_email
-        },
-
-        // Nested patient object
-        patient: {
-          id: appointment.patient_id,
-          first_name: appointment.patient_first_name,
-          last_name: appointment.patient_last_name,
-          phone: appointment.patient_phone,
-          email: appointment.patient_email
-        },
-
-        // Metadata
-        created_at: appointment.created_at,
-        updated_at: appointment.updated_at,
-        created_by: appointment.created_by,
-        cancelled_at: appointment.cancelled_at,
-        cancellation_reason: appointment.cancellation_reason
-      }));
-
-      return new SuccessResponse('Appointments retrieved successfully', 200, {
-        appointments: formattedAppointments,
-        pagination: appointments.pagination,
-        filters_applied: req.query,
-        user_role: req.user?.role
-      }).send(res);
+      // Appointments are already formatted by the service layer
+      return new AppointmentsRetrievedSuccess(
+        'Appointments retrieved successfully',
+        result.appointments,
+        result.pagination
+      ).send(res);
 
     } catch (error) {
-      api.error(' Get all appointments error:', error);
-
-      if (error instanceof ErrorResponse) {
-        return error.send(res);
-      }
-
-      return new ErrorResponse('Failed to retrieve appointments', 500, '5003').send(res);
+      api.error('getAllAppointments controller error:', error);
+      return new ErrorResponse(
+        'Failed to retrieve appointments',
+        500,
+        '5041'
+      ).send(res);
     }
   }
 

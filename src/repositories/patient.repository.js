@@ -385,6 +385,64 @@ class PatientRepository extends BaseRepository {
   async reactivatePatient(patientId) {
     return await this.updateById(patientId, { status: 'active' });
   }
+
+  /**
+   * Add clinical notes for a patient
+   * @param {number} patientId - Patient ID (from patients table)
+   * @param {Object} notesData - Clinical notes data
+   * @returns {Object} Created clinical notes record
+   */
+  async addClinicalNotes(patientId, notesData) {
+    const query = `
+      INSERT INTO clinical_notes (
+        patient_id, 
+        notes, 
+        note_type, 
+        chief_complaint,
+        assessment,
+        treatment,
+        plan,
+        created_by, 
+        created_at
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
+      RETURNING *
+    `;
+
+    const values = [
+      patientId,
+      notesData.notes || '',
+      notesData.note_type || 'general',
+      notesData.chief_complaint || '',
+      notesData.assessment || '',
+      notesData.treatment || '',
+      notesData.plan || '',
+      notesData.created_by || null
+    ];
+
+    const result = await this.query(query, values);
+    return result.rows[0];
+  }
+
+  /**
+   * Find clinical notes for a patient
+   * @param {number} patientId - Patient ID (from patients table)
+   * @returns {Array} Clinical notes records
+   */
+  async findPatientClinicalNotes(patientId) {
+    const query = `
+      SELECT 
+        cn.*,
+        CONCAT(d.first_name, ' ', d.last_name) as doctor_name
+      FROM clinical_notes cn
+      LEFT JOIN doctors d ON cn.created_by = d.id
+      WHERE cn.patient_id = $1
+      ORDER BY cn.created_at DESC
+    `;
+
+    const result = await this.query(query, [patientId]);
+    return result.rows;
+  }
 }
 
 module.exports = PatientRepository; 

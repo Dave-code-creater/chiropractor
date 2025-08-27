@@ -13,9 +13,6 @@ router.use(authenticate);
 router.post('/', createIncidentValidator, asyncHandler(IncidentController.createIncident));
 router.get('/', asyncHandler(IncidentController.getUserIncidents));
 
-// Doctor-specific endpoints
-router.get('/doctor/patients', asyncHandler(IncidentController.getDoctorPatients));
-
 // Single incident details
 router.get('/:id', asyncHandler(IncidentController.getIncidentById));
 router.put('/:id', updateIncidentValidator, asyncHandler(IncidentController.updateIncident));

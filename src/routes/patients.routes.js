@@ -9,25 +9,21 @@ const router = express.Router();
 
 /**
  * ===============================================
- * USER MANAGEMENT API ROUTES
+ * PATIENTS API ROUTES
  * ===============================================
  * 
- * All patient endpoints available at: /api/v1/2025/users/patients/*
+ * All patient-related endpoints consolidated here
  * Role-based Access:
  * - Doctors: Only see their own patients (via incident relationships)
  * - Admin/Staff: See all patients
  * - Patients: Only access their own data
  */
 
-// ===============================================
-// PATIENT MANAGEMENT ROUTES
-// ===============================================
-
 /**
  * Create new patient
- * POST /users/patients
+ * POST /patients
  */
-router.post('/patients',
+router.post('/',
   authenticate,
   authorize(['doctor', 'admin']),
   asyncHandler(UserController.createPatient)
@@ -35,9 +31,9 @@ router.post('/patients',
 
 /**
  * Get all patients (with role-based filtering)
- * GET /users/patients
+ * GET /patients
  */
-router.get('/patients',
+router.get('/',
   authenticate,
   authorize(['doctor', 'admin', 'staff']),
   asyncHandler(async (req, res) => {
@@ -54,9 +50,9 @@ router.get('/patients',
 
 /**
  * Get specific patient by ID
- * GET /users/patients/:id
+ * GET /patients/:id
  */
-router.get('/patients/:id',
+router.get('/:id',
   authenticate,
   authorize(['doctor', 'admin', 'patient']),
   asyncHandler(UserController.getPatientById)
@@ -64,9 +60,9 @@ router.get('/patients/:id',
 
 /**
  * Update patient information
- * PUT /users/patients/:id
+ * PUT /patients/:id
  */
-router.put('/patients/:id',
+router.put('/:id',
   authenticate,
   authorize(['doctor', 'admin']),
   asyncHandler(UserController.updatePatient)
@@ -74,9 +70,9 @@ router.put('/patients/:id',
 
 /**
  * Add clinical notes for patient
- * POST /users/patients/:id/clinical-notes
+ * POST /patients/:id/clinical-notes
  */
-router.post('/patients/:id/clinical-notes',
+router.post('/:id/clinical-notes',
   authenticate,
   authorize(['doctor', 'admin']),
   asyncHandler(UserController.addClinicalNotes)
@@ -84,34 +80,12 @@ router.post('/patients/:id/clinical-notes',
 
 /**
  * Get clinical notes for patient
- * GET /users/patients/:id/clinical-notes
+ * GET /patients/:id/clinical-notes
  */
-router.get('/patients/:id/clinical-notes',
+router.get('/:id/clinical-notes',
   authenticate,
   authorize(['doctor', 'admin', 'patient']),
   asyncHandler(UserController.getClinicalNotes)
 );
 
-// ===============================================
-// USER PROFILE ROUTES
-// ===============================================
-
-/**
- * Get current user's profile
- * GET /users/profile
- */
-router.get('/profile',
-  authenticate,
-  asyncHandler(UserController.getProfile)
-);
-
-/**
- * Update current user's profile
- * PUT /users/profile
- */
-router.put('/profile',
-  authenticate,
-  asyncHandler(UserController.updateProfile)
-);
-
-module.exports = router; 
+module.exports = router;

@@ -42,6 +42,40 @@ class AppointmentRepository extends BaseRepository {
   }
 
   /**
+   * Find appointment by ID with joined data
+   * @param {number} appointmentId - Appointment ID
+   * @returns {Object|null} Appointment with doctor and patient data
+   */
+  async findAppointmentByIdWithJoins(appointmentId) {
+    try {
+      const query = `
+        SELECT a.*, 
+               d.first_name as doctor_first_name, 
+               d.last_name as doctor_last_name,
+               d.specialization as doctor_specialization,
+               d.phone_number as doctor_phone,
+               d.email as doctor_email,
+               d.status as doctor_status,
+               p.first_name as patient_first_name, 
+               p.last_name as patient_last_name,
+               p.email as patient_email,
+               p.phone as patient_phone,
+               p.status as patient_status
+        FROM appointments a
+        LEFT JOIN doctors d ON a.doctor_id = d.id
+        LEFT JOIN patients p ON a.patient_id = p.id
+        WHERE a.id = $1
+      `;
+
+      const result = await this.query(query, [appointmentId]);
+      return result.rows[0] || null;
+    } catch (error) {
+      api.error('Error finding appointment by ID with joins:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Update appointment record
    * @param {number} appointmentId - Appointment ID
    * @param {Object} updateData - Data to update
@@ -100,10 +134,12 @@ class AppointmentRepository extends BaseRepository {
                d.specialization as doctor_specialization,
                d.phone_number as doctor_phone,
                d.email as doctor_email,
+               d.status as doctor_status,
                p.first_name as patient_first_name, 
                p.last_name as patient_last_name,
                p.email as patient_email,
-               p.phone as patient_phone
+               p.phone as patient_phone,
+               p.status as patient_status
         FROM appointments a
         LEFT JOIN doctors d ON a.doctor_id = d.id
         LEFT JOIN patients p ON a.patient_id = p.id
@@ -241,9 +277,20 @@ class AppointmentRepository extends BaseRepository {
 
       const query = `
         SELECT a.*, 
-               d.first_name as doctor_first_name, d.last_name as doctor_last_name
+               d.first_name as doctor_first_name, 
+               d.last_name as doctor_last_name,
+               d.specialization as doctor_specialization,
+               d.phone_number as doctor_phone,
+               d.email as doctor_email,
+               d.status as doctor_status,
+               p.first_name as patient_first_name, 
+               p.last_name as patient_last_name,
+               p.email as patient_email,
+               p.phone as patient_phone,
+               p.status as patient_status
         FROM appointments a
         LEFT JOIN doctors d ON a.doctor_id = d.id
+        LEFT JOIN patients p ON a.patient_id = p.id
         WHERE a.patient_id = $1
         ORDER BY a.appointment_datetime DESC
         LIMIT $2 OFFSET $3

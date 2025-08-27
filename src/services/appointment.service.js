@@ -176,8 +176,13 @@ class AppointmentService {
       const appointments = await appointmentRepo.getAppointmentsByConditions(conditions, { limit, offset });
       const totalCount = await appointmentRepo.countAppointmentsByConditions(conditions);
 
+      // Format appointments using the new formatter that handles joined data
+      const formattedAppointments = appointments.map(appointment => 
+        AppointmentService.formatAppointmentResponse(appointment)
+      );
+
       return {
-        appointments,
+        appointments: formattedAppointments,
         pagination: {
           page,
           limit,
@@ -198,18 +203,35 @@ class AppointmentService {
    */
   static async getAppointmentById(appointmentId) {
     try {
-      const appointment = await AppointmentService.findAppointmentById(appointmentId);
+      const appointmentRepo = getAppointmentRepository();
+      const appointment = await appointmentRepo.findAppointmentByIdWithJoins(appointmentId);
       if (!appointment) {
         throw new NotFoundError('Appointment not found', '4048');
       }
 
-      return appointment;
+      return AppointmentService.formatAppointmentResponse(appointment);
     } catch (error) {
       api.error('Get appointment by ID service error:', error);
       if (error instanceof NotFoundError) {
         throw error;
       }
       throw new InternalServerError('Failed to retrieve appointment', '5042');
+    }
+  }
+
+  /**
+   * Find appointment by ID (legacy method for internal use)
+   * @param {number} appointmentId - Appointment ID
+   * @returns {Object} Raw appointment data
+   */
+  static async findAppointmentById(appointmentId) {
+    try {
+      const appointmentRepo = getAppointmentRepository();
+      const appointment = await appointmentRepo.findAppointmentById(appointmentId);
+      return appointment;
+    } catch (error) {
+      api.error('Find appointment by ID service error:', error);
+      throw error;
     }
   }
 
@@ -341,11 +363,6 @@ class AppointmentService {
     return await appointmentRepo.createAppointment(data);
   }
 
-  static async findAppointmentById(appointmentId) {
-    const appointmentRepo = getAppointmentRepository();
-    return await appointmentRepo.findAppointmentById(appointmentId);
-  }
-
   static async updateAppointmentRecord(appointmentId, updateData) {
     const appointmentRepo = getAppointmentRepository();
     return await appointmentRepo.updateAppointment(appointmentId, updateData);
@@ -362,51 +379,94 @@ class AppointmentService {
   }
 
   static formatAppointmentResponse(appointment, doctor = null, patient = null) {
-    return {
-      id: appointment.id,
-      appointment_datetime: appointment.appointment_datetime,
-      appointment_date: appointment.appointment_date,
-      appointment_time: appointment.appointment_time,
-      status: appointment.status,
-      location: appointment.location,
-      reason_for_visit: appointment.reason_for_visit,
-      additional_notes: appointment.additional_notes,
+    // Handle both legacy format (separate objects) and new joined format (flat structure)
+    const isJoinedData = appointment.patient_first_name !== undefined || appointment.doctor_first_name !== undefined;
+    
+    if (isJoinedData) {
+      // New format: flat structure with joined data
+      return {
+        id: appointment.id,
+        appointment_datetime: appointment.appointment_datetime,
+        appointment_date: appointment.appointment_date,
+        appointment_time: appointment.appointment_time,
+        status: appointment.status,
+        location: appointment.location,
+        reason_for_visit: appointment.reason_for_visit,
+        additional_notes: appointment.additional_notes,
 
-      // Nested patient object
-      patient: patient ? {
-        id: patient.id,
-        first_name: patient.first_name,
-        last_name: patient.last_name,
-        email: patient.email,
-        phone: patient.phone
-      } : {
-        id: appointment.patient_id,
-        first_name: null,
-        last_name: null,
-        email: null,
-        phone: null
-      },
+        // Nested patient object from joined data
+        patient: {
+          id: appointment.patient_id,
+          first_name: appointment.patient_first_name,
+          last_name: appointment.patient_last_name,
+          email: appointment.patient_email,
+          phone: appointment.patient_phone
+        },
 
-      // Nested doctor object
-      doctor: doctor ? {
-        id: doctor.id,
-        first_name: doctor.first_name,
-        last_name: doctor.last_name,
-        specialization: doctor.specialization,
-        phone_number: doctor.phone_number,
-        email: doctor.email
-      } : {
-        id: appointment.doctor_id,
-        first_name: null,
-        last_name: null,
-        specialization: null,
-        phone_number: null,
-        email: null
-      },
+        // Nested doctor object from joined data
+        doctor: {
+          id: appointment.doctor_id,
+          first_name: appointment.doctor_first_name,
+          last_name: appointment.doctor_last_name,
+          specialization: appointment.doctor_specialization,
+          phone_number: appointment.doctor_phone,
+          email: appointment.doctor_email
+        },
 
-      created_at: appointment.created_at,
-      updated_at: appointment.updated_at
-    };
+        created_at: appointment.created_at,
+        updated_at: appointment.updated_at,
+        created_by: appointment.created_by,
+        cancelled_at: appointment.cancelled_at,
+        cancellation_reason: appointment.cancellation_reason
+      };
+    } else {
+      // Legacy format: separate objects (backward compatibility)
+      return {
+        id: appointment.id,
+        appointment_datetime: appointment.appointment_datetime,
+        appointment_date: appointment.appointment_date,
+        appointment_time: appointment.appointment_time,
+        status: appointment.status,
+        location: appointment.location,
+        reason_for_visit: appointment.reason_for_visit,
+        additional_notes: appointment.additional_notes,
+
+        // Nested patient object
+        patient: patient ? {
+          id: patient.id,
+          first_name: patient.first_name,
+          last_name: patient.last_name,
+          email: patient.email,
+          phone: patient.phone
+        } : {
+          id: appointment.patient_id,
+          first_name: null,
+          last_name: null,
+          email: null,
+          phone: null
+        },
+
+        // Nested doctor object
+        doctor: doctor ? {
+          id: doctor.id,
+          first_name: doctor.first_name,
+          last_name: doctor.last_name,
+          specialization: doctor.specialization,
+          phone_number: doctor.phone_number,
+          email: doctor.email
+        } : {
+          id: appointment.doctor_id,
+          first_name: null,
+          last_name: null,
+          specialization: null,
+          phone_number: null,
+          email: null
+        },
+
+        created_at: appointment.created_at,
+        updated_at: appointment.updated_at
+      };
+    }
   }
 
   /**
