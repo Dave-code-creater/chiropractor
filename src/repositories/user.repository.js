@@ -1372,6 +1372,51 @@ class UserRepository extends BaseRepository {
     return result.rows;
   }
 
+  async getIncidentsByDoctor(options = {}) {
+    const { doctor_id, status, incident_type, limit = 50, offset = 0 } = options;
+
+    let whereConditions = ['i.doctor_id = $1'];
+    let queryParams = [doctor_id];
+    let paramIndex = 2;
+
+    if (status) {
+      whereConditions.push(`i.status = $${paramIndex}`);
+      queryParams.push(status);
+      paramIndex++;
+    }
+
+    if (incident_type) {
+      whereConditions.push(`i.incident_type = $${paramIndex}`);
+      queryParams.push(incident_type);
+      paramIndex++;
+    }
+
+    const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+
+    const query = `
+      SELECT 
+        i.*,
+        p.first_name as patient_first_name,
+        p.last_name as patient_last_name,
+        d.first_name as doctor_first_name,
+        d.last_name as doctor_last_name,
+        COUNT(if.id) as total_forms,
+        COUNT(CASE WHEN if.is_completed = true THEN 1 END) as completed_forms
+      FROM incidents i
+      LEFT JOIN patients p ON i.patient_id = p.id
+      LEFT JOIN doctors d ON i.doctor_id = d.id
+      LEFT JOIN incident_forms if ON i.id = if.incident_id
+      ${whereClause}
+      GROUP BY i.id, p.first_name, p.last_name, d.first_name, d.last_name
+      ORDER BY i.created_at DESC
+      LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+    `;
+
+    queryParams.push(limit, offset);
+    const result = await this.query(query, queryParams);
+    return result.rows;
+  }
+
   /**
    * Get doctor's patients with incident counts
    * @param {number} doctorId - Doctor ID

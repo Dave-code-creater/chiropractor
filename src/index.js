@@ -19,7 +19,6 @@ const userRoutes = require('./routes/user.routes');
 const appointmentRoutes = require('./routes/appointment.routes');
 const blogRoutes = require('./routes/blog.routes');
 const chatRoutes = require('./routes/chat.routes');
-const patientsRoutes = require('./routes/patients.routes');
 
 const incidentRoutes = require('./routes/incident.routes');
 const vitalsRoutes = require('./routes/vitals.routes');
@@ -100,7 +99,6 @@ apiV1.use('/auth', authRoutes);
 
 // Protected routes (auth required)
 apiV1.use('/users', userRoutes);
-apiV1.use('/patients', patientsRoutes);
 apiV1.use('/appointments', appointmentRoutes);
 apiV1.use('/blog', blogRoutes);
 apiV1.use('/chat', chatRoutes);

@@ -37,6 +37,16 @@ const createIncidentSchema = Joi.object({
     .optional()
     .messages({
       'date.max': 'Incident date cannot be in the future'
+    }),
+
+  doctor_id: Joi.number()
+    .integer()
+    .positive()
+    .optional()
+    .messages({
+      'number.base': 'Doctor ID must be a number',
+      'number.integer': 'Doctor ID must be an integer',
+      'number.positive': 'Doctor ID must be positive'
     })
 });
 

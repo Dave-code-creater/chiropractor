@@ -20,7 +20,7 @@ class IncidentService {
       const userRepo = getUserRepository();
       const patientRepo = getPatientRepository();
 
-      const { incident_type, title, description, incident_date } = incidentData;
+      const { incident_type, title, description, incident_date, doctor_id } = incidentData;
       const userId = req.user.id;
 
       // Ensure patient record exists
@@ -49,6 +49,7 @@ class IncidentService {
         title,
         description,
         date_occurred: incident_date || new Date().toISOString().split('T')[0],
+        doctor_id: doctor_id || null,
         status: 'active'
       });
 
@@ -135,6 +136,40 @@ class IncidentService {
     } catch (error) {
       logError('Get patient incidents service error:', error);
       throw new InternalServerError('Failed to retrieve patient incidents', '5017');
+    }
+  }
+
+  /**
+   * Get doctor's assigned incidents
+   * @param {number} doctorId - Doctor ID
+   * @param {Object} query - Query parameters
+   * @returns {Array} Doctor's incidents
+   */
+  static async getDoctorIncidents(doctorId, query = {}) {
+    try {
+      const userRepo = getUserRepository();
+
+      const { status, incident_type, page = 1, limit = 20 } = query;
+      const offset = (page - 1) * limit;
+
+      const incidents = await userRepo.getIncidentsByDoctor({
+        doctor_id: doctorId,
+        status,
+        incident_type,
+        limit: parseInt(limit),
+        offset
+      });
+
+      info('Doctor incidents retrieved:', {
+        doctor_id: doctorId,
+        count: incidents.length
+      });
+
+      return incidents.map(incident => IncidentService.formatIncidentResponse(incident));
+
+    } catch (error) {
+      logError('Get doctor incidents service error:', error);
+      throw new InternalServerError('Failed to retrieve doctor incidents', '5018');
     }
   }
 
