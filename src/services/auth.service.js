@@ -127,6 +127,17 @@ class AuthService {
       };
     } catch (error) {
       auth.error('Registration error:', error);
+      
+      // Handle database constraint violations
+      if (error.code === '23505') {
+        if (error.constraint === 'users_phone_number_key') {
+          throw new BadRequestError('This phone number is already registered', '4093');
+        }
+        if (error.constraint === 'users_email_key') {
+          throw new BadRequestError('This email is already registered', '4090');
+        }
+      }
+      
       throw error;
     }
   }
@@ -701,6 +712,17 @@ class AuthService {
 
     } catch (error) {
       auth.error('Patient registration service error:', error);
+      
+      // Handle database constraint violations
+      if (error.code === '23505') {
+        if (error.constraint === 'users_phone_number_key') {
+          throw new BadRequestError('This phone number is already registered', '4093');
+        }
+        if (error.constraint === 'users_email_key') {
+          throw new BadRequestError('This email is already registered', '4090');
+        }
+      }
+      
       if (error instanceof BadRequestError || error instanceof ConflictError) {
         throw error;
       }

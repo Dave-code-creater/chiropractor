@@ -22,7 +22,7 @@ const chatRoutes = require('./routes/chat.routes');
 const patientsRoutes = require('./routes/patients.routes');
 
 const incidentRoutes = require('./routes/incident.routes');
-const clinicalNotesRoutes = require('./routes/clinical-notes.routes');
+const vitalsRoutes = require('./routes/vitals.routes');
 
 // Import debug routes (development only)
 const debugRoutes = require('./routes/debug.routes');
@@ -106,6 +106,7 @@ apiV1.use('/blog', blogRoutes);
 apiV1.use('/chat', chatRoutes);
 
 apiV1.use('/incidents', incidentRoutes);
+apiV1.use('/vitals', vitalsRoutes);
 
 // Debug routes (development only)
 if (process.env.NODE_ENV === 'development') {

@@ -7,226 +7,223 @@ const router = express.Router();
 
 /**
  * ===============================================
- * CHIROPRACTIC ASSESSMENT API ROUTES
+ * DR. DIEU PHAN PATIENT RECORDS & VITALS
  * ===============================================
  * 
- * All routes require authentication
- * Role-based authorization for different operations
+ * Simplified single-doctor practice workflow:
+ * 1. Patient creates initial report
+ * 2. Dr. Dieu Phan reviews and creates treatment plan
+ * 3. Daily progress notes and vitals tracking
+ * 4. Treatment plan updates (4-month programs, frequency adjustments)
  * 
- * Chiropractic-specific assessments:
- * - Pain assessments and tracking
- * - Range of motion measurements
- * - Mobility and flexibility scores
- * - Posture analysis
- * - Spinal alignment evaluations
+ * Combined functionality:
+ * - Patient vitals and assessments
+ * - Clinical notes and SOAP notes
+ * - Treatment plans and progress tracking
+ * - Medical history management
  */
 
 // ===============================================
-// GENERAL ASSESSMENT ROUTES
+// PATIENT RECORDS FOR DR. DIEU PHAN
 // ===============================================
 
 /**
- * Get physical assessments
- * GET /assessments?page=number&limit=number&patientId=number&dateFrom=string&dateTo=string&type=string
- * Auth: doctor, admin, staff
+ * Get all patients with recent vitals
+ * GET /vitals/patients
+ * Auth: doctor only (Dr. Dieu Phan)
  */
-router.get('/',
+router.get('/patients',
   authenticate,
-  authorize(['doctor', 'admin', 'staff']),
+  authorize(['doctor']),
   asyncHandler(async (req, res) => {
-    // TODO: Implement physical assessments retrieval with pagination and filtering
-    const response = new SuccessResponse('Physical assessments retrieved successfully', 200, []);
-    response.send(res);
-  })
-);
-
-/**
- * Create physical assessment
- * POST /assessments
- * Body: { patient_id, pain_level, mobility_score, range_of_motion, posture_analysis, spinal_alignment, recorded_at }
- * Auth: doctor, admin, staff
- */
-router.post('/',
-  authenticate,
-  authorize(['doctor', 'admin', 'staff']),
-  asyncHandler(async (req, res) => {
-    // TODO: Implement physical assessment creation
-    const response = new SuccessResponse('Physical assessment created successfully', 201, {});
-    response.send(res);
-  })
-);
-
-/**
- * Create bulk assessments
- * POST /assessments/bulk
- * Body: { patient_id, assessments: [{ pain_level, mobility_score, recorded_at }] }
- * Auth: doctor, admin, staff
- */
-router.post('/bulk',
-  authenticate,
-  authorize(['doctor', 'admin', 'staff']),
-  asyncHandler(async (req, res) => {
-    // TODO: Implement bulk assessments creation
-    const response = new SuccessResponse('Bulk assessments created successfully', 201, {});
-    response.send(res);
-  })
-);
-
-/**
- * Get assessment trends
- * GET /assessments/trends?patientId=number&period=string&assessmentTypes=string
- * Auth: doctor, admin, staff
- */
-router.get('/trends',
-  authenticate,
-  authorize(['doctor', 'admin', 'staff']),
-  asyncHandler(async (req, res) => {
-    // TODO: Implement assessment trends analysis
-    const response = new SuccessResponse('Assessment trends retrieved successfully', 200, {});
-    response.send(res);
-  })
-);
-
-/**
- * Get assessment summary
- * GET /assessments/summary?patientId=number&period=string
- * Auth: doctor, admin, staff
- */
-router.get('/summary',
-  authenticate,
-  authorize(['doctor', 'admin', 'staff']),
-  asyncHandler(async (req, res) => {
-    // TODO: Implement assessment summary
-    const response = new SuccessResponse('Assessment summary retrieved successfully', 200, {});
-    response.send(res);
-  })
-);
-
-/**
- * Get pain scale reference
- * GET /assessments/pain-scale
- * Auth: doctor, admin, staff, patient
- */
-router.get('/pain-scale',
-  authenticate,
-  authorize(['doctor', 'admin', 'staff', 'patient']),
-  asyncHandler(async (req, res) => {
-    // TODO: Implement pain scale reference retrieval
-    const response = new SuccessResponse('Pain scale reference retrieved successfully', 200, {});
+    // TODO: Get all patients with their latest vitals for Dr. Dieu Phan
+    const response = new SuccessResponse('Patients with vitals retrieved successfully', 200, []);
     response.send(res);
   })
 );
 
 // ===============================================
-// PATIENT-SPECIFIC ASSESSMENT ROUTES
+// INITIAL PATIENT REPORTS & TREATMENT PLANS
 // ===============================================
 
 /**
- * Get assessments by patient
- * GET /assessments/patient/:patientId?page=number&limit=number&dateFrom=string&dateTo=string
- * Auth: doctor, admin, staff, patient (own assessments only)
+ * Get patient's initial report for review
+ * GET /vitals/patient/:patientId/initial-report
+ * Auth: doctor only
  */
-router.get('/patient/:patientId',
+router.get('/patient/:patientId/initial-report',
   authenticate,
-  authorize(['doctor', 'admin', 'staff', 'patient']),
+  authorize(['doctor']),
   asyncHandler(async (req, res) => {
-    // TODO: Implement patient assessments retrieval
-    const response = new SuccessResponse('Patient assessments retrieved successfully', 200, []);
+    // TODO: Get patient's initial incident report for Dr. Dieu Phan to review
+    const response = new SuccessResponse('Initial report retrieved successfully', 200, {});
     response.send(res);
   })
 );
 
 /**
- * Get latest assessment
- * GET /assessments/patient/:patientId/latest
- * Auth: doctor, admin, staff, patient (own assessment only)
+ * Create treatment plan after reviewing initial report
+ * POST /vitals/patient/:patientId/treatment-plan
+ * Body: { duration_months, frequency_per_week, treatment_type, goals, notes }
+ * Auth: doctor only
  */
-router.get('/patient/:patientId/latest',
+router.post('/patient/:patientId/treatment-plan',
   authenticate,
-  authorize(['doctor', 'admin', 'staff', 'patient']),
+  authorize(['doctor']),
   asyncHandler(async (req, res) => {
-    // TODO: Implement latest assessment retrieval
-    const response = new SuccessResponse('Latest assessment retrieved successfully', 200, {});
+    // TODO: Create treatment plan (e.g., 4 months, 3x/week initially)
+    const response = new SuccessResponse('Treatment plan created successfully', 201, {});
     response.send(res);
   })
 );
 
 /**
- * Get pain progression for patient
- * GET /assessments/patient/:patientId/pain-progression?period=string
- * Auth: doctor, admin, staff, patient (own progression only)
+ * Update treatment plan (adjust frequency, extend duration)
+ * PUT /vitals/patient/:patientId/treatment-plan
+ * Body: { duration_months, frequency_per_week, notes }
+ * Auth: doctor only
  */
-router.get('/patient/:patientId/pain-progression',
+router.put('/patient/:patientId/treatment-plan',
   authenticate,
-  authorize(['doctor', 'admin', 'staff', 'patient']),
+  authorize(['doctor']),
   asyncHandler(async (req, res) => {
-    // TODO: Implement pain progression tracking
-    const response = new SuccessResponse('Pain progression retrieved successfully', 200, []);
-    response.send(res);
-  })
-);
-
-/**
- * Get mobility improvement for patient
- * GET /assessments/patient/:patientId/mobility-improvement?period=string
- * Auth: doctor, admin, staff, patient (own improvement only)
- */
-router.get('/patient/:patientId/mobility-improvement',
-  authenticate,
-  authorize(['doctor', 'admin', 'staff', 'patient']),
-  asyncHandler(async (req, res) => {
-    // TODO: Implement mobility improvement tracking
-    const response = new SuccessResponse('Mobility improvement retrieved successfully', 200, []);
+    // TODO: Update treatment plan based on progress
+    const response = new SuccessResponse('Treatment plan updated successfully', 200, {});
     response.send(res);
   })
 );
 
 // ===============================================
-// INDIVIDUAL ASSESSMENT RECORD ROUTES
+// DAILY VITALS & PROGRESS NOTES
 // ===============================================
 
 /**
- * Get assessment by ID
- * GET /assessments/:assessmentId
- * Auth: doctor, admin, staff
+ * Record daily vitals and progress note
+ * POST /vitals/patient/:patientId/daily
+ * Body: { pain_level, mobility_score, treatment_notes, progress_notes, vitals: { bp, hr, temp } }
+ * Auth: doctor only
  */
-router.get('/:assessmentId',
+router.post('/patient/:patientId/daily',
   authenticate,
-  authorize(['doctor', 'admin', 'staff']),
+  authorize(['doctor']),
   asyncHandler(async (req, res) => {
-    // TODO: Implement specific assessment record retrieval
-    const response = new SuccessResponse('Assessment record retrieved successfully', 200, {});
+    // TODO: Record daily patient progress with vitals
+    const response = new SuccessResponse('Daily progress recorded successfully', 201, {});
     response.send(res);
   })
 );
 
 /**
- * Update assessment record
- * PUT /assessments/:assessmentId
- * Body: { pain_level, mobility_score, range_of_motion, posture_analysis, spinal_alignment, notes }
- * Auth: doctor, admin, staff
+ * Create SOAP note for patient visit
+ * POST /vitals/patient/:patientId/soap-note
+ * Body: { subjective, objective, assessment, plan, visit_date }
+ * Auth: doctor only
  */
-router.put('/:assessmentId',
+router.post('/patient/:patientId/soap-note',
   authenticate,
-  authorize(['doctor', 'admin', 'staff']),
+  authorize(['doctor']),
   asyncHandler(async (req, res) => {
-    // TODO: Implement assessment record update
-    const response = new SuccessResponse('Assessment record updated successfully', 200, {});
+    // TODO: Create SOAP note for patient visit
+    const response = new SuccessResponse('SOAP note created successfully', 201, {});
     response.send(res);
   })
 );
 
 /**
- * Delete assessment record
- * DELETE /assessments/:assessmentId
- * Auth: doctor, admin, staff
+ * Get patient's complete record (vitals, notes, treatment plan)
+ * GET /vitals/patient/:patientId/complete-record
+ * Auth: doctor, patient (own record only)
  */
-router.delete('/:assessmentId',
+router.get('/patient/:patientId/complete-record',
   authenticate,
-  authorize(['doctor', 'admin', 'staff']),
+  authorize(['doctor', 'patient']),
   asyncHandler(async (req, res) => {
-    // TODO: Implement assessment record deletion
-    const response = new SuccessResponse('Assessment record deleted successfully', 200, {});
+    // TODO: Get complete patient record for Dr. Dieu Phan's review
+    const response = new SuccessResponse('Complete patient record retrieved successfully', 200, {});
+    response.send(res);
+  })
+);
+
+/**
+ * Get patient progress summary for Dr. Dieu Phan
+ * GET /vitals/patient/:patientId/progress
+ * Auth: doctor, patient (own progress only)
+ */
+router.get('/patient/:patientId/progress',
+  authenticate,
+  authorize(['doctor', 'patient']),
+  asyncHandler(async (req, res) => {
+    // TODO: Get patient progress summary for treatment review
+    const response = new SuccessResponse('Patient progress retrieved successfully', 200, {});
+    response.send(res);
+  })
+);
+
+// ===============================================
+// PATIENT VISIT RECORDS
+// ===============================================
+
+/**
+ * Get all visits for a patient
+ * GET /vitals/patient/:patientId/visits
+ * Auth: doctor, patient (own visits only)
+ */
+router.get('/patient/:patientId/visits',
+  authenticate,
+  authorize(['doctor', 'patient']),
+  asyncHandler(async (req, res) => {
+    // TODO: Get all patient visits with notes and vitals
+    const response = new SuccessResponse('Patient visits retrieved successfully', 200, []);
+    response.send(res);
+  })
+);
+
+/**
+ * Get latest patient visit
+ * GET /vitals/patient/:patientId/latest-visit
+ * Auth: doctor, patient (own visit only)
+ */
+router.get('/patient/:patientId/latest-visit',
+  authenticate,
+  authorize(['doctor', 'patient']),
+  asyncHandler(async (req, res) => {
+    // TODO: Get most recent patient visit
+    const response = new SuccessResponse('Latest visit retrieved successfully', 200, {});
+    response.send(res);
+  })
+);
+
+// ===============================================
+// VISIT AND NOTE MANAGEMENT
+// ===============================================
+
+/**
+ * Update a patient visit record
+ * PUT /vitals/visit/:visitId
+ * Body: { pain_level, mobility_score, treatment_notes, next_appointment }
+ * Auth: doctor only
+ */
+router.put('/visit/:visitId',
+  authenticate,
+  authorize(['doctor']),
+  asyncHandler(async (req, res) => {
+    // TODO: Update patient visit record
+    const response = new SuccessResponse('Visit record updated successfully', 200, {});
+    response.send(res);
+  })
+);
+
+/**
+ * Get visit details by ID
+ * GET /vitals/visit/:visitId
+ * Auth: doctor, patient (if their own visit)
+ */
+router.get('/visit/:visitId',
+  authenticate,
+  authorize(['doctor', 'patient']),
+  asyncHandler(async (req, res) => {
+    // TODO: Get specific visit details
+    const response = new SuccessResponse('Visit details retrieved successfully', 200, {});
     response.send(res);
   })
 );

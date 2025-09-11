@@ -1,16 +1,44 @@
 const express = require('express');
-const { authenticate } = require('../middleware/auth.middleware');
+const { authenticate, authorize } = require('../middleware/auth.middleware');
 const asyncHandler = require('../utils/asyncHandler');
 const IncidentController = require('../controllers/incident.controller');
 const { createIncidentValidator, updateIncidentValidator, incidentNoteValidator } = require('../validators');
 
 const router = express.Router();
 
+/**
+ * ===============================================
+ * PATIENT INITIAL REPORTS - DR. DIEU PHAN WORKFLOW
+ * ===============================================
+ * 
+ * Simplified workflow:
+ * 1. Patient creates initial incident report
+ * 2. Patient fills out assessment forms
+ * 3. Dr. Dieu Phan reviews report
+ * 4. Dr. Dieu Phan creates treatment plan
+ */
+
 // All incident routes require authentication
 router.use(authenticate);
 
-// Incident CRUD operations
-router.post('/', createIncidentValidator, asyncHandler(IncidentController.createIncident));
+// ===============================================
+// PATIENT INITIAL REPORT SUBMISSION
+// ===============================================
+
+/**
+ * Patient creates initial incident report
+ * POST /incidents
+ */
+router.post('/', 
+  authorize(['patient']),
+  createIncidentValidator, 
+  asyncHandler(IncidentController.createIncident)
+);
+
+/**
+ * Get patient's own incidents OR all incidents for doctor review
+ * GET /incidents
+ */
 router.get('/', asyncHandler(IncidentController.getUserIncidents));
 
 // Single incident details
@@ -30,9 +58,34 @@ router.get('/:id/available-forms', asyncHandler(IncidentController.getAvailableI
 // Incident notes
 router.post('/:id/notes', incidentNoteValidator, asyncHandler(IncidentController.addIncidentNote));
 
-// Treatment plans
-router.post('/:id/treatment-plan', asyncHandler(IncidentController.createTreatmentPlan));
-router.get('/:id/treatment-plan', asyncHandler(IncidentController.getTreatmentPlan));
-router.put('/:id/treatment-plan/:treatmentPlanId', asyncHandler(IncidentController.updateTreatmentPlan));
+// ===============================================
+// DR. DIEU PHAN TREATMENT PLAN MANAGEMENT
+// ===============================================
+
+/**
+ * Dr. Dieu Phan creates treatment plan after reviewing initial report
+ * POST /incidents/:id/treatment-plan
+ */
+router.post('/:id/treatment-plan', 
+  authorize(['doctor']),
+  asyncHandler(IncidentController.createTreatmentPlan)
+);
+
+/**
+ * Get treatment plan (doctor or patient can view)
+ * GET /incidents/:id/treatment-plan
+ */
+router.get('/:id/treatment-plan', 
+  asyncHandler(IncidentController.getTreatmentPlan)
+);
+
+/**
+ * Dr. Dieu Phan updates treatment plan (adjust frequency, extend duration)
+ * PUT /incidents/:id/treatment-plan/:treatmentPlanId
+ */
+router.put('/:id/treatment-plan/:treatmentPlanId',
+  authorize(['doctor']),
+  asyncHandler(IncidentController.updateTreatmentPlan)
+);
 
 module.exports = router; 

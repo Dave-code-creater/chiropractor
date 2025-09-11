@@ -9,14 +9,13 @@ const router = express.Router();
 
 /**
  * ===============================================
- * USER MANAGEMENT API ROUTES
+ * DR. DIEU PHAN PATIENT MANAGEMENT
  * ===============================================
  * 
- * All patient endpoints available at: /api/v1/2025/users/patients/*
- * Role-based Access:
- * - Doctors: Only see their own patients (via incident relationships)
- * - Admin/Staff: See all patients
- * - Patients: Only access their own data
+ * Simplified single-doctor practice routes:
+ * - All patients belong to Dr. Dieu Phan
+ * - Traditional CRUD operations
+ * - Patient profile and basic management
  */
 
 // ===============================================
@@ -34,22 +33,13 @@ router.post('/patients',
 );
 
 /**
- * Get all patients (with role-based filtering)
+ * Get all patients for Dr. Dieu Phan
  * GET /users/patients
  */
 router.get('/patients',
   authenticate,
-  authorize(['doctor', 'admin', 'staff']),
-  asyncHandler(async (req, res) => {
-    if (req.user.role === 'doctor') {
-      // Doctors only see their patients through the incident service
-      const patients = await IncidentService.getDoctorPatients(req.user.id, req.query);
-      return new SuccessResponse('Doctor patients retrieved successfully', 200, patients).send(res);
-    } else {
-      // Admin/Staff see all patients using the existing controller
-      return await UserController.getAllPatients(req, res);
-    }
-  })
+  authorize(['doctor']),
+  asyncHandler(UserController.getAllPatients)
 );
 
 /**
