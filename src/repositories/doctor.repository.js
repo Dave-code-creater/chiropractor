@@ -63,13 +63,12 @@ class DoctorRepository extends BaseRepository {
   async getActiveDoctors(options = {}) {
     const query = `
       SELECT 
-        d.id, d.user_id, d.first_name, d.last_name,
-        d.specialization, d.status, d.created_at,
-        u.email, u.phone_number
-      FROM ${this.tableName} d
-      JOIN users u ON d.user_id = u.id
-      WHERE d.status = 'active'
-      ORDER BY d.first_name ASC, d.last_name ASC
+        id, user_id, first_name, last_name,
+        specialization, phone_number, email, office_address, 
+        is_available, status, created_at, updated_at
+      FROM ${this.tableName}
+      WHERE status = 'active'
+      ORDER BY first_name ASC, last_name ASC
       ${options.limit ? `LIMIT ${options.limit}` : ''}
       ${options.offset ? `OFFSET ${options.offset}` : ''}
     `;
@@ -87,14 +86,13 @@ class DoctorRepository extends BaseRepository {
   async getDoctorsBySpecialization(specialization, options = {}) {
     const query = `
       SELECT 
-        d.id, d.user_id, d.first_name, d.last_name,
-        d.specialization, d.status, d.created_at,
-        u.email, u.phone_number
-      FROM ${this.tableName} d
-      JOIN users u ON d.user_id = u.id
-      WHERE d.status = 'active'
-      AND d.specialization ILIKE $1
-      ORDER BY d.first_name ASC, d.last_name ASC
+        id, user_id, first_name, last_name,
+        specialization, phone_number, email, office_address, 
+        is_available, status, created_at, updated_at
+      FROM ${this.tableName}
+      WHERE status = 'active'
+      AND specialization ILIKE $1
+      ORDER BY first_name ASC, last_name ASC
       ${options.limit ? `LIMIT ${options.limit}` : ''}
       ${options.offset ? `OFFSET ${options.offset}` : ''}
     `;
@@ -283,6 +281,265 @@ class DoctorRepository extends BaseRepository {
 
     const result = await this.query(query, values);
     return result.rows[0];
+  }
+
+  /**
+   * Get doctor by ID
+   * @param {number} doctorId - Doctor ID
+   * @returns {Object|null} Doctor record
+   */
+  async getDoctorById(doctorId) {
+    return await this.findById(doctorId);
+  }
+
+  /**
+   * Get doctor's assigned patients
+   * @param {number} doctorId - Doctor ID
+   * @param {Object} options - Query options
+   * @returns {Object} Patients with pagination info
+   */
+  async getDoctorPatients(doctorId, options = {}) {
+    const { page = 1, limit = 20, search = '', status = null } = options;
+    const offset = (page - 1) * limit;
+
+    // Build search conditions
+    let searchConditions = '';
+    let searchParams = [doctorId];
+    let paramIndex = 2;
+
+    if (search) {
+      searchConditions += ` AND (u.first_name ILIKE $${paramIndex} OR u.last_name ILIKE $${paramIndex} OR u.email ILIKE $${paramIndex})`;
+      searchParams.push(`%${search}%`);
+      paramIndex++;
+    }
+
+    if (status) {
+      searchConditions += ` AND u.status = $${paramIndex}`;
+      searchParams.push(status);
+      paramIndex++;
+    }
+
+    // Get total count
+    const countQuery = `
+      SELECT COUNT(DISTINCT u.id) as total
+      FROM users u
+      WHERE u.role = 'patient'
+        AND EXISTS (
+          SELECT 1 FROM appointments a 
+          WHERE a.patient_id = u.id AND a.doctor_id = $1
+          UNION
+          SELECT 1 FROM incidents i 
+          WHERE i.user_id = u.id AND i.doctor_id = $1
+        )
+        ${searchConditions}
+    `;
+
+    const countResult = await this.query(countQuery, searchParams);
+    const total = parseInt(countResult.rows[0]?.total || 0);
+
+    // Get patients with their recent incidents
+    const query = `
+      SELECT 
+        u.id as patient_id,
+        u.first_name,
+        u.last_name,
+        u.email,
+        u.status,
+        u.created_at,
+        
+        -- Incident statistics
+        COUNT(DISTINCT i.id) as total_incidents,
+        COUNT(DISTINCT CASE WHEN i.status IN ('active', 'pending') THEN i.id END) as active_incidents,
+        MAX(i.created_at) as last_incident_date,
+        
+        -- Appointment statistics  
+        COUNT(DISTINCT a.id) as total_appointments,
+        COUNT(DISTINCT CASE WHEN a.status = 'scheduled' THEN a.id END) as scheduled_appointments,
+        
+        -- Recent incidents (last 5)
+        JSON_AGG(
+          DISTINCT jsonb_build_object(
+            'id', i.id,
+            'incident_type', i.incident_type,
+            'title', i.title,
+            'status', i.status,
+            'created_at', i.created_at,
+            'incident_date', i.incident_date
+          ) 
+          ORDER BY i.created_at DESC
+        ) FILTER (WHERE i.id IS NOT NULL) as recent_incidents
+        
+      FROM users u
+      LEFT JOIN incidents i ON i.user_id = u.id AND i.doctor_id = $1
+      LEFT JOIN appointments a ON a.patient_id = u.id AND a.doctor_id = $1
+      WHERE u.role = 'patient'
+        AND EXISTS (
+          SELECT 1 FROM appointments a2 
+          WHERE a2.patient_id = u.id AND a2.doctor_id = $1
+          UNION
+          SELECT 1 FROM incidents i2 
+          WHERE i2.user_id = u.id AND i2.doctor_id = $1
+        )
+        ${searchConditions}
+      GROUP BY u.id, u.first_name, u.last_name, u.email, u.status, u.created_at
+      ORDER BY last_incident_date DESC NULLS LAST, u.first_name ASC, u.last_name ASC
+      LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+    `;
+
+    searchParams.push(limit, offset);
+    const result = await this.query(query, searchParams);
+
+    // Process recent_incidents to limit to 5 most recent
+    const patients = result.rows.map(patient => ({
+      ...patient,
+      recent_incidents: (patient.recent_incidents || [])
+        .filter(incident => incident.id !== null)
+        .slice(0, 5)
+    }));
+
+    return {
+      data: patients,
+      total,
+      pagination: {
+        page,
+        limit,
+        pages: Math.ceil(total / limit),
+        hasNext: page * limit < total,
+        hasPrev: page > 1
+      }
+    };
+  }
+
+  /**
+   * Verify if doctor has access to a specific patient
+   * @param {number} doctorId - Doctor ID
+   * @param {number} patientId - Patient ID
+   * @returns {boolean} True if doctor has access
+   */
+  async verifyDoctorPatientAccess(doctorId, patientId) {
+    const query = `
+      SELECT EXISTS (
+        SELECT 1 FROM appointments 
+        WHERE doctor_id = $1 AND patient_id = $2
+        UNION
+        SELECT 1 FROM incidents 
+        WHERE doctor_id = $1 AND user_id = $2
+      ) as has_access
+    `;
+
+    const result = await this.query(query, [doctorId, patientId]);
+    return result.rows[0]?.has_access || false;
+  }
+
+  /**
+   * Get detailed patient information for doctor
+   * @param {number} doctorId - Doctor ID
+   * @param {number} patientId - Patient ID
+   * @returns {Object|null} Detailed patient information
+   */
+  async getPatientDetailsForDoctor(doctorId, patientId) {
+    const query = `
+      SELECT 
+        u.id as patient_id,
+        u.first_name,
+        u.last_name,
+        u.email,
+        u.phone_number,
+        u.status,
+        u.created_at,
+        
+        -- All incidents for this patient-doctor relationship
+        JSON_AGG(
+          DISTINCT jsonb_build_object(
+            'id', i.id,
+            'incident_type', i.incident_type,
+            'title', i.title,
+            'description', i.description,
+            'status', i.status,
+            'created_at', i.created_at,
+            'incident_date', i.incident_date,
+            'incident_time', i.incident_time,
+            'incident_location', i.incident_location,
+            'total_reports', i.completed_forms
+          )
+          ORDER BY i.created_at DESC
+        ) FILTER (WHERE i.id IS NOT NULL) as incidents,
+        
+        -- All appointments for this patient-doctor relationship
+        JSON_AGG(
+          DISTINCT jsonb_build_object(
+            'id', a.id,
+            'appointment_date', a.appointment_date,
+            'start_time', a.start_time,
+            'end_time', a.end_time,
+            'status', a.status,
+            'appointment_type', a.appointment_type,
+            'notes', a.notes,
+            'created_at', a.created_at
+          )
+          ORDER BY a.appointment_date DESC
+        ) FILTER (WHERE a.id IS NOT NULL) as appointments
+        
+      FROM users u
+      LEFT JOIN incidents i ON i.user_id = u.id AND i.doctor_id = $1
+      LEFT JOIN appointments a ON a.patient_id = u.id AND a.doctor_id = $1
+      WHERE u.id = $2 AND u.role = 'patient'
+      GROUP BY u.id, u.first_name, u.last_name, u.email, u.phone_number, u.status, u.created_at
+    `;
+
+    const result = await this.query(query, [doctorId, patientId]);
+    return result.rows[0] || null;
+  }
+
+  /**
+   * Get doctor's dashboard statistics
+   * @param {number} doctorId - Doctor ID
+   * @returns {Object} Dashboard statistics
+   */
+  async getDoctorStats(doctorId) {
+    const query = `
+      SELECT 
+        -- Patient counts
+        COUNT(DISTINCT CASE WHEN u.role = 'patient' THEN u.id END) as total_patients,
+        COUNT(DISTINCT CASE WHEN u.role = 'patient' AND u.status = 'active' THEN u.id END) as active_patients,
+        
+        -- Incident counts
+        COUNT(DISTINCT i.id) as total_incidents,
+        COUNT(DISTINCT CASE WHEN i.status = 'active' THEN i.id END) as active_incidents,
+        COUNT(DISTINCT CASE WHEN i.status = 'completed' THEN i.id END) as completed_incidents,
+        
+        -- Appointment counts
+        COUNT(DISTINCT a.id) as total_appointments,
+        COUNT(DISTINCT CASE WHEN a.status = 'scheduled' THEN a.id END) as scheduled_appointments,
+        COUNT(DISTINCT CASE WHEN a.status = 'completed' THEN a.id END) as completed_appointments,
+        COUNT(DISTINCT CASE WHEN a.appointment_date >= CURRENT_DATE THEN a.id END) as upcoming_appointments,
+        
+        -- Recent activity
+        COUNT(DISTINCT CASE WHEN i.created_at >= CURRENT_DATE - INTERVAL '7 days' THEN i.id END) as incidents_this_week,
+        COUNT(DISTINCT CASE WHEN a.created_at >= CURRENT_DATE - INTERVAL '7 days' THEN a.id END) as appointments_this_week
+        
+      FROM doctors d
+      LEFT JOIN incidents i ON i.doctor_id = d.id
+      LEFT JOIN appointments a ON a.doctor_id = d.id
+      LEFT JOIN users u ON (i.user_id = u.id OR a.patient_id = u.id)
+      WHERE d.id = $1
+      GROUP BY d.id
+    `;
+
+    const result = await this.query(query, [doctorId]);
+    return result.rows[0] || {
+      total_patients: 0,
+      active_patients: 0,
+      total_incidents: 0,
+      active_incidents: 0,
+      completed_incidents: 0,
+      total_appointments: 0,
+      scheduled_appointments: 0,
+      completed_appointments: 0,
+      upcoming_appointments: 0,
+      incidents_this_week: 0,
+      appointments_this_week: 0
+    };
   }
 }
 

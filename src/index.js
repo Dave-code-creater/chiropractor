@@ -19,6 +19,7 @@ const userRoutes = require('./routes/user.routes');
 const appointmentRoutes = require('./routes/appointment.routes');
 const blogRoutes = require('./routes/blog.routes');
 const chatRoutes = require('./routes/chat.routes');
+const doctorRoutes = require('./routes/doctor.routes');
 
 const incidentRoutes = require('./routes/incident.routes');
 const vitalsRoutes = require('./routes/vitals.routes');
@@ -102,6 +103,7 @@ apiV1.use('/users', userRoutes);
 apiV1.use('/appointments', appointmentRoutes);
 apiV1.use('/blog', blogRoutes);
 apiV1.use('/chat', chatRoutes);
+apiV1.use('/doctors', doctorRoutes);
 
 apiV1.use('/incidents', incidentRoutes);
 apiV1.use('/vitals', vitalsRoutes);

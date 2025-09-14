@@ -579,13 +579,15 @@ class AppointmentController {
 
         // Contact information
         email: doctor.email,
-        phone: doctor.phone,
-        office_phone: doctor.phone,
+        phone: doctor.phone_number,
+        office_phone: doctor.phone_number,
+        office_address: doctor.office_address,
 
         // Status and availability
-        is_active: doctor.is_active,
-        isActive: doctor.is_active,
-        status: doctor.is_active ? 'active' : 'inactive',
+        is_active: doctor.status === 'active',
+        isActive: doctor.status === 'active',
+        is_available: doctor.is_available,
+        status: doctor.status,
 
         // Schedule information
 

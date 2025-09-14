@@ -648,6 +648,7 @@ INSERT INTO doctor_schedules (doctor_id, day_of_week, start_time, end_time, is_a
 INSERT INTO doctor_schedules (doctor_id, day_of_week, start_time, end_time, is_available, accepts_walkin) VALUES
 (1, 5, '09:00', '17:00', TRUE, TRUE);
 
+
 -- Insert default blog categories
 INSERT INTO blog_categories (name, slug, description, is_active) VALUES
 ('Chiropractic Care', 'chiropractic-care', 'Articles about chiropractic treatments and care', true),
