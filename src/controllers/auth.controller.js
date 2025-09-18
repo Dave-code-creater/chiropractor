@@ -23,10 +23,11 @@ class AuthController {
   static async register(req, res) {
     try {
       const result = await AuthService.registerUser(req.body, req);
+      const { data } = result;
       return res.status(201).json({
         success: true,
         message: 'Registration successful',
-        ...result
+        data
       });
     } catch (error) {
       return AuthController.handleError(error, res);
@@ -46,18 +47,19 @@ class AuthController {
       });
 
       const result = await AuthService.registerPatient(req.body, req);
+      const { data } = result;
 
       logger.info(' Patient registration successful:', {
-        user_id: result.data.user.id,
-        patient_id: result.data.patient.id,
-        email: result.data.user.email,
-        name: result.data.patient.full_name
+        user_id: data.user.id,
+        patient_id: data.patient.id,
+        email: data.user.email,
+        name: data.patient.full_name
       });
 
       return res.status(201).json({
         success: true,
         message: 'Patient registration successful! Welcome to our platform.',
-        ...result
+        data
       });
     } catch (error) {
       logger.error('Patient registration controller error:', error);
@@ -73,12 +75,14 @@ class AuthController {
     try {
       const { email, password, remember_me } = req.body;
       const result = await AuthService.loginUser(email, password, remember_me, req);
+      const { data } = result;
+      const { tokens } = data;
 
       // Set HTTP-only cookies for tokens
       const secureCookie = process.env.NODE_ENV === 'production';
 
       // Access token (short-lived)
-      res.cookie('accessToken', result.token, {
+      res.cookie('accessToken', tokens.accessToken, {
         httpOnly: true,
         secure: secureCookie,
         sameSite: 'lax',
@@ -86,7 +90,7 @@ class AuthController {
       });
 
       // Refresh token (long-lived)
-      res.cookie('refreshToken', result.refreshToken, {
+      res.cookie('refreshToken', tokens.refreshToken, {
         httpOnly: true,
         secure: secureCookie,
         sameSite: 'lax',
@@ -96,7 +100,7 @@ class AuthController {
       return res.status(200).json({
         success: true,
         message: 'Login successful',
-        ...result
+        data
       });
     } catch (error) {
       return AuthController.handleError(error, res);
@@ -111,18 +115,20 @@ class AuthController {
     try {
       const token = req.cookies?.refreshToken || req.headers.authorization?.substring(7) || req.body.refresh_token;
       const result = await AuthService.refreshToken(token, req);
+      const { data } = result;
+      const { tokens } = data;
 
       // Update cookies with new tokens
       const secureCookie = process.env.NODE_ENV === 'production';
 
-      res.cookie('accessToken', result.token, {
+      res.cookie('accessToken', tokens.accessToken, {
         httpOnly: true,
         secure: secureCookie,
         sameSite: 'lax',
         maxAge: 15 * 60 * 1000 // 15 minutes default for access token
       });
 
-      res.cookie('refreshToken', result.refreshToken, {
+      res.cookie('refreshToken', tokens.refreshToken, {
         httpOnly: true,
         secure: secureCookie,
         sameSite: 'lax',
@@ -132,7 +138,7 @@ class AuthController {
       return res.status(200).json({
         success: true,
         message: 'Token refreshed successfully',
-        ...result
+        data
       });
     } catch (error) {
       return AuthController.handleError(error, res);
@@ -195,18 +201,15 @@ class AuthController {
 
       // Request has already been validated by validation middleware
       const result = await AuthService.registerUser(req.body, req);
+      const { data } = result;
 
       logger.info(' Registration successful:', {
-        user_id: result.user.id,
-        role: result.user.role,
-        email: result.user.email
+        user_id: data.user.id,
+        role: data.user.role,
+        email: data.user.email
       });
 
-      const response = new SuccessResponse('Registration successful', 201, {
-        user: result.user,
-        profile: result.profile,
-        token: result.token
-      });
+      const response = new SuccessResponse('Registration successful', 201, data);
 
       response.send(res);
 

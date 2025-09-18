@@ -37,7 +37,7 @@ class ChatController {
       return new SuccessResponse(
         'Conversation created successfully',
         201,
-        conversation
+        { conversation }
       ).send(res);
     } catch (error) {
       api.error('❌ ChatController.createConversation error:', {
@@ -159,7 +159,7 @@ class ChatController {
    */
   static async getConversationById(req, res) {
     const conversation = await ChatService.getConversationById(req.params.id, req.user);
-    return new SuccessResponse('Conversation retrieved successfully', 200, conversation).send(res);
+    return new SuccessResponse('Conversation retrieved successfully', 200, { conversation }).send(res);
   }
 
   /**
@@ -167,23 +167,12 @@ class ChatController {
    * GET /chat/conversations
    */
   static async getUserConversations(req, res) {
-    const conversations = await ChatService.getUserConversations(req.user, req.query);
-
-    // Extract pagination info for meta using snake_case
-    const { page = 1, per_page = 10 } = req.query;
-    const meta = {
-      pagination: {
-        current_page: parseInt(page),
-        per_page: parseInt(per_page),
-        total_count: conversations.length
-      }
-    };
+    const result = await ChatService.getUserConversations(req.user, req.query);
 
     return new SuccessResponse(
       'Conversations retrieved successfully',
       200,
-      conversations,
-      meta
+      result
     ).send(res);
   }
 
@@ -193,7 +182,7 @@ class ChatController {
    */
   static async updateConversationStatus(req, res) {
     const conversation = await ChatService.updateConversationStatus(req.params.id, req.body.status, req.user);
-    return new SuccessResponse('Conversation status updated successfully', 200, conversation).send(res);
+    return new SuccessResponse('Conversation status updated successfully', 200, { conversation }).send(res);
   }
 
   /**

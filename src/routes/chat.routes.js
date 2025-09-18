@@ -19,15 +19,36 @@ const router = express.Router();
  * }
  */
 
-// ===============================================
-// CONVERSATION ROUTES
-// ===============================================
+/**
+ * @swagger
+ * tags:
+ *   name: Chat
+ *   description: Secure messaging endpoints for patients, doctors, and staff
+ */
 
 /**
- * Create a new conversation
- * POST /chat/conversations
- * Body: { target_user_id, subject, priority }
- * Auth: doctor, admin, patient
+ * @swagger
+ * /chat/conversations:
+ *   post:
+ *     summary: Create a new conversation
+ *     tags: [Chat]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/ChatConversationRequest'
+ *     responses:
+ *       201:
+ *         description: Conversation created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SuccessResponse'
+ *       400:
+ *         description: Validation error or duplicate conversation
  */
 router.post('/conversations', 
   authenticate, 
@@ -36,9 +57,37 @@ router.post('/conversations',
 );
 
 /**
- * Get available users for creating conversations with role filtering
- * GET /chat/conversations/users?role=doctor&search_term=smith&per_page=50
- * Auth: doctor, admin, patient
+ * @swagger
+ * /chat/conversations/users:
+ *   get:
+ *     summary: Get available users to start a conversation
+ *     tags: [Chat]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: role
+ *         schema:
+ *           type: string
+ *           enum: [doctor, staff, admin]
+ *         description: Filter by user role
+ *       - in: query
+ *         name: search_term
+ *         schema:
+ *           type: string
+ *         description: Partial name or email to search
+ *       - in: query
+ *         name: per_page
+ *         schema:
+ *           type: integer
+ *           default: 25
+ *     responses:
+ *       200:
+ *         description: Users retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SuccessResponse'
  */
 router.get('/conversations/users', 
   authenticate, 
@@ -47,9 +96,44 @@ router.get('/conversations/users',
 );
 
 /**
- * Get user's conversations
- * GET /chat/conversations?page=1&per_page=10&status=active
- * Auth: doctor, admin, patient
+ * @swagger
+ * /chat/conversations:
+ *   get:
+ *     summary: List conversations for the authenticated user
+ *     tags: [Chat]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *       - in: query
+ *         name: per_page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *           default: 20
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [active, archived, closed]
+ *       - in: query
+ *         name: participant_role
+ *         schema:
+ *           type: string
+ *           enum: [doctor, patient, admin, staff]
+ *     responses:
+ *       200:
+ *         description: Conversations retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/PaginatedResponse'
  */
 router.get('/conversations', 
   authenticate, 
@@ -58,9 +142,28 @@ router.get('/conversations',
 );
 
 /**
- * Get specific conversation
- * GET /chat/conversations/{conversationId}
- * Auth: doctor, admin, patient
+ * @swagger
+ * /chat/conversations/{id}:
+ *   get:
+ *     summary: Get conversation by ID
+ *     tags: [Chat]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Conversation retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SuccessResponse'
+ *       404:
+ *         description: Conversation not found
  */
 router.get('/conversations/:id', 
   authenticate, 
@@ -69,10 +172,30 @@ router.get('/conversations/:id',
 );
 
 /**
- * Update conversation status
- * PUT /chat/conversations/{conversationId}/status
- * Body: { status: 'active' | 'archived' | 'closed' }
- * Auth: doctor, admin
+ * @swagger
+ * /chat/conversations/{id}/status:
+ *   put:
+ *     summary: Update conversation status
+ *     tags: [Chat]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/ConversationStatusRequest'
+ *     responses:
+ *       200:
+ *         description: Conversation status updated successfully
+ *       400:
+ *         description: Invalid status transition
  */
 router.put('/conversations/:id/status', 
   authenticate, 
@@ -81,9 +204,24 @@ router.put('/conversations/:id/status',
 );
 
 /**
- * Delete conversation
- * DELETE /chat/conversations/{conversationId}
- * Auth: doctor, admin, patient
+ * @swagger
+ * /chat/conversations/{conversationId}:
+ *   delete:
+ *     summary: Delete a conversation thread
+ *     tags: [Chat]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: conversationId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Conversation deleted successfully
+ *       404:
+ *         description: Conversation not found
  */
 router.delete('/conversations/:conversationId', 
   authenticate, 
@@ -91,15 +229,32 @@ router.delete('/conversations/:conversationId',
   asyncHandler(ChatController.deleteConversation)
 );
 
-// ===============================================
-// LONG-POLLING CHAT MESSAGING (REAL-TIME)
-// ===============================================
 
 /**
- * Send message to a conversation (Long-Polling compatible)
- * POST /chat/conversations/{conversationId}/messages
- * Body: { content, message_type }
- * Auth: doctor, admin, patient
+ * @swagger
+ * /chat/conversations/{conversationId}/messages:
+ *   post:
+ *     summary: Send a message in a conversation
+ *     tags: [Chat]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: conversationId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/ChatMessageRequest'
+ *     responses:
+ *       201:
+ *         description: Message sent successfully
+ *       400:
+ *         description: Validation error
  */
 router.post('/conversations/:conversationId/messages', 
   authenticate, 
@@ -108,9 +263,43 @@ router.post('/conversations/:conversationId/messages',
 );
 
 /**
- * Long-polling endpoint to get new messages (replaces regular GET messages)
- * GET /chat/conversations/{conversationId}/poll?last_message_timestamp=2025-07-14T10:30:00Z&timeout_seconds=30&max_messages=50
- * Auth: doctor, admin, patient
+ * @swagger
+ * /chat/conversations/{conversationId}/poll:
+ *   get:
+ *     summary: Long-polling endpoint for new messages
+ *     tags: [Chat]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: conversationId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: last_message_timestamp
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *         description: Timestamp of the latest message already received
+ *       - in: query
+ *         name: timeout_seconds
+ *         schema:
+ *           type: integer
+ *           default: 30
+ *           maximum: 60
+ *       - in: query
+ *         name: max_messages
+ *         schema:
+ *           type: integer
+ *           default: 50
+ *     responses:
+ *       200:
+ *         description: Poll completed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SuccessResponse'
  */
 router.get('/conversations/:conversationId/poll', 
   authenticate, 
@@ -119,9 +308,29 @@ router.get('/conversations/:conversationId/poll',
 );
 
 /**
- * Get message status and delivery info
- * GET /chat/conversations/{conversationId}/messages/{messageId}/status
- * Auth: doctor, admin, patient
+ * @swagger
+ * /chat/conversations/{conversationId}/messages/{messageId}/status:
+ *   get:
+ *     summary: Get message delivery status
+ *     tags: [Chat]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: conversationId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *       - in: path
+ *         name: messageId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Message status retrieved
+ *       404:
+ *         description: Message not found
  */
 router.get('/conversations/:conversationId/messages/:messageId/status', 
   authenticate, 
@@ -129,14 +338,33 @@ router.get('/conversations/:conversationId/messages/:messageId/status',
   asyncHandler(ChatController.getMessageStatus)
 );
 
-// ===============================================
-// USER AND UTILITY ROUTES
-// ===============================================
 
 /**
- * Get available users for chat with role filtering
- * GET /chat/users?role=doctor&search_term=smith&per_page=50
- * Auth: doctor, admin, patient
+ * @swagger
+ * /chat/users:
+ *   get:
+ *     summary: List users available for chat
+ *     tags: [Chat]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: role
+ *         schema:
+ *           type: string
+ *           enum: [doctor, staff, admin]
+ *       - in: query
+ *         name: search_term
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: per_page
+ *         schema:
+ *           type: integer
+ *           default: 25
+ *     responses:
+ *       200:
+ *         description: Users retrieved successfully
  */
 router.get('/users', 
   authenticate, 

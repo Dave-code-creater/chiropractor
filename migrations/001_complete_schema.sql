@@ -648,6 +648,50 @@ INSERT INTO doctor_schedules (doctor_id, day_of_week, start_time, end_time, is_a
 INSERT INTO doctor_schedules (doctor_id, day_of_week, start_time, end_time, is_available, accepts_walkin) VALUES
 (1, 5, '09:00', '17:00', TRUE, TRUE);
 
+-- Insert default patient (password: 'patient123') for integration tests
+INSERT INTO users (email, username, password_hash, role, is_verified, phone_verified, status)
+VALUES ('jane.doe@example.com', 'janedoe', '$2a$10$dYHWxkrWH91/jOtC5BmkgutKZUkt33aymJHS8ABXifoYbiFqfyki.', 'patient', true, true, 'active')
+ON CONFLICT (email) DO NOTHING;
+
+-- Create patient profile if it does not already exist
+INSERT INTO patients (user_id, first_name, last_name, email, phone, status)
+SELECT u.id, 'Jane', 'Doe', u.email, '+1-555-0101', 'active'
+FROM users u
+WHERE u.email = 'jane.doe@example.com'
+  AND NOT EXISTS (
+    SELECT 1 FROM patients p WHERE p.user_id = u.id
+  );
+
+-- Seed a sample appointment linking the default doctor and patient
+INSERT INTO appointments (patient_id, doctor_id, appointment_date, appointment_time, reason_for_visit, additional_notes, location, status, created_by)
+SELECT p.id, d.id, DATE '2025-01-15', TIME '10:00', 'Initial consultation', 'Seeded test appointment', 'main_office', 'scheduled', d.user_id
+FROM patients p
+JOIN doctors d ON d.email = 'doctor@gmail.com'
+WHERE p.email = 'jane.doe@example.com'
+  AND NOT EXISTS (
+    SELECT 1
+    FROM appointments a
+    WHERE a.patient_id = p.id
+      AND a.doctor_id = d.id
+      AND a.appointment_date = DATE '2025-01-15'
+      AND a.appointment_time = TIME '10:00'
+  );
+
+-- Hard-coded JWT tokens for automated tests (signed with default JWT secret)
+INSERT INTO api_keys (user_id, key, is_refresh_token, status, permission_code, device_type, platform, browser, expires_at, last_used)
+SELECT u.id, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjozLCJlbWFpbCI6ImphbmUuZG9lQGV4YW1wbGUuY29tIiwicm9sZSI6InBhdGllbnQiLCJ1c2VybmFtZSI6ImphbmVkb2UiLCJzdGF0dXMiOiJhY3RpdmUiLCJ0eXBlIjoiYWNjZXNzIiwicHJvZmlsZV9pZCI6MSwiZmlyc3RfbmFtZSI6IkphbmUiLCJsYXN0X25hbWUiOiJEb2UiLCJpYXQiOjE3NTgyMjA3MzIsImV4cCI6MTc2MDgxMjczMiwiYXVkIjoiY2xpbmljLXVzZXJzIiwiaXNzIjoiY2hpcm9wcmFjdG9yLWNsaW5pYyJ9.9iUTn3-uv5gU33pBV6FOeyXDlNCmOS7PvPoSfIvvikg',
+       FALSE, TRUE, '0000', 'web', 'test-suite', 'supertest', TIMESTAMPTZ '2099-12-31 23:59:59+00', NOW()
+FROM users u
+WHERE u.email = 'jane.doe@example.com'
+ON CONFLICT (key) DO NOTHING;
+
+INSERT INTO api_keys (user_id, key, is_refresh_token, status, permission_code, device_type, platform, browser, expires_at, last_used)
+SELECT u.id, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoyLCJlbWFpbCI6ImRvY3RvckBnbWFpbC5jb20iLCJyb2xlIjoiZG9jdG9yIiwidXNlcm5hbWUiOiJkb2N0b3IiLCJzdGF0dXMiOiJhY3RpdmUiLCJ0eXBlIjoiYWNjZXNzIiwicHJvZmlsZV9pZCI6MSwiZmlyc3RfbmFtZSI6IkRpZXUiLCJsYXN0X25hbWUiOiJQaGFuIiwiaWF0IjoxNzU4MjIwNzM5LCJleHAiOjE3NjA4MTI3MzksImF1ZCI6ImNsaW5pYy11c2VycyIsImlzcyI6ImNoaXJvcHJhY3Rvci1jbGluaWMifQ.v969KHmjx0FF8OlAI5qkqvNl4Zj0JJlu7HpQS0flz4A',
+       FALSE, TRUE, '0000', 'web', 'test-suite', 'supertest', TIMESTAMPTZ '2099-12-31 23:59:59+00', NOW()
+FROM users u
+WHERE u.email = 'doctor@gmail.com'
+ON CONFLICT (key) DO NOTHING;
+
 
 -- Insert default blog categories
 INSERT INTO blog_categories (name, slug, description, is_active) VALUES

@@ -7,6 +7,13 @@ let pgPool;
 
 async function connectPostgreSQL() {
   try {
+    if (pgPool) {
+      if (!pgPool.ended) {
+        return pgPool;
+      }
+      pgPool = null;
+    }
+
     pgPool = new Pool({
       user: config.databases.postgresql.user,
       password: config.databases.postgresql.password,
@@ -39,7 +46,15 @@ function getPostgreSQLPool() {
   return pgPool;
 }
 
+async function closePostgreSQLPool() {
+  if (pgPool) {
+    await pgPool.end();
+    pgPool = null;
+  }
+}
+
 module.exports = {
   connectPostgreSQL,
-  getPostgreSQLPool
-}; 
+  getPostgreSQLPool,
+  closePostgreSQLPool
+};

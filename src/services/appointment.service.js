@@ -149,18 +149,32 @@ class AppointmentService {
           // Patients can only see their own appointments
           // Find patient record by user_id
           const patientRepo = getPatientRepository();
-          const patient = await patientRepo.findByUserId(user.id);
+          let patient = await patientRepo.findByUserId(user.id);
 
           if (patient) {
             api.info(' Found patient record:', { patient_id: patient.id, user_id: user.id });
             conditions.patient_id = patient.id;
           } else {
-            // If no patient record found, return empty results
-            api.info('⚠️ No patient record found for user');
-            return {
-              appointments: [],
-              pagination: { page, limit, total: 0, pages: 0 }
-            };
+            // If no patient record found, create one automatically for this user
+            api.info('⚠️ No patient record found for user, creating one:', { user_id: user.id });
+            try {
+              patient = await patientRepo.createPatient({
+                user_id: user.id,
+                first_name: user.firstName || user.first_name || 'Unknown',
+                last_name: user.lastName || user.last_name || 'User',
+                email: user.email,
+                phone: user.phone || null,
+                status: 'active'
+              });
+              api.info('✅ Created patient record:', { patient_id: patient.id, user_id: user.id });
+              conditions.patient_id = patient.id;
+            } catch (createError) {
+              api.error('❌ Failed to create patient record:', createError);
+              return {
+                appointments: [],
+                pagination: { page, limit, total: 0, pages: 0 }
+              };
+            }
           }
         }
         // Admin can see all appointments (no additional filtering)
@@ -197,19 +211,92 @@ class AppointmentService {
   }
 
   /**
+   * Get appointments for a specific patient with pagination and summary metadata
+   * @param {number|string} patientId - Patient identifier
+   * @param {Object} options - Query parameters (page, limit)
+   * @returns {Object} Appointments, pagination, and summary data
+   */
+  static async getPatientAppointments(patientId, options = {}) {
+    try {
+      const parsedPatientId = parseInt(patientId, 10);
+
+      if (Number.isNaN(parsedPatientId)) {
+        throw new BadRequestError('Invalid patient ID provided', '4006');
+      }
+
+      const page = Math.max(parseInt(options.page, 10) || 1, 1);
+      const limit = Math.min(Math.max(parseInt(options.limit, 10) || 10, 1), 100);
+      const offset = (page - 1) * limit;
+
+      const appointmentRepo = getAppointmentRepository();
+
+      const [appointments, totalCount, summaryResult] = await Promise.all([
+        appointmentRepo.getPatientAppointments(parsedPatientId, { limit, offset }),
+        appointmentRepo.countAppointmentsByConditions({ patient_id: parsedPatientId }),
+        appointmentRepo.query(
+          `
+            SELECT 
+              COUNT(*) AS total,
+              COUNT(*) FILTER (
+                WHERE appointment_datetime >= NOW() 
+                  AND status IN ('scheduled', 'confirmed', 'in-progress')
+              ) AS upcoming,
+              COUNT(*) FILTER (
+                WHERE appointment_datetime < NOW()
+                  AND status IN ('completed', 'cancelled', 'no-show')
+              ) AS past,
+              COUNT(*) FILTER (WHERE status = 'cancelled') AS cancelled
+            FROM appointments
+            WHERE patient_id = $1
+          `,
+          [parsedPatientId]
+        )
+      ]);
+
+      const summaryRow = summaryResult.rows?.[0] || {};
+      const summary = {
+        total: Number(summaryRow.total) || 0,
+        upcoming: Number(summaryRow.upcoming) || 0,
+        past: Number(summaryRow.past) || 0,
+        cancelled: Number(summaryRow.cancelled) || 0
+      };
+
+      const formattedAppointments = appointments.map(appointment =>
+        AppointmentService.formatAppointmentResponse(appointment)
+      );
+
+      return {
+        data: formattedAppointments,
+        pagination: {
+          page,
+          limit,
+          total: Number(totalCount) || 0,
+          pages: totalCount ? Math.ceil(totalCount / limit) : 0
+        },
+        summary
+      };
+    } catch (error) {
+      api.error('Get patient appointments service error:', error);
+      if (error instanceof BadRequestError) {
+        throw error;
+      }
+      throw new InternalServerError('Failed to retrieve patient appointments', '5048');
+    }
+  }
+
+  /**
    * Get appointment by ID
    * @param {number} appointmentId - Appointment ID
    * @returns {Object} Appointment data
    */
   static async getAppointmentById(appointmentId) {
     try {
-      const appointmentRepo = getAppointmentRepository();
-      const appointment = await appointmentRepo.findAppointmentByIdWithJoins(appointmentId);
+      const appointment = await AppointmentService.getAppointmentWithRelations(appointmentId);
       if (!appointment) {
         throw new NotFoundError('Appointment not found', '4048');
       }
 
-      return AppointmentService.formatAppointmentResponse(appointment);
+      return appointment;
     } catch (error) {
       api.error('Get appointment by ID service error:', error);
       if (error instanceof NotFoundError) {
@@ -233,6 +320,15 @@ class AppointmentService {
       api.error('Find appointment by ID service error:', error);
       throw error;
     }
+  }
+
+  static async getAppointmentWithRelations(appointmentId) {
+    const appointmentRepo = getAppointmentRepository();
+    const appointment = await appointmentRepo.findAppointmentByIdWithJoins(appointmentId);
+    if (!appointment) {
+      return null;
+    }
+    return AppointmentService.formatAppointmentResponse(appointment);
   }
 
   /**
@@ -266,10 +362,15 @@ class AppointmentService {
         }
       }
 
-      const updatedAppointment = await AppointmentService.updateAppointmentRecord(appointmentId, updateData);
+      await AppointmentService.updateAppointmentRecord(appointmentId, updateData);
       api.info(' Appointment updated:', { id: appointmentId });
 
-      return updatedAppointment;
+      const refreshedAppointment = await AppointmentService.getAppointmentWithRelations(appointmentId);
+      if (!refreshedAppointment) {
+        throw new InternalServerError('Failed to load appointment after update', '5043');
+      }
+
+      return refreshedAppointment;
     } catch (error) {
       api.error('Update appointment service error:', error);
       if (error instanceof BadRequestError || error instanceof NotFoundError) {
@@ -285,7 +386,7 @@ class AppointmentService {
    * @param {string} reason - Cancellation reason
    * @returns {Object} Cancelled appointment
    */
-  static async cancelAppointment(appointmentId, reason = null) {
+  static async cancelAppointment(appointmentId, reason = null, options = {}) {
     try {
       const appointment = await AppointmentService.findAppointmentById(appointmentId);
       if (!appointment) {
@@ -302,16 +403,89 @@ class AppointmentService {
         cancelled_at: new Date()
       };
 
-      const cancelledAppointment = await AppointmentService.updateAppointmentRecord(appointmentId, updateData);
+      if (options.cancelled_by) {
+        updateData.updated_by = options.cancelled_by;
+      }
+
+      await AppointmentService.updateAppointmentRecord(appointmentId, updateData);
       api.info(' Appointment cancelled:', { id: appointmentId });
 
-      return cancelledAppointment;
+      const refreshedAppointment = await AppointmentService.getAppointmentWithRelations(appointmentId);
+      if (!refreshedAppointment) {
+        throw new InternalServerError('Failed to load appointment after cancellation', '5044');
+      }
+
+      return refreshedAppointment;
     } catch (error) {
       api.error('Cancel appointment service error:', error);
       if (error instanceof BadRequestError || error instanceof NotFoundError) {
         throw error;
       }
       throw new InternalServerError('Failed to cancel appointment', '5044');
+    }
+  }
+
+  static async rescheduleAppointment(appointmentId, options = {}) {
+    try {
+      const { new_date, new_time, reason = null, rescheduled_by = null } = options;
+
+      if (!new_date || !new_time) {
+        throw new BadRequestError('new_date and new_time are required to reschedule an appointment', '4007');
+      }
+
+      const appointment = await AppointmentService.findAppointmentById(appointmentId);
+      if (!appointment) {
+        throw new NotFoundError('Appointment not found', '4048');
+      }
+
+      const appointmentDateTime = AppointmentService.parseAppointmentDateTime(new_date, new_time);
+      const hasConflict = await AppointmentService.checkSchedulingConflict(
+        appointment.doctor_id,
+        appointmentDateTime,
+        appointmentId
+      );
+      if (hasConflict) {
+        throw new BadRequestError('Doctor is not available at this time slot', '4093');
+      }
+
+      const updateData = {
+        appointment_date: new_date,
+        appointment_time: new_time
+      };
+
+      if (rescheduled_by) {
+        updateData.updated_by = rescheduled_by;
+      }
+
+      if (appointment.status === 'cancelled') {
+        updateData.status = 'scheduled';
+        updateData.cancelled_at = null;
+        updateData.cancellation_reason = null;
+      }
+
+      if (reason) {
+        const existingNotes = appointment.additional_notes || '';
+        const reasonNote = `Reschedule reason: ${reason}`;
+        updateData.additional_notes = existingNotes.includes(reasonNote)
+          ? existingNotes
+          : [existingNotes, reasonNote].filter(Boolean).join('\n');
+      }
+
+      await AppointmentService.updateAppointmentRecord(appointmentId, updateData);
+      api.info(' Appointment rescheduled:', { id: appointmentId });
+
+      const refreshedAppointment = await AppointmentService.getAppointmentWithRelations(appointmentId);
+      if (!refreshedAppointment) {
+        throw new InternalServerError('Failed to load appointment after reschedule', '5046');
+      }
+
+      return refreshedAppointment;
+    } catch (error) {
+      api.error('Reschedule appointment service error:', error);
+      if (error instanceof BadRequestError || error instanceof NotFoundError) {
+        throw error;
+      }
+      throw new InternalServerError('Failed to reschedule appointment', '5046');
     }
   }
 

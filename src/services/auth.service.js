@@ -120,11 +120,7 @@ class AuthService {
       // Format response for frontend
       const formattedUser = AuthService.formatUserForFrontend(result.user, result.profile);
 
-      return {
-        token: result.tokens.token,
-        refreshToken: result.tokens.refreshToken,
-        user: formattedUser
-      };
+      return AuthService.buildAuthResponse(formattedUser, result.tokens);
     } catch (error) {
       auth.error('Registration error:', error);
       
@@ -208,11 +204,7 @@ class AuthService {
       // Format user for frontend
       const formattedUser = AuthService.formatUserForFrontend(user, userWithProfile);
 
-      return {
-        token: tokens.token,
-        refreshToken: tokens.refreshToken,
-        user: formattedUser
-      };
+      return AuthService.buildAuthResponse(formattedUser, tokens);
     } catch (error) {
       auth.error('Login service error:', error);
       if (error instanceof UnauthorizedError) {
@@ -277,11 +269,7 @@ class AuthService {
       // Format user for frontend
       const formattedUser = AuthService.formatUserForFrontend(user, userWithProfile);
 
-      return {
-        token: tokens.token,
-        refreshToken: tokens.refreshToken,
-        user: formattedUser
-      };
+      return AuthService.buildAuthResponse(formattedUser, tokens);
     } catch (error) {
       auth.error('Token refresh service error:', error);
       if (error instanceof UnauthorizedError) {
@@ -595,23 +583,29 @@ class AuthService {
 
     if (profile) {
       if (user.role === 'doctor') {
+        const firstName = profile.first_name || profile.doctor_first_name || '';
+        const lastName = profile.last_name || profile.doctor_last_name || '';
         baseUser.profile = {
-          id: profile.id,
-          first_name: profile.first_name,
-          last_name: profile.last_name,
-          full_name: `${profile.first_name} ${profile.last_name}`,
+          id: profile.id || profile.doctor_id,
+          first_name: firstName || undefined,
+          last_name: lastName || undefined,
+          full_name: `${firstName} ${lastName}`.trim(),
           specialization: profile.specialization,
           license_number: profile.license_number,
           type: 'doctor'
         };
       } else if (user.role === 'patient') {
+        const firstName = profile.first_name || profile.patient_first_name || '';
+        const lastName = profile.last_name || profile.patient_last_name || '';
+        const email = profile.email || profile.patient_email || user.email;
+        const phone = profile.phone || profile.patient_phone || user.phone_number;
         baseUser.profile = {
-          id: profile.id,
-          first_name: profile.first_name,
-          last_name: profile.last_name,
-          full_name: `${profile.first_name} ${profile.last_name}`,
-          email: profile.email,
-          phone: profile.phone,
+          id: profile.id || profile.patient_id,
+          first_name: firstName || undefined,
+          last_name: lastName || undefined,
+          full_name: `${firstName} ${lastName}`.trim(),
+          email,
+          phone,
           date_of_birth: profile.date_of_birth,
           gender: profile.gender,
           marriage_status: profile.marriage_status,
@@ -622,6 +616,34 @@ class AuthService {
     }
 
     return baseUser;
+  }
+
+  /**
+   * Build standardized auth response payload with nested data
+   * @param {Object} formattedUser - User object already formatted for frontend
+   * @param {Object} tokens - Token pair from generateTokenPair
+   * @returns {Object} Standardized response with nested data
+   */
+  static buildAuthResponse(formattedUser, tokens) {
+    const responsePayload = {
+      user: formattedUser,
+      tokens: {
+        accessToken: tokens.token,
+        refreshToken: tokens.refreshToken
+      }
+    };
+
+    if (formattedUser && formattedUser.profile) {
+      responsePayload.profile = formattedUser.profile;
+
+      if (formattedUser.role === 'patient') {
+        responsePayload.patient = formattedUser.profile;
+      } else if (formattedUser.role === 'doctor') {
+        responsePayload.doctor = formattedUser.profile;
+      }
+    }
+
+    return { data: responsePayload };
   }
 
   /**
@@ -704,11 +726,7 @@ class AuthService {
       // Format response for frontend
       const formattedUser = AuthService.formatUserForFrontend(result.user, result.patient);
 
-      return {
-        token: result.tokens.token,
-        refreshToken: result.tokens.refreshToken,
-        user: formattedUser
-      };
+      return AuthService.buildAuthResponse(formattedUser, result.tokens);
 
     } catch (error) {
       auth.error('Patient registration service error:', error);

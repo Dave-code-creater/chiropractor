@@ -290,9 +290,6 @@ class UserRepository extends BaseRepository {
     return result.rows[0];
   }
 
-  // ========================================
-  // APPOINTMENT METHODS
-  // ========================================
 
   /**
    * Find appointments by date for a specific doctor
@@ -578,9 +575,6 @@ class UserRepository extends BaseRepository {
     return parseInt(result.rows[0].count);
   }
 
-  // ========================================
-  // CHAT METHODS
-  // ========================================
 
   /**
    * Find conversation between participants
@@ -1187,9 +1181,6 @@ class UserRepository extends BaseRepository {
     return result.rows[0] || null;
   }
 
-  // ========================================
-  // INCIDENTS METHODS
-  // ========================================
 
   /**
    * Create a new incident
@@ -1651,9 +1642,6 @@ class UserRepository extends BaseRepository {
     return result.rows;
   }
 
-  // ========================================
-  // TREATMENT PLAN METHODS
-  // ========================================
 
   /**
    * Create treatment plan
@@ -1907,9 +1895,6 @@ class UserRepository extends BaseRepository {
     return result.rows[0];
   }
 
-  // ============================================
-  // BLOG METHODS
-  // ============================================
 
   /**
    * Create a new blog post
@@ -2188,9 +2173,6 @@ class UserRepository extends BaseRepository {
     return result.rows.map(row => row.category);
   }
 
-  // ========================================
-  // USER ROLE AND DOCTOR INFO METHODS
-  // ========================================
 
   /**
    * Get user role and doctor information by user ID

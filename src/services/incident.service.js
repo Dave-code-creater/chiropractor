@@ -509,9 +509,6 @@ class IncidentService {
     return templates[incidentType] || [];
   }
 
-  // ========================================
-  // TREATMENT PLAN METHODS
-  // ========================================
 
   /**
    * Create treatment plan for incident

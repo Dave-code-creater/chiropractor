@@ -29,9 +29,6 @@ const { getDoctorRepository } = require('../repositories');
  */
 class AppointmentController {
 
-  // ===============================================
-  // APPOINTMENT BOOKING ENDPOINTS
-  // ===============================================
 
   /**
    * Create a new appointment booking (Universal smart routing)
@@ -117,14 +114,29 @@ class AppointmentController {
           ).send(res);
         }
 
-        // Get patient record (required)
-        const patient = await patientRepo.findByUserId(patientUser.id);
+        // Get patient record (required) - create if doesn't exist
+        let patient = await patientRepo.findByUserId(patientUser.id);
         if (!patient) {
-          return new ErrorResponse(
-            `Patient profile not found for user ${patientUser.email}. Please complete patient registration first.`,
-            404,
-            '4042'
-          ).send(res);
+          // Create patient record automatically
+          api.info('⚠️ No patient record found for recipient user, creating one:', { user_id: patientUser.id, email: patientUser.email });
+          try {
+            patient = await patientRepo.createPatient({
+              user_id: patientUser.id,
+              first_name: patientUser.firstName || patientUser.first_name || 'Unknown',
+              last_name: patientUser.lastName || patientUser.last_name || 'User',
+              email: patientUser.email,
+              phone: patientUser.phone || null,
+              status: 'active'
+            });
+            api.info('✅ Created patient record for recipient:', { patient_id: patient.id, user_id: patientUser.id });
+          } catch (createError) {
+            api.error('❌ Failed to create patient record for recipient:', createError);
+            return new ErrorResponse(
+              `Unable to create patient profile for ${patientUser.email}. Please try again or contact support.`,
+              500,
+              '5042'
+            ).send(res);
+          }
         }
 
         // For doctor_id: Use actual doctor record if exists, otherwise use user_id directly
@@ -163,14 +175,29 @@ class AppointmentController {
         // For patients: Find their patient record and force patient_id
         const { getPatientRepository } = require('../repositories');
         const patientRepo = getPatientRepository();
-        const patient = await patientRepo.findByUserId(user.id);
+        let patient = await patientRepo.findByUserId(user.id);
 
         if (!patient) {
-          return new ErrorResponse(
-            'Patient profile not found. Please complete your patient registration first.',
-            404,
-            '4042'
-          ).send(res);
+          // If no patient record found, create one automatically for this user
+          api.info('⚠️ No patient record found for user during booking, creating one:', { user_id: user.id });
+          try {
+            patient = await patientRepo.createPatient({
+              user_id: user.id,
+              first_name: user.firstName || user.first_name || 'Unknown',
+              last_name: user.lastName || user.last_name || 'User',
+              email: user.email,
+              phone: user.phone || null,
+              status: 'active'
+            });
+            api.info('✅ Created patient record during booking:', { patient_id: patient.id, user_id: user.id });
+          } catch (createError) {
+            api.error('❌ Failed to create patient record during booking:', createError);
+            return new ErrorResponse(
+              'Unable to create patient profile. Please try again or contact support.',
+              500,
+              '5042'
+            ).send(res);
+          }
         }
 
         // Override patient_id to their own record (security)
@@ -239,8 +266,10 @@ class AppointmentController {
         : { appointment };
 
       return new AppointmentCreatedSuccess({
-        ...responseData,
-        message: successMessage
+        metadata: {
+          ...responseData,
+          message: successMessage
+        }
       }).send(res);
 
     } catch (error) {
@@ -260,9 +289,6 @@ class AppointmentController {
 
 
 
-  // ===============================================
-  // APPOINTMENT RETRIEVAL ENDPOINTS
-  // ===============================================
 
   /**
    * Get current user's appointments (for patients)
@@ -404,9 +430,6 @@ class AppointmentController {
     }
   }
 
-  // ===============================================
-  // APPOINTMENT MANAGEMENT ENDPOINTS
-  // ===============================================
 
   /**
    * Update appointment
@@ -508,9 +531,6 @@ class AppointmentController {
     }
   }
 
-  // ===============================================
-  // DOCTOR AND AVAILABILITY ENDPOINTS
-  // ===============================================
 
   /**
    * Get all available doctors
@@ -729,9 +749,6 @@ class AppointmentController {
     }
   }
 
-  // ===============================================
-  // PATIENT-SPECIFIC ENDPOINTS
-  // ===============================================
 
   /**
    * Get patient appointments
@@ -739,48 +756,17 @@ class AppointmentController {
    */
   static async getPatientAppointments(req, res) {
     try {
-      const { patient_id } = req.params;
+      const patientId = req.params.patient_id || req.params.patientId;
 
-      const appointments = await AppointmentService.getPatientAppointments(patient_id, req.query);
+      if (!patientId) {
+        return new ErrorResponse('Patient ID is required', 400, '4006').send(res);
+      }
 
-      // Format appointments with nested object structure
-      const formattedAppointments = (appointments.data || appointments || []).map(appointment => ({
-        id: appointment.id,
-        appointment_datetime: appointment.appointment_datetime,
-        appointment_date: appointment.appointment_date,
-        appointment_time: appointment.appointment_time,
-        status: appointment.status,
-        location: appointment.location,
-        reason_for_visit: appointment.reason_for_visit,
-        additional_notes: appointment.additional_notes,
-
-        // Nested doctor object
-        doctor: {
-          id: appointment.doctor_id,
-          first_name: appointment.doctor_first_name,
-          last_name: appointment.doctor_last_name,
-          specialization: appointment.doctor_specialization,
-          phone_number: appointment.doctor_phone,
-          email: appointment.doctor_email
-        },
-
-        // Nested patient object
-        patient: {
-          id: appointment.patient_id,
-          first_name: appointment.patient_first_name,
-          last_name: appointment.patient_last_name,
-          phone: appointment.patient_phone,
-          email: appointment.patient_email
-        },
-
-        // Metadata
-        created_at: appointment.created_at,
-        updated_at: appointment.updated_at
-      }));
+      const appointments = await AppointmentService.getPatientAppointments(patientId, req.query);
 
       return new SuccessResponse('Patient appointments retrieved successfully', 200, {
-        patient_id,
-        appointments: formattedAppointments,
+        patient_id: Number(patientId),
+        appointments: appointments.data || [],
         pagination: appointments.pagination,
         summary: appointments.summary
       }).send(res);
@@ -796,9 +782,6 @@ class AppointmentController {
     }
   }
 
-  // ===============================================
-  // UTILITY ENDPOINTS
-  // ===============================================
 
   /**
    * Check appointment availability

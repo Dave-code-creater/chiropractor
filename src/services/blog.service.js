@@ -74,6 +74,12 @@ class BlogService {
         author_id: req.user?.id
       });
 
+      // Hydrate author context for immediate response formatting
+      blogPost.first_name = req.user?.first_name || req.user?.firstName || null;
+      blogPost.last_name = req.user?.last_name || req.user?.lastName || null;
+      blogPost.role = req.user?.role || null;
+      blogPost.username = req.user?.username || req.user?.email || null;
+
       info(' Blog post created:', {
         post_id: blogPost.id,
         title,
@@ -149,16 +155,20 @@ class BlogService {
         page
       });
 
+      const pagination = {
+        current_page: parseInt(page),
+        total_pages: Math.ceil(result.total / limit),
+        total_count: result.total,
+        per_page: parseInt(limit),
+        has_next: page * limit < result.total,
+        has_prev: page > 1
+      };
+
       return {
         posts: result.posts.map(post => BlogService.formatBlogPostResponse(post)),
-        pagination: {
-          current_page: parseInt(page),
-          total_pages: Math.ceil(result.total / limit),
-          total_count: result.total,
-          per_page: parseInt(limit),
-          has_next: page * limit < result.total,
-          has_prev: page > 1
-        }
+        meta: { pagination },
+        // Retain pagination at top-level for backward compatibility while frontends migrate to meta.pagination
+        pagination
       };
 
     } catch (error) {
@@ -269,9 +279,15 @@ class BlogService {
 
       const updatedPost = await userRepo.updateBlogPost(postId, updateData);
 
+      // Merge existing relational fields (e.g., author details) with updated data
+      const hydratedPost = {
+        ...existingPost,
+        ...updatedPost
+      };
+
       info(' Blog post updated:', { post_id: postId });
 
-      return BlogService.formatBlogPostResponse(updatedPost);
+      return BlogService.formatBlogPostResponse(hydratedPost);
 
     } catch (error) {
       logError('Update blog post service error:', error);
@@ -422,23 +438,60 @@ class BlogService {
   static formatBlogPostResponse(post) {
     if (!post) return null;
 
+    const contentBlocks = BlogService.parseJSON(post.content) || [];
+    const tags = BlogService.parseJSON(post.tags) || [];
+    const wordCount = BlogService.calculateWordCount(contentBlocks);
+
+    const status = post.status || (post.is_published ? 'published' : 'draft');
+
     return {
       id: post.id,
-      title: post.title,
-      slug: post.slug,
-      content: BlogService.parseJSON(post.content) || [],
-      excerpt: post.excerpt,
-      category: post.category,
-      tags: BlogService.parseJSON(post.tags) || [],
-      featured_image: post.featured_image_url,
-      meta_description: post.meta_description,
-      is_published: post.status === 'published',
-      author_id: post.author_id,
-      author_name: post.author_name || `${post.first_name || ''} ${post.last_name || ''}`.trim() || post.username,
-      view_count: post.view_count || 0,
-      published_at: post.published_at,
-      created_at: post.created_at,
-      updated_at: post.updated_at
+      type: 'blog_post',
+      attributes: {
+        title: post.title,
+        slug: post.slug,
+        excerpt: post.excerpt,
+        content: {
+          blocks: contentBlocks,
+          word_count: wordCount,
+          reading_time_minutes: BlogService.calculateReadingTime(wordCount)
+        },
+        taxonomy: {
+          category: post.category
+            ? {
+                name: post.category,
+                slug: BlogService.generateSlug(post.category)
+              }
+            : null,
+          tags
+        },
+        media: {
+          featured_image: post.featured_image_url || null
+        },
+        meta: {
+          description: post.meta_description || null
+        },
+        status: {
+          is_published: status === 'published',
+          state: status
+        },
+        timestamps: {
+          published_at: post.published_at || null,
+          created_at: post.created_at,
+          updated_at: post.updated_at
+        }
+      },
+      relationships: {
+        author: {
+          id: post.author_id || null,
+          name: BlogService.buildAuthorName(post),
+          role: post.role || null,
+          initials: BlogService.buildAuthorInitials(post)
+        }
+      },
+      metrics: {
+        view_count: post.view_count || 0
+      }
     };
   }
 
@@ -466,6 +519,86 @@ class BlogService {
       logError('Error parsing JSON:', error);
       return null;
     }
+  }
+
+  /**
+   * Build author full name from available fields
+   * @param {Object} post
+   * @returns {string|null}
+   */
+  static buildAuthorName(post) {
+    const firstName = post.first_name || post.author_first_name || '';
+    const lastName = post.last_name || post.author_last_name || '';
+    const fullName = `${firstName} ${lastName}`.trim();
+
+    if (fullName) {
+      return fullName;
+    }
+
+    if (post.author_name) {
+      return post.author_name;
+    }
+
+    if (post.username) {
+      return post.username;
+    }
+
+    return null;
+  }
+
+  /**
+   * Build author initials from name data
+   * @param {Object} post
+   * @returns {string|null}
+   */
+  static buildAuthorInitials(post) {
+    const name = BlogService.buildAuthorName(post);
+
+    if (!name) {
+      return null;
+    }
+
+    const parts = name.split(' ').filter(Boolean);
+    if (!parts.length) {
+      return null;
+    }
+
+    const initials = parts.map(part => part.charAt(0).toUpperCase()).join('');
+    return initials || null;
+  }
+
+  /**
+   * Calculate word count from content blocks
+   * @param {Array} contentBlocks
+   * @returns {number}
+   */
+  static calculateWordCount(contentBlocks) {
+    if (!Array.isArray(contentBlocks) || contentBlocks.length === 0) {
+      return 0;
+    }
+
+    return contentBlocks.reduce((total, block) => {
+      if (!block || typeof block.text !== 'string') {
+        return total;
+      }
+
+      const words = block.text.trim().split(/\s+/).filter(Boolean);
+      return total + words.length;
+    }, 0);
+  }
+
+  /**
+   * Estimate reading time in minutes based on word count
+   * @param {number} wordCount
+   * @param {number} wordsPerMinute
+   * @returns {number}
+   */
+  static calculateReadingTime(wordCount, wordsPerMinute = 200) {
+    if (!wordCount || wordCount <= 0) {
+      return 0;
+    }
+
+    return Math.max(1, Math.ceil(wordCount / wordsPerMinute));
   }
 }
 

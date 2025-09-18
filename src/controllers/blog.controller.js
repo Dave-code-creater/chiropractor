@@ -34,7 +34,11 @@ class BlogController {
       const response = new SuccessResponse(
         'Blog posts retrieved successfully',
         200,
-        result
+        {
+          posts: result.posts,
+          meta: result.meta,
+          pagination: result.pagination
+        }
       );
       response.send(res);
 
@@ -67,7 +71,7 @@ class BlogController {
       const response = new SuccessResponse(
         'Blog post retrieved successfully',
         200,
-        post
+        { post }
       );
       response.send(res);
 
@@ -135,7 +139,7 @@ class BlogController {
       const response = new SuccessResponse(
         'Blog post created successfully',
         201,
-        post
+        { post }
       );
       response.send(res);
 
@@ -177,7 +181,7 @@ class BlogController {
       const response = new SuccessResponse(
         'Blog post updated successfully',
         200,
-        post
+        { post }
       );
       response.send(res);
 
@@ -211,7 +215,12 @@ class BlogController {
       const response = new SuccessResponse(
         'Blog post deleted successfully',
         200,
-        { deleted: true }
+        {
+          post: {
+            id: parseInt(id, 10),
+            status: { deleted: true }
+          }
+        }
       );
       response.send(res);
 

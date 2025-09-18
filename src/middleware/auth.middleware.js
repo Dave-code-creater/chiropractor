@@ -258,7 +258,10 @@ const authenticateForLogout = async (req, res, next) => {
  */
 const authorizeAppointmentAccess = async (req, res, next) => {
   try {
-    const appointmentId = req.params.id;
+    const appointmentId =
+      req.params.id ||
+      req.params.appointmentId ||
+      req.params.appointment_id;
     const user = req.user;
     
     if (!appointmentId) {
@@ -358,7 +361,17 @@ const authorizeAppointmentAccess = async (req, res, next) => {
  */
 const authorizePatientAppointments = async (req, res, next) => {
   try {
-    const requestedPatientId = req.params.patientId;
+    const requestedPatientId =
+      req.params.patientId ||
+      req.params.patient_id;
+
+    if (!requestedPatientId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Patient ID is required',
+        statusCode: 400
+      });
+    }
     const user = req.user;
 
     // Admin and staff can access all patient appointments
@@ -400,7 +413,7 @@ const authorizePatientAppointments = async (req, res, next) => {
       const userPatientId = result.rows[0].id;
 
       // Check if requested patient ID matches user's patient ID
-      if (parseInt(requestedPatientId) !== userPatientId) {
+      if (parseInt(requestedPatientId, 10) !== userPatientId) {
         return res.status(403).json({
           success: false,
           message: 'Access denied. You can only view your own appointments.',

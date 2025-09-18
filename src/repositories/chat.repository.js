@@ -214,6 +214,35 @@ class ChatRepository extends BaseRepository {
   }
 
   /**
+   * Find a message by ID with sender metadata
+   * @param {number} messageId - Message ID
+   * @returns {Object|null} Message with sender details or null
+   */
+  async findMessageById(messageId) {
+    try {
+      const query = `
+        SELECT 
+          m.*,
+          u.email as sender_email,
+          COALESCE(p.first_name, d.first_name, u.username) as sender_first_name,
+          COALESCE(p.last_name, d.last_name, '') as sender_last_name
+        FROM messages m
+        LEFT JOIN users u ON m.sender_id = u.id
+        LEFT JOIN patients p ON m.sender_type = 'patient' AND p.user_id = m.sender_id
+        LEFT JOIN doctors d ON m.sender_type = 'doctor' AND d.user_id = m.sender_id
+        WHERE m.id = $1
+        LIMIT 1
+      `;
+
+      const result = await this.query(query, [messageId]);
+      return result.rows[0] || null;
+    } catch (error) {
+      api.error('Error finding message by ID:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Get new messages since a specific timestamp for Long-Polling
    * @param {Object} options - Query options
    * @returns {Array} New messages

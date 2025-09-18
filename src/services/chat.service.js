@@ -166,8 +166,13 @@ class ChatService {
       );
 
       if (existingConversation && existingConversation.status === 'active') {
-        chat.info(' Existing conversation found:', { conversation_id: existingConversation.id });
-        return ChatService.formatConversationResponse(existingConversation);
+        chat.info(' Existing conversation found:', {
+          id: existingConversation.id,
+          conversation_id: existingConversation.conversation_id
+        });
+
+        const hydratedExistingConversation = await chatRepo.findConversationById(existingConversation.conversation_id);
+        return ChatService.formatConversationResponse(hydratedExistingConversation || existingConversation);
       }
 
       // Create new conversation
@@ -181,15 +186,17 @@ class ChatService {
         status: 'active'
       });
 
+      const persistedConversation = await chatRepo.findConversationById(conversation.conversation_id);
+
       chat.info(' Conversation created:', {
-        conversation_id: conversation.id,
+        conversation_id: conversation.conversation_id,
         patient_id,
         doctor_id,
         current_user_role: currentUser.role,
         target_user_role: targetUser.role
       });
 
-      return ChatService.formatConversationResponse(conversation);
+      return ChatService.formatConversationResponse(persistedConversation || conversation);
 
     } catch (error) {
       chat.error('Create conversation service error:', error);
@@ -255,12 +262,14 @@ class ChatService {
         sender_id: req.user.id
       });
 
+      const persistedMessage = await chatRepo.findMessageById(message.id);
+
       // Format response for Long-Polling clients
-      const formattedMessage = ChatService.formatMessageResponse(message);
+      const formattedMessage = ChatService.formatMessageResponse(persistedMessage || message);
 
       return {
-        ...formattedMessage,
-        sent_timestamp: message.sent_at,
+        message: formattedMessage,
+        sent_timestamp: formattedMessage.sent_at,
         conversation_updated: true
       };
 
@@ -539,38 +548,49 @@ class ChatService {
    */
   static async getUserConversations(user, query = {}) {
     try {
-      const chatRepo = getChatRepository();
-
       const {
         page = 1,
         per_page = 10,
-        status = 'active'
+        status = 'active',
+        participant_type = null
       } = query;
 
-      const offset = (page - 1) * per_page;
+      const currentPage = Number.parseInt(page, 10) || 1;
+      const perPage = Number.parseInt(per_page, 10) || 10;
+      const offset = (currentPage - 1) * perPage;
 
-      const conversations = await chatRepo.getUserConversations(user, {
-        limit: parseInt(per_page),
-        offset,
-        status
+      const userRepo = getUserRepository();
+      const result = await userRepo.findUserConversations({
+        user_id: user.id,
+        user_role: user.role,
+        status,
+        conversation_type: participant_type,
+        limit: perPage,
+        offset
       });
+
+      const formattedConversations = result.conversations.map(conversation =>
+        ChatService.formatConversationResponse(conversation)
+      );
+
+      const totalCount = Number.isFinite(result.total) ? result.total : formattedConversations.length;
+      const totalPages = totalCount === 0 ? 0 : Math.ceil(totalCount / perPage);
 
       chat.info('✅ User conversations retrieved:', {
         user_id: user.id,
-        count: conversations.length
+        count: formattedConversations.length,
+        total: totalCount
       });
 
       return {
-        conversations: conversations.map(conversation =>
-          ChatService.formatConversationResponse(conversation)
-        ),
+        conversations: formattedConversations,
         pagination: {
-          current_page: parseInt(page),
-          total_pages: Math.ceil(conversations.length / per_page),
-          total_count: conversations.length,
-          per_page: parseInt(per_page),
-          has_next: page * per_page < conversations.length,
-          has_prev: page > 1
+          current_page: currentPage,
+          total_pages: totalPages,
+          total_count: totalCount,
+          per_page: perPage,
+          has_next: currentPage * perPage < totalCount,
+          has_prev: currentPage > 1
         }
       };
 
@@ -601,14 +621,16 @@ class ChatService {
         throw new ForbiddenError('You are not authorized to close conversations', '4033');
       }
 
-      const updatedConversation = await chatRepo.updateConversationStatus(conversationId, status);
+      await chatRepo.updateConversationStatus(conversationId, status);
 
       chat.info(' Conversation status updated:', {
         conversation_id: conversationId,
         status
       });
 
-      return ChatService.formatConversationResponse(updatedConversation);
+      const hydratedConversation = await chatRepo.findConversationById(conversationId);
+
+      return ChatService.formatConversationResponse(hydratedConversation || conversation);
 
     } catch (error) {
       chat.error('Update conversation status service error:', error);
@@ -1009,7 +1031,10 @@ class ChatService {
 
       // Create conversation
       const chatRepo = getChatRepository();
+      const conversationIdentifier = `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
       const conversation = await chatRepo.createConversation({
+        conversation_id: conversationIdentifier,
         doctor_id,
         patient_id,
         title,
@@ -1028,30 +1053,12 @@ class ChatService {
         status: 'sent'
       });
 
+      const hydratedConversation = await chatRepo.findConversationById(conversation.conversation_id);
+      const hydratedMessage = await chatRepo.findMessageById(message.id);
+
       return {
-        conversation: {
-          id: conversation.id,
-          conversation_id: conversation.conversation_id,
-          doctor_id: conversation.doctor_id,
-          doctor_name: `${doctor.first_name} ${doctor.last_name}`,
-          patient_id: conversation.patient_id,
-          patient_name: patient ? `${patient.first_name} ${patient.last_name}` : null,
-          title: conversation.title,
-          participant_type: conversation.participant_type,
-          status: conversation.status,
-          created_at: conversation.created_at,
-          updated_at: conversation.updated_at
-        },
-        initial_message: {
-          id: message.id,
-          conversation_id: message.conversation_id,
-          content: message.content,
-          sender_type: message.sender_type,
-          sender_id: message.sender_id,
-          message_type: message.message_type,
-          status: message.status,
-          created_at: message.created_at
-        }
+        conversation: ChatService.formatConversationResponse(hydratedConversation || conversation),
+        initial_message: ChatService.formatMessageResponse(hydratedMessage || message)
       };
 
     } catch (error) {
@@ -1163,35 +1170,80 @@ class ChatService {
   static formatConversationResponse(conversation) {
     if (!conversation) return null;
 
-    // Handle doctor name formatting
-    let doctor_name = null;
-    if (conversation.doctor_id && conversation.doctor_first_name && conversation.doctor_last_name) {
-      doctor_name = `${conversation.doctor_first_name} ${conversation.doctor_last_name}`;
-    } else if (conversation.doctor_name && conversation.doctor_name !== 'undefined undefined') {
-      doctor_name = conversation.doctor_name;
-    }
+    const safeTrim = value => (typeof value === 'string' ? value.trim() : value);
 
-    // Handle patient name formatting
-    let patient_name = null;
-    if (conversation.patient_id && conversation.patient_first_name && conversation.patient_last_name) {
-      patient_name = `${conversation.patient_first_name} ${conversation.patient_last_name}`;
-    } else if (conversation.patient_name && conversation.patient_name !== 'undefined undefined') {
-      patient_name = conversation.patient_name;
-    }
+    const resolveNameParts = (firstName, lastName, fallbackName) => {
+      const resolvedFirst = safeTrim(firstName);
+      const resolvedLast = safeTrim(lastName);
+
+      if (resolvedFirst || resolvedLast) {
+        return {
+          first_name: resolvedFirst || null,
+          last_name: resolvedLast || null,
+          full_name: [resolvedFirst, resolvedLast].filter(Boolean).join(' ') || null
+        };
+      }
+
+      if (fallbackName && fallbackName !== 'undefined undefined') {
+        const parts = fallbackName.split(' ').filter(Boolean);
+        const [first, ...rest] = parts;
+        return {
+          first_name: first || null,
+          last_name: rest.length ? rest.join(' ') : null,
+          full_name: parts.length ? parts.join(' ') : null
+        };
+      }
+
+      return {
+        first_name: null,
+        last_name: null,
+        full_name: null
+      };
+    };
+
+    const patientNameParts = resolveNameParts(
+      conversation.patient_first_name,
+      conversation.patient_last_name,
+      conversation.patient_name
+    );
+
+    const doctorNameParts = resolveNameParts(
+      conversation.doctor_first_name,
+      conversation.doctor_last_name,
+      conversation.doctor_name
+    );
+
+    const patient = conversation.patient_id ? {
+      id: conversation.patient_id,
+      ...patientNameParts,
+      email: conversation.patient_email || null
+    } : null;
+
+    const doctor = conversation.doctor_id ? {
+      id: conversation.doctor_id,
+      ...doctorNameParts,
+      email: conversation.doctor_email || null
+    } : null;
+
+    const lastActivity = {
+      message: conversation.last_message || null,
+      occurred_at: conversation.last_message_at || conversation.updated_at || null
+    };
+
+    const hasLastActivity = lastActivity.message !== null || lastActivity.occurred_at !== null;
 
     return {
       id: conversation.id,
       conversation_id: conversation.conversation_id,
-      patient_id: conversation.patient_id,
-      patient_name: patient_name,
-      doctor_id: conversation.doctor_id,
-      doctor_name: doctor_name,
       title: conversation.title,
       description: conversation.description,
       participant_type: conversation.participant_type,
       status: conversation.status,
-      last_message: conversation.last_message,
-      last_message_at: conversation.last_message_at,
+      participants: {
+        patient,
+        doctor
+      },
+      last_activity: hasLastActivity ? lastActivity : null,
       unread_count: conversation.unread_count || 0,
       created_at: conversation.created_at,
       updated_at: conversation.updated_at
@@ -1206,18 +1258,33 @@ class ChatService {
   static formatMessageResponse(message) {
     if (!message) return null;
 
+    const senderFirstName = message.sender_first_name || null;
+    const senderLastName = message.sender_last_name || null;
+    const senderFullName = message.sender_name ||
+      [senderFirstName, senderLastName].filter(Boolean).join(' ') ||
+      null;
+
+    const attachment = message.attachment_url || message.attachment_type ? {
+      url: message.attachment_url || null,
+      type: message.attachment_type || null
+    } : null;
+
     return {
       id: message.id,
       conversation_id: message.conversation_id,
-      sender_id: message.sender_id,
-      sender_type: message.sender_type,
-      sender_name: message.sender_name ||
-        `${message.sender_first_name} ${message.sender_last_name}`,
-      message_content: message.content,
+      sender: {
+        id: message.sender_id,
+        type: message.sender_type,
+        name: senderFullName,
+        first_name: senderFirstName,
+        last_name: senderLastName,
+        email: message.sender_email || null
+      },
+      content: message.content,
       message_type: message.message_type,
-      attachment_url: message.attachment_url,
-      attachment_type: message.attachment_type,
-      is_read: message.is_read,
+      attachment,
+      delivery_status: message.delivery_status || message.status || 'sent',
+      is_read: typeof message.is_read === 'boolean' ? message.is_read : Boolean(message.read_at),
       sent_at: message.sent_at,
       updated_at: message.updated_at
     };
