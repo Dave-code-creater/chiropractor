@@ -108,10 +108,25 @@ apiV1.use('/doctors', doctorRoutes);
 apiV1.use('/incidents', incidentRoutes);
 apiV1.use('/vitals', vitalsRoutes);
 
+// Swagger Documentation
+const swaggerUi = require('swagger-ui-express');
+const swaggerSpecs = require('./config/swagger');
+
+// Swagger UI route
+app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs, {
+  explorer: true,
+  customCss: '.swagger-ui .topbar { display: none }',
+  customSiteTitle: 'Chiropractor Clinic API Documentation',
+  swaggerOptions: {
+    persistAuthorization: true,
+  },
+}));
+
 // Debug routes (development only)
 if (process.env.NODE_ENV === 'development') {
   apiV1.use('/debug', debugRoutes);
   info('🐛 Debug routes enabled for development');
+  info('📚 API Documentation available at: http://localhost:3000/api/docs');
 }
 
 // Mount API routes

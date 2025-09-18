@@ -2,7 +2,9 @@ const {
   AppointmentCreatedSuccess,
   AppointmentsRetrievedSuccess,
   SuccessResponse,
-  ErrorResponse
+  PaginatedResponse,
+  ErrorResponse,
+  createPaginationResponse
 } = require('../utils/httpResponses');
 const { getPostgreSQLPool } = require('../config/database');
 const { appointmentCreateSchema, appointmentUpdateSchema } = require('../validators');
@@ -298,23 +300,21 @@ class AppointmentController {
       const page = parseInt(req.query.page || 1);
       const limit = parseInt(req.query.limit || 50);
 
-      return new SuccessResponse('Your appointments retrieved successfully', 200, {
-        appointments: enhancedAppointments,
-        pagination: {
-          page,
-          limit,
-          total,
-          totalPages: Math.ceil(total / limit),
-          hasNext: page < Math.ceil(total / limit),
-          hasPrevious: page > 1
-        },
-        summary: {
-          total_appointments: total,
-          upcoming_appointments: enhancedAppointments.filter(a => a.is_upcoming).length,
-          completed_appointments: enhancedAppointments.filter(a => a.status === 'completed').length,
-          cancelled_appointments: enhancedAppointments.filter(a => a.status === 'cancelled').length
-        }
-      }).send(res);
+      const summary = {
+        total_appointments: total,
+        upcoming_appointments: enhancedAppointments.filter(a => a.is_upcoming).length,
+        completed_appointments: enhancedAppointments.filter(a => a.status === 'completed').length,
+        cancelled_appointments: enhancedAppointments.filter(a => a.status === 'cancelled').length
+      };
+
+      return new PaginatedResponse(
+        'Your appointments retrieved successfully',
+        enhancedAppointments,
+        page,
+        limit,
+        total,
+        { summary }
+      ).send(res);
 
     } catch (error) {
       api.error(' Get my appointments error:', error);
@@ -351,10 +351,14 @@ class AppointmentController {
       });
 
       // Appointments are already formatted by the service layer
-      return new AppointmentsRetrievedSuccess(
+      const { page = 1, limit = 10, total = 0 } = result.pagination || {};
+
+      return new PaginatedResponse(
         'Appointments retrieved successfully',
         result.appointments,
-        result.pagination
+        page,
+        limit,
+        total
       ).send(res);
 
     } catch (error) {

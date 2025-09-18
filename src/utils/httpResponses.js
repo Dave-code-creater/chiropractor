@@ -84,8 +84,12 @@ class AppointmentCreatedSuccess extends BaseResponse {
 }
 
 class AppointmentsRetrievedSuccess extends BaseResponse {
-  constructor({ metadata }) {
-    super('Appointments retrieved successfully', 200, metadata);
+  constructor(message = 'Appointments retrieved successfully', data = [], pagination = null) {
+    const responseData = {
+      appointments: data,
+      ...(pagination && { pagination })
+    };
+    super(message, 200, responseData);
   }
 }
 
@@ -185,9 +189,36 @@ class InternalServerError extends ErrorResponse {
   }
 }
 
+// Utility function to create standardized pagination object
+const createPaginationResponse = (page, limit, total, hasNext = null, hasPrevious = null) => {
+  const totalPages = Math.ceil(total / limit);
+  return {
+    page: parseInt(page),
+    limit: parseInt(limit),
+    total: parseInt(total),
+    totalPages,
+    hasNext: hasNext !== null ? hasNext : page < totalPages,
+    hasPrevious: hasPrevious !== null ? hasPrevious : page > 1
+  };
+};
+
+// Standardized response for paginated data
+class PaginatedResponse extends BaseResponse {
+  constructor(message, data = [], page = 1, limit = 10, total = 0, meta = null) {
+    const pagination = createPaginationResponse(page, limit, total);
+    const responseData = {
+      data,
+      pagination,
+      ...(meta && { meta })
+    };
+    super(message, 200, responseData);
+  }
+}
+
 module.exports = {
   BaseResponse,
   SuccessResponse,
+  PaginatedResponse,
   SignupSuccess,
   LoginSuccess,
   LogoutSuccess,
@@ -209,5 +240,6 @@ module.exports = {
   NotFoundError,
   ConflictError,
   ValidationError,
-  InternalServerError
+  InternalServerError,
+  createPaginationResponse
 }; 
